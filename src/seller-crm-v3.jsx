@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SB } from "./supabase.js";
+import { supabase as SB } from "./supabase.js";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
 
 // 
