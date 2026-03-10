@@ -585,7 +585,6 @@ function LeadModal({ lead, users, currentUser, isSupervisor, onClose, onSave, on
   const [newTipo, setNewTipo]       = useState("llamada");
   const [blockNote, setBlockNote]   = useState("");
   const [showBlock, setShowBlock]   = useState(false);
-  const [verifCheck, setVerifCheck] = useState({});
   const comm = useCommPanel();
 
   const set = (k, v) => setDraft(p => ({ ...p, [k]: v }));
@@ -594,11 +593,7 @@ function LeadModal({ lead, users, currentUser, isSupervisor, onClose, onSave, on
   const isAlert         = dias >= ALERT_DAYS && !["venta","no_interesado"].includes(lead.status) && !lead.bloqueado;
   const sc              = STATUS_CFG[draft.status];
   const canEdit         = !lead.bloqueado || isSupervisor;
-  const isVentaVerif    = ["venta","verificacion"].includes(draft.status);
-  const wasVentaVerif   = ["venta","verificacion"].includes(lead.status);
-  const showChecklist   = isVentaVerif && !wasVentaVerif;
-  const verifComplete   = VERIF_ITEMS.every((_, i) => verifCheck[i]);
-  const canSeePaquete   = true; // Siempre visible - se puede ir llenando desde el primer contacto
+  const canSeePaquete   = true;
 
   const addNota = () => {
     if (!newNota.trim()) return;
@@ -608,7 +603,6 @@ function LeadModal({ lead, users, currentUser, isSupervisor, onClose, onSave, on
   };
 
   const handleSave = () => {
-    if (showChecklist && !verifComplete) return;
     onSave(draft);
   };
 
@@ -641,25 +635,6 @@ function LeadModal({ lead, users, currentUser, isSupervisor, onClose, onSave, on
             {STATUS_ORDER.map(k => <option key={k} value={k}>{STATUS_CFG[k].label}</option>)}
           </select>
         </div>
-
-        {/* Checklist */}
-        {showChecklist && (
-          <div style={{ marginBottom:"14px", padding:"14px", borderRadius:"12px", background:"rgba(129,140,248,0.08)", border:`2px solid ${verifComplete?"rgba(74,222,128,0.4)":"rgba(129,140,248,0.3)"}` }}>
-            <div style={{ fontSize:"11px", fontWeight:"700", color:verifComplete?"#1a7f3c":"#1565c0", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:"10px" }}>
-               Checklist - {VERIF_ITEMS.filter((_,i)=>verifCheck[i]).length}/{VERIF_ITEMS.length}
-            </div>
-            {VERIF_ITEMS.map((item, i) => (
-              <div key={i} onClick={() => setVerifCheck(p=>({...p,[i]:!p[i]}))}
-                style={{ display:"flex", alignItems:"center", gap:"8px", padding:"6px 8px", borderRadius:"7px", cursor:"pointer", marginBottom:"4px", background:verifCheck[i]?"rgba(74,222,128,0.07)":"transparent", border:`1px solid ${verifCheck[i]?"rgba(74,222,128,0.2)":"#f6f7f9"}` }}>
-                <div style={{ width:"16px", height:"16px", borderRadius:"4px", border:`2px solid ${verifCheck[i]?"#1a7f3c":"#9ca3af"}`, background:verifCheck[i]?"#1a7f3c":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                  {verifCheck[i] && <span style={{ fontSize:"10px", color:"#ffffff", fontWeight:"900" }}></span>}
-                </div>
-                <span style={{ fontSize:"12px", color:verifCheck[i]?"#1a7f3c":"#6b7280" }}>{item}</span>
-              </div>
-            ))}
-            {!verifComplete && <div style={{ fontSize:"11px", color:"#b91c1c", marginTop:"8px" }}> Completa el checklist para guardar</div>}
-          </div>
-        )}
 
         {/* Tabs */}
         <div style={{ display:"flex", gap:"5px", borderBottom:"1px solid #e3e6ea", marginBottom:"14px", flexWrap:"wrap", paddingBottom:"8px" }}>
@@ -863,7 +838,7 @@ function NuevoLeadModal({ currentUser, users, onClose, onSave }) {
   useState(() => {
     var hoy = new Date().toISOString().split("T")[0];
     Promise.all([
-      SB.from("radio_spots").select("*").gte("fecha", hoy).order("fecha").order("hora"),
+      SB.from("radio_spots").select("*").eq("fecha", hoy).order("hora"),
       SB.from("emisoras").select("id,nombre").order("nombre"),
     ]).then(function(results) {
       var resS = results[0];
