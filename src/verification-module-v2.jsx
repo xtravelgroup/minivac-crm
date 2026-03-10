@@ -676,59 +676,164 @@ function SectionPaquete({ exp, onEdit }) {
   );
 }
 
-function SectionCobro({ exp, verif, onCharge }) {
-  const [showCVV, setShowCVV] = useState(false);
-  const hasTarjeta = ["tarjeta","tarjeta_credito","tarjeta_debito"].includes(exp.metodoPago) && exp.tarjetaNumero;
+// Zoho Payments config
+var ZOHO_ACCOUNT_ID = "874101637";
+var ZOHO_API_KEY    = "1003.afb484f19b10b5674c7e6f7c0c0ee5f5.89f010a430837bed480829a015a88641";
+// URL de tu Supabase Edge Function
+var EDGE_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/zoho-payments";
+
+function SectionCobro({ lead, exp, verif, onChargeResult }) {
+  var [loading,  setLoading]  = useState(false);
+  var [error,    setError]    = useState(null);
+  var [zohoReady, setZohoReady] = useState(false);
+  var yaPagado = verif && verif.paymentStatus === "approved";
+
+  // Cargar script de Zoho Payments una vez
+  useState(function() {
+    if (window.ZPayments) { setZohoReady(true); return; }
+    var script = document.createElement("script");
+    script.src = "https://payments.zoho.com/sdk/zpayments.js";
+    script.onload = function() { setZohoReady(true); };
+    script.onerror = function() { setError("No se pudo cargar el SDK de Zoho Payments"); };
+    document.head.appendChild(script);
+  });
+
+  var handleCobrar = function() {
+    if (!zohoReady || !window.ZPayments) {
+      setError("SDK de Zoho Payments no disponible");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+
+    // 1. Crear Payment Session via Edge Function
+    fetch(EDGE_URL + "/create-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        lead_id:  lead.id,
+        amount:   exp.pagoInicial,
+        currency: "USD",
+        folio:    lead.id,
+        nombre:   exp.tFirstName + " " + exp.tLastName,
+      }),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) throw new Error(data.error);
+
+      var sessionId = data.payments_session_id;
+
+      // 2. Inicializar widget de Zoho Payments
+      var config = {
+        account_id: ZOHO_ACCOUNT_ID,
+        domain:     "US",
+        otherOptions: { api_key: ZOHO_API_KEY },
+      };
+      var instance = new window.ZPayments(config);
+
+      // 3. Abrir widget para cobrar
+      var options = {
+        amount:              String(exp.pagoInicial),
+        currency_code:       "USD",
+        payments_session_id: sessionId,
+        currency_symbol:     "$",
+        business:            "Mini-Vac Travel",
+        description:         "Enganche - " + exp.tFirstName + " " + exp.tLastName,
+        invoice_number:      lead.id,
+        reference_number:    lead.id,
+        address: {
+          name:  exp.tFirstName + " " + exp.tLastName,
+          email: exp.tEmail || "",
+          phone: exp.tPhone || "",
+        },
+      };
+
+      instance.requestPaymentMethod(options)
+        .then(function(result) {
+          setLoading(false);
+          instance.close();
+          // Pago completado
+          onChargeResult("approved", result.payment_id || "");
+        })
+        .catch(function(err) {
+          setLoading(false);
+          instance.close();
+          if (err.code === "widget_closed") {
+            setError("Pago cancelado");
+          } else {
+            setError("Error: " + (err.message || JSON.stringify(err)));
+            onChargeResult("rejected", "");
+          }
+        });
+    })
+    .catch(function(err) {
+      setLoading(false);
+      setError("Error creando sesion de pago: " + err.message);
+    });
+  };
 
   return (
     <div style={S.card}>
-      <div style={S.sTitle}>Pago</div>
-      {hasTarjeta ? (
+      <div style={S.sTitle}>Pago via Zoho Payments</div>
+
+      {/* Resumen del cobro */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"14px 16px", borderRadius:"10px", background:"#f4f5f7", border:"1px solid #e3e6ea", marginBottom:"14px" }}>
         <div>
-          <div style={{ background:"linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#1e1b4b 100%)", borderRadius:"14px", padding:"20px 22px", marginBottom:"14px", border:"1px solid rgba(129,140,248,0.2)" }}>
-            <div style={{ fontSize:"16px", fontWeight:"700", letterSpacing:"0.12em", color:"#3d4554", marginBottom:"14px", fontFamily:"monospace" }}>{maskCard(exp.tarjetaNumero)}</div>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end" }}>
-              <div>
-                <div style={{ fontSize:"9px", color:"#1565c0", marginBottom:"2px" }}>TITULAR</div>
-                <div style={{ fontSize:"13px", fontWeight:"600", color:"#3d4554" }}>{exp.tarjetaNombre}</div>
-              </div>
-              <div style={{ display:"flex", gap:"14px" }}>
-                {[["VENCE",exp.tarjetaVence],["TIPO",exp.tarjetaTipo]].map(([l,v]) => (
-                  <div key={l}>
-                    <div style={{ fontSize:"9px", color:"#1565c0", marginBottom:"2px" }}>{l}</div>
-                    <div style={{ fontSize:"12px", fontWeight:"600", color:"#3d4554", textTransform:"capitalize" }}>{v}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div style={{ display:"inline-flex", alignItems:"center", gap:"8px", marginBottom:"14px", padding:"7px 14px", borderRadius:"8px", background:"#fffbe0", border:"1px solid rgba(251,191,36,0.2)", cursor:"pointer" }} onClick={() => setShowCVV(p => !p)}>
-            <span style={{ fontSize:"12px", color:"#925c0a" }}>CVV (solo verificador):</span>
-            <span style={{ fontSize:"14px", fontWeight:"800", color:"#925c0a", letterSpacing:"0.2em" }}>{showCVV ? exp.tarjetaCVV : "***"}</span>
-            <span style={{ fontSize:"11px", color:"#92400e" }}>{showCVV ? "ocultar" : "ver"}</span>
-          </div>
-          <div style={{ padding:"8px 12px", borderRadius:"8px", background:"rgba(248,113,113,0.07)", border:"1px solid rgba(248,113,113,0.2)", marginBottom:"14px", fontSize:"11px", color:"#b91c1c" }}>
-            Los datos de tarjeta se borraran al completar la verificacion.
-          </div>
+          <div style={{ fontSize:"11px", color:"#9ca3af", marginBottom:"2px" }}>ENGANCHE A COBRAR</div>
+          <div style={{ fontSize:"24px", fontWeight:"800", color:"#1a385a" }}>{fmtUSD(exp.pagoInicial)}</div>
         </div>
-      ) : (
-        <div style={{ padding:"12px 14px", borderRadius:"10px", background:"rgba(96,165,250,0.07)", border:"1px solid rgba(96,165,250,0.2)", marginBottom:"14px" }}>
-          <div style={{ fontSize:"13px", fontWeight:"600", color:"#1565c0" }}>Pago por transferencia bancaria</div>
-          <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"3px" }}>Verificar comprobante antes de procesar</div>
+        <div style={{ textAlign:"right" }}>
+          <div style={{ fontSize:"11px", color:"#9ca3af", marginBottom:"2px" }}>PRECIO TOTAL</div>
+          <div style={{ fontSize:"14px", fontWeight:"600", color:"#6b7280" }}>{fmtUSD(exp.salePrice)}</div>
+        </div>
+      </div>
+
+      {/* Estado si ya fue pagado */}
+      {yaPagado && (
+        <div style={{ padding:"12px 14px", borderRadius:"10px", background:"#edf7ee", border:"1px solid #a3d9a5", marginBottom:"14px" }}>
+          <div style={{ fontSize:"13px", fontWeight:"700", color:"#1a7f3c" }}>Pago procesado</div>
+          {verif.zohoPaymentId && (
+            <div style={{ fontSize:"11px", color:"#6b7280", marginTop:"3px" }}>ID: {verif.zohoPaymentId} - {verif.brand} *{verif.last4}</div>
+          )}
         </div>
       )}
+
+      {/* Intentos fallidos */}
       {verif && verif.chargeAttempts && verif.chargeAttempts.length > 0 && (
         <div style={{ marginBottom:"12px" }}>
-          <div style={S.label}>Intentos de cobro</div>
-          {verif.chargeAttempts.map((a,i) => (
-            <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 12px", borderRadius:"8px", marginTop:"6px", background:a.status==="approved"?"rgba(74,222,128,0.05)":"rgba(248,113,113,0.05)", border:"1px solid " + (a.status==="approved"?"rgba(74,222,128,0.2)":"rgba(248,113,113,0.2)") }}>
-              <span style={{ fontSize:"12px", color:"#6b7280" }}>{fmtUSD(a.amount)}</span>
-              <span style={{ fontSize:"11px", fontWeight:"700", color:a.status==="approved"?"#1a7f3c":"#b91c1c" }}>{a.status==="approved"?"Aprobado":"Rechazado"}</span>
-            </div>
-          ))}
+          <div style={S.label}>Intentos anteriores</div>
+          {verif.chargeAttempts.map(function(a, i) {
+            return (
+              <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 12px", borderRadius:"8px", marginTop:"5px", background:a.status==="approved"?"rgba(74,222,128,0.05)":"rgba(248,113,113,0.05)", border:"1px solid "+(a.status==="approved"?"rgba(74,222,128,0.2)":"rgba(248,113,113,0.2)") }}>
+                <span style={{ fontSize:"12px", color:"#6b7280" }}>{fmtUSD(a.amount)} - {a.ts ? a.ts.slice(0,10) : ""}</span>
+                <span style={{ fontSize:"11px", fontWeight:"700", color:a.status==="approved"?"#1a7f3c":"#b91c1c" }}>{a.status==="approved"?"Aprobado":"Rechazado"}</span>
+              </div>
+            );
+          })}
         </div>
       )}
-      <button style={S.btn("success")} onClick={onCharge}>Cobrar {fmtUSD(exp.pagoInicial)}</button>
+
+      {/* Error */}
+      {error && (
+        <div style={{ padding:"9px 12px", borderRadius:"8px", background:"#fef2f2", border:"1px solid #f5b8b8", marginBottom:"12px", fontSize:"12px", color:"#b91c1c" }}>
+          {error}
+        </div>
+      )}
+
+      {/* Boton cobrar */}
+      {!yaPagado && (
+        <button
+          style={{ ...S.btn("success"), width:"100%", justifyContent:"center", opacity:loading||!zohoReady?0.6:1, cursor:loading||!zohoReady?"not-allowed":"pointer" }}
+          disabled={loading || !zohoReady}
+          onClick={handleCobrar}>
+          {loading ? "Abriendo Zoho Payments..." : !zohoReady ? "Cargando SDK..." : "Cobrar " + fmtUSD(exp.pagoInicial) + " con Zoho Payments"}
+        </button>
+      )}
+
+      <div style={{ fontSize:"10px", color:"#b0b8c4", marginTop:"8px", textAlign:"center" }}>
+        Pago seguro procesado por Zoho Payments - PCI DSS Level 1
+      </div>
     </div>
   );
 }
@@ -823,7 +928,7 @@ function DetailView({ lead, onBack, onUpdate }) {
           <UpsalePanel exp={exp} onSave={(newExp) => { setExp(newExp); pushUpdate(newExp, verif, null); }} />
         </div>
         <div>
-          <SectionCobro exp={exp} verif={verif} onCharge={() => setChargeModal(true)} />
+          <SectionCobro lead={lead} exp={exp} verif={verif} onChargeResult={handleChargeResult} />
           {!(verif && verif.result) && (
             <div style={S.card}>
               <div style={S.sTitle}>Acciones</div>
@@ -858,7 +963,7 @@ function DetailView({ lead, onBack, onUpdate }) {
       </div>
 
       {editModal   && <EditExpedienteModal exp={exp} onClose={() => setEditModal(false)} onSave={handleSaveExp} />}
-      {chargeModal && <ChargeModal lead={{ ...lead, exp }} onClose={() => setChargeModal(false)} onResult={handleChargeResult} />}
+      
       {sendModal   && <SendDocsModal lead={{ ...lead, exp }} onClose={() => setSendModal(false)} onSent={handleDocsSent} />}
       {finishModal && <FinishModal defaultResult={finishModal.defaultResult} onClose={() => setFinishModal(null)} onFinish={handleFinish} />}
       <CommPanel
