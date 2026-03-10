@@ -51,15 +51,6 @@ const STATUS_CFG = {
 const TIPOS_CONTACTO = ["llamada","whatsapp","cita","email","venta","verificacion","nota"];
 const TIPO_ICONS = { llamada:"", whatsapp:"", cita:"", email:"", venta:"", verificacion:"", nota:"" };
 
-const VERIF_ITEMS = [
-  "Nombre completo del titular confirmado",
-  "Co-propietario presente o confirmado",
-  "Edad del titular  25 anos",
-  "Telefono de contacto verificado",
-  "Destino(s) y noches definidos",
-  "Precio de venta acordado",
-  "Regalos del paquete seleccionados",
-];
 
 const EMISORAS = ["Radio Hits","Banda 107","Stereo 94","Exitos 102","Mix 88","La Ke Buena"];
 const ESTADO_CIVIL_OPTIONS = ["Casado","Union libre","Soltero hombre","Soltera mujer"];
@@ -794,9 +785,9 @@ function LeadModal({ lead, users, currentUser, isSupervisor, onClose, onSave, on
         <div style={{ display:"flex", gap:"8px", marginTop:"16px" }}>
           <button style={{ ...S.btn("ghost"), flex:1 }} onClick={onClose}>Cerrar</button>
           {canEdit && (
-            <button style={{ ...S.btn("success"), flex:2, justifyContent:"center", opacity:showChecklist&&!verifComplete?0.4:1 }}
-              disabled={showChecklist&&!verifComplete} onClick={handleSave}>
-               Guardar{showChecklist&&!verifComplete?" (checklist incompleto)":""}
+            <button style={{ ...S.btn("success"), flex:2, justifyContent:"center" }}
+              onClick={handleSave}>
+               Guardar
             </button>
           )}
         </div>
