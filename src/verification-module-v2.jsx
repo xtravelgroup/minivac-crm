@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase as SB } from "./supabase.js";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
 
 const TODAY = new Date().toISOString().split("T")[0];
@@ -902,16 +903,101 @@ function QueueCard({ lead, onOpen }) {
   );
 }
 
+// Convierte un row de Supabase al formato interno del modulo de verificacion
+function dbToVerifLead(r) {
+  return {
+    id:           r.id,
+    nombre:       r.nombre || "",
+    phone:        r.tel    || r.whatsapp || "",
+    radioName:    r.emisora || "",
+    sellerName:   r.vendedor_nombre || "",
+    createdAt:    (r.created_at || TODAY).split("T")[0],
+    status:       r.status || "verificacion",
+    exp: {
+      tFirstName:    r.nombre    || "",
+      tLastName:     r.apellido  || "",
+      tFechaNac:     "",
+      tSexo:         r.estado_civil === "Soltera mujer" ? "Mujer" : "Hombre",
+      tPhone:        r.tel       || "",
+      tEmail:        r.email     || "",
+      tEstadoCivil:  r.estado_civil || "",
+      hasPartner:    ["Casado","Union libre"].includes(r.estado_civil),
+      pFirstName:    r.co_prop   ? r.co_prop.split(" ")[0] : "",
+      pLastName:     r.co_prop   ? r.co_prop.split(" ").slice(1).join(" ") : "",
+      pFechaNac:     "",
+      pSexo:         "",
+      pPhone:        r.co_prop_tel || "",
+      address:       r.direccion || "",
+      city:          r.ciudad    || "Miami",
+      state:         r.estado_us || "FL",
+      zip:           "",
+      destinos:      r.destinos  || [],
+      salePrice:     Number(r.sale_price)   || 0,
+      pagoInicial:   Number(r.pago_inicial) || 0,
+      metodoPago:    r.metodo_pago || "",
+      tarjetaNumero: r.tarjeta_numero  || "",
+      tarjetaNombre: r.tarjeta_nombre  || "",
+      tarjetaVence:  r.tarjeta_vence   || "",
+      tarjetaCVV:    r.tarjeta_cvv     || "",
+      tarjetaTipo:   r.tarjeta_tipo    || "",
+      tarjetaCapturaTs: r.tarjeta_captura_ts || null,
+      notas:         (r.notas || []).map(function(n){ return typeof n === "string" ? n : (n.nota || ""); }).join("\n"),
+    },
+    verificacion: r.verificacion || null,
+  };
+}
+
 export default function VerificationModule() {
-  const [leads,  setLeads]  = useState(SEED);
-  const [detail, setDetail] = useState(null);
-  const [toast,  setToast]  = useState(null);
+  const [leads,   setLeads]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [detail,  setDetail]  = useState(null);
+  const [toast,   setToast]   = useState(null);
 
-  const notify = (msg, ok) => { setToast({ msg, ok:ok!==false }); setTimeout(() => setToast(null), 3200); };
+  const notify = function(msg, ok) { setToast({ msg, ok:ok!==false }); setTimeout(function(){ setToast(null); }, 3200); };
 
-  const updateLead = (u) => { setLeads(p => p.map(l => l.id===u.id ? u : l)); notify("Expediente actualizado", true); };
+  // Cargar leads en verificacion o con resultado de verificacion de hoy
+  function cargarLeads() {
+    SB.from("leads")
+      .select("*, vendedor:vendedor_id(nombre)")
+      .or("status.eq.verificacion,status.eq.venta,status.eq.no_interesado")
+      .order("created_at", { ascending: false })
+      .then(function(res) {
+        setLoading(false);
+        if (res.data) {
+          var mapped = res.data.map(function(r) {
+            var row = { ...r, vendedor_nombre: (r.vendedor && r.vendedor.nombre) || "" };
+            return dbToVerifLead(row);
+          });
+          // Solo mostrar: los que estan en verificacion (pendientes) + los que tienen resultado de verificacion
+          var filtrados = mapped.filter(function(l) {
+            return l.status === "verificacion" || (l.verificacion && l.verificacion.result);
+          });
+          setLeads(filtrados);
+        } else {
+          console.error("Error cargando leads verificacion:", res.error);
+        }
+      });
+  }
 
-  const detailLead = leads.find(l => l.id===detail);
+  useState(function(){ cargarLeads(); });
+
+  const updateLead = function(u) {
+    // Guardar verificacion en Supabase
+    var dbUpdate = {
+      verificacion: u.verificacion,
+      status: u.verificacion && u.verificacion.result === "venta" ? "venta" : u.status,
+    };
+    SB.from("leads").update(dbUpdate).eq("id", u.id).then(function(res) {
+      if (res.error) {
+        notify("Error al guardar: " + res.error.message, false);
+      } else {
+        setLeads(function(p){ return p.map(function(l){ return l.id === u.id ? u : l; }); });
+        notify("Expediente actualizado", true);
+      }
+    });
+  };
+
+  const detailLead = leads.find(function(l){ return l.id === detail; });
   const pending    = leads.filter(l => !(l.verificacion && l.verificacion.result));
   const done       = leads.filter(l =>   l.verificacion && l.verificacion.result);
   const ventas     = done.filter(l => l.verificacion.result==="venta");
@@ -920,47 +1006,59 @@ export default function VerificationModule() {
     <div style={S.wrap}>
       <div style={S.topbar}>
         <div style={{ fontSize:"12px", fontWeight:"700", color:"#9ca3af", letterSpacing:"0.12em", textTransform:"uppercase" }}>Mini-Vac CRM</div>
-        <div style={{ width:"1px", height:"18px", background:"#eff1f4" }} />
+        <div style={{ width:"1px", height:"18px", background:"#e3e6ea" }} />
         <div style={{ fontSize:"14px", fontWeight:"600", color:"#1565c0" }}>Verificacion</div>
         <div style={{ flex:1 }} />
         {pending.length > 0 && <span style={S.badge("#925c0a","#fffbe0","rgba(251,191,36,0.2)")}>{pending.length} pendiente(s)</span>}
         {ventas.length  > 0 && <span style={S.badge("#1a7f3c","rgba(74,222,128,0.08)","rgba(74,222,128,0.2)")}>{ventas.length} venta(s) hoy</span>}
+        <button style={{ ...S.btn("ghost"), padding:"5px 12px", fontSize:"12px" }} onClick={cargarLeads}>Actualizar</button>
       </div>
 
-      <div style={{ padding:"24px 28px", maxWidth:"1200px", margin:"0 auto" }}>
-        {detail && detailLead ? (
-          <DetailView lead={detailLead} onBack={() => setDetail(null)} onUpdate={updateLead} />
-        ) : (
-          <div>
-            <div style={{ display:"flex", gap:"12px", marginBottom:"24px", flexWrap:"wrap" }}>
-              {[
-                { label:"En cola",       val:pending.length,                                                              color:"#925c0a" },
-                { label:"Ventas",        val:ventas.length,                                                               color:"#1a7f3c" },
-                { label:"Rechazadas",    val:done.filter(l => l.verificacion.result==="tarjeta_rechazada").length,        color:"#b91c1c" },
-                { label:"No interesado", val:done.filter(l => l.verificacion.result==="cliente_no_interesado").length,    color:"#6b7280" },
-                { label:"Pend. pago",    val:done.filter(l => l.verificacion.result==="venta_pendiente").length,          color:"#925c0a" },
-              ].map(s => (
-                <div key={s.label} style={{ flex:1, minWidth:"110px", padding:"16px 20px", borderRadius:"12px", background:"#ffffff", border:"1px solid #e3e6ea" }}>
-                  <div style={{ fontSize:"28px", fontWeight:"800", color:s.color }}>{s.val}</div>
-                  <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"2px" }}>{s.label}</div>
+      {loading ? (
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"200px" }}>
+          <div style={{ fontSize:"14px", color:"#9ca3af" }}>Cargando expedientes...</div>
+        </div>
+      ) : (
+        <div style={{ padding:"24px 28px", maxWidth:"1200px", margin:"0 auto" }}>
+          {detail && detailLead ? (
+            <DetailView lead={detailLead} onBack={function(){ setDetail(null); }} onUpdate={updateLead} />
+          ) : (
+            <div>
+              <div style={{ display:"flex", gap:"12px", marginBottom:"24px", flexWrap:"wrap" }}>
+                {[
+                  { label:"En cola",       val:pending.length,                                                              color:"#925c0a" },
+                  { label:"Ventas",        val:ventas.length,                                                               color:"#1a7f3c" },
+                  { label:"Rechazadas",    val:done.filter(function(l){ return l.verificacion.result==="tarjeta_rechazada"; }).length,        color:"#b91c1c" },
+                  { label:"No interesado", val:done.filter(function(l){ return l.verificacion.result==="cliente_no_interesado"; }).length,    color:"#6b7280" },
+                  { label:"Pend. pago",    val:done.filter(function(l){ return l.verificacion.result==="venta_pendiente"; }).length,          color:"#925c0a" },
+                ].map(function(s){ return (
+                  <div key={s.label} style={{ flex:1, minWidth:"110px", padding:"16px 20px", borderRadius:"12px", background:"#ffffff", border:"1px solid #e3e6ea" }}>
+                    <div style={{ fontSize:"28px", fontWeight:"800", color:s.color }}>{s.val}</div>
+                    <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"2px" }}>{s.label}</div>
+                  </div>
+                ); })}
+              </div>
+              {pending.length === 0 && done.length === 0 && (
+                <div style={{ textAlign:"center", padding:"40px", color:"#9ca3af", fontSize:"14px" }}>
+                  No hay expedientes en cola. Los leads en "Verificacion" aparecen aqui automaticamente.
                 </div>
-              ))}
+              )}
+              {pending.length > 0 && (
+                <div>
+                  <div style={S.sTitle}>Pendientes de verificar</div>
+                  {pending.map(function(l){ return <QueueCard key={l.id} lead={l} onOpen={function(l){ setDetail(l.id); }} />; })}
+                </div>
+              )}
+              {done.length > 0 && (
+                <div style={{ marginTop:"22px" }}>
+                  <div style={S.sTitle}>Verificados hoy</div>
+                  {done.map(function(l){ return <QueueCard key={l.id} lead={l} onOpen={function(l){ setDetail(l.id); }} />; })}
+                </div>
+              )}
             </div>
-            {pending.length > 0 && (
-              <div>
-                <div style={S.sTitle}>Pendientes de verificar</div>
-                {pending.map(l => <QueueCard key={l.id} lead={l} onOpen={l => setDetail(l.id)} />)}
-              </div>
-            )}
-            {done.length > 0 && (
-              <div style={{ marginTop:"22px" }}>
-                <div style={S.sTitle}>Verificados hoy</div>
-                {done.map(l => <QueueCard key={l.id} lead={l} onOpen={l => setDetail(l.id)} />)}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {toast && (
         <div style={{ position:"fixed", bottom:"24px", right:"24px", zIndex:999, padding:"12px 20px", borderRadius:"10px", background:toast.ok?"#e5f3e8":"#fdeaea", border:"1px solid " + (toast.ok?"#a3d9a5":"#f5b8b8"), color:toast.ok?"#1a7f3c":"#b91c1c", fontSize:"14px", fontWeight:"600", boxShadow:"0 4px 16px rgba(0,0,0,0.1)" }}>
