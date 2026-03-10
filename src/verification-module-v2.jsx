@@ -118,28 +118,28 @@ const SEED = [
 ];
 
 const S = {
-  wrap:    { minHeight:"100vh", background:"#07090f", color:"#3d4554", fontFamily:"'DM Sans','Segoe UI',-apple-system,sans-serif" },
-  topbar:  { background:"rgba(10,14,26,0.97)", backdropFilter:"blur(16px)", borderBottom:"1px solid #e8eaed", padding:"14px 28px", display:"flex", alignItems:"center", gap:"14px", position:"sticky", top:0, zIndex:100 },
-  card:    { background:"#fafbfc", border:"1px solid #e3e6ea", borderRadius:"14px", padding:"20px", marginBottom:"14px" },
-  label:   { fontSize:"11px", color:"#9ca3af", marginBottom:"3px", fontWeight:"500" },
-  value:   { fontSize:"14px", color:"#3d4554", fontWeight:"500" },
-  sTitle:  { fontSize:"10px", fontWeight:"700", color:"#9ca3af", letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:"12px" },
-  divider: { height:"1px", background:"#f6f7f9", margin:"14px 0" },
-  input:   { width:"100%", background:"#f8f9fb", border:"1px solid #d4d8de", borderRadius:"8px", padding:"9px 12px", color:"#3d4554", fontSize:"13px", outline:"none", boxSizing:"border-box", fontFamily:"inherit" },
-  textarea:{ width:"100%", background:"#f8f9fb", border:"1px solid #d4d8de", borderRadius:"8px", padding:"9px 12px", color:"#3d4554", fontSize:"13px", outline:"none", resize:"vertical", minHeight:"72px", boxSizing:"border-box", fontFamily:"inherit" },
-  select:  { width:"100%", background:"#ffffff", border:"1px solid #d4d8de", borderRadius:"8px", padding:"9px 12px", color:"#3d4554", fontSize:"13px", outline:"none", cursor:"pointer", fontFamily:"inherit", boxSizing:"border-box" },
-  modal:   { position:"fixed", inset:0, background:"rgba(15,20,30,0.5)", backdropFilter:"blur(2px)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:"20px" },
-  modalBox:{ background:"#ffffff", border:"1px solid #d8dbe0", borderRadius:"18px", padding:"28px", maxWidth:"600px", width:"100%", maxHeight:"90vh", overflowY:"auto" },
+  wrap:    { minHeight:"100vh", background:"#f4f5f7", color:"#3d4554", fontFamily:"'DM Sans','Segoe UI',-apple-system,sans-serif" },
+  topbar:  { background:"#ffffff", borderBottom:"1px solid #e3e6ea", padding:"0 24px", display:"flex", alignItems:"center", gap:"14px", position:"sticky", top:0, zIndex:100, minHeight:"52px" },
+  card:    { background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:"12px", padding:"20px", marginBottom:"14px", boxShadow:"0 1px 3px rgba(0,0,0,0.04)" },
+  label:   { fontSize:"11px", color:"#9ca3af", marginBottom:"3px", fontWeight:"600" },
+  value:   { fontSize:"14px", color:"#1a1f2e", fontWeight:"500" },
+  sTitle:  { fontSize:"10px", fontWeight:"700", color:"#9ca3af", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:"12px" },
+  divider: { height:"1px", background:"#e3e6ea", margin:"14px 0" },
+  input:   { width:"100%", background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:"8px", padding:"9px 12px", color:"#1a1f2e", fontSize:"13px", outline:"none", boxSizing:"border-box", fontFamily:"inherit" },
+  textarea:{ width:"100%", background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:"8px", padding:"9px 12px", color:"#1a1f2e", fontSize:"13px", outline:"none", resize:"vertical", minHeight:"72px", boxSizing:"border-box", fontFamily:"inherit" },
+  select:  { width:"100%", background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:"8px", padding:"9px 12px", color:"#1a1f2e", fontSize:"13px", outline:"none", cursor:"pointer", fontFamily:"inherit", boxSizing:"border-box" },
+  modal:   { position:"fixed", inset:0, background:"rgba(15,20,30,0.45)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:"20px" },
+  modalBox:{ background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:"14px", padding:"28px", maxWidth:"600px", width:"100%", maxHeight:"90vh", overflowY:"auto", boxShadow:"0 8px 32px rgba(0,0,0,0.10)" },
   badge:   (color, bg, border) => ({ display:"inline-flex", alignItems:"center", gap:"5px", padding:"3px 10px", borderRadius:"20px", fontSize:"11px", fontWeight:"600", color, background:bg, border:"1px solid " + border }),
   pill:    (color) => ({ display:"inline-block", padding:"2px 9px", borderRadius:"12px", fontSize:"11px", fontWeight:"600", background:color + "22", color, border:"1px solid " + color + "55" }),
   btn:     (v) => {
     const m = {
-      primary:{ bg:"#4f46e5",                 color:"#fff",    border:"transparent"           },
-      success:{ bg:"#e5f3e8",    color:"#1a7f3c", border:"#a3d9a5" },
-      danger: { bg:"#fdeaea",   color:"#b91c1c", border:"#f5b8b8"},
-      warning:{ bg:"#fffbeb",    color:"#925c0a", border:"#f0d080" },
-      ghost:  { bg:"#f6f7f9",   color:"#6b7280", border:"#eceff3"},
-      indigo: { bg:"#e5eafd",    color:"#1565c0", border:"#aab4f5" },
+      primary:{ bg:"#1a385a",  color:"#fff",    border:"transparent" },
+      success:{ bg:"#edf7ee",  color:"#1a7f3c", border:"#a3d9a5"     },
+      danger: { bg:"#fef2f2",  color:"#b91c1c", border:"#f5b8b8"     },
+      warning:{ bg:"#fef9e7",  color:"#925c0a", border:"#f0d080"     },
+      ghost:  { bg:"#f4f5f7",  color:"#6b7280", border:"#e3e6ea"     },
+      indigo: { bg:"#e8f0fe",  color:"#1565c0", border:"#aac4f0"     },
     };
     const s = m[v] || m.primary;
     return { display:"inline-flex", alignItems:"center", gap:"7px", padding:"9px 18px", borderRadius:"9px", cursor:"pointer", fontSize:"13px", fontWeight:"600", background:s.bg, color:s.color, border:"1px solid " + s.border, transition:"all 0.18s", whiteSpace:"nowrap" };
@@ -248,7 +248,7 @@ function EditExpedienteModal({ exp, onClose, onSave }) {
             const cat = DEST_MAP[dest.destId];
             const usedIds = d.destinos.map((x,j) => j!==i ? x.destId : null).filter(Boolean);
             return (
-              <div key={i} style={{ padding:"12px 14px", borderRadius:"10px", background:"rgba(99,102,241,0.06)", border:"1px solid rgba(99,102,241,0.18)", marginBottom:"8px" }}>
+              <div key={i} style={{ padding:"12px 14px", borderRadius:"10px", background:"rgba(21,101,192,0.05)", border:"1px solid rgba(21,101,192,0.2)", marginBottom:"8px" }}>
                 <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"8px" }}>
                   <div style={{ flex:1, display:"grid", gridTemplateColumns:"1fr 1fr 70px", gap:"8px" }}>
                     <div>
@@ -284,11 +284,11 @@ function EditExpedienteModal({ exp, onClose, onSave }) {
                   <div style={{ paddingTop:"8px", borderTop:"1px solid #e3e6ea" }}>
                     <div style={{ fontSize:"10px", color:"#925c0a", fontWeight:"700", marginBottom:"5px" }}>Regalo (elige 1)</div>
                     <div style={{ display:"flex", gap:"5px", flexWrap:"wrap" }}>
-                      <div onClick={() => setRegalo(i,null)} style={{ padding:"3px 9px", borderRadius:"7px", cursor:"pointer", fontSize:"11px", background:!dest.regalo?"#eceff3":"#f9fafb", border:"1px solid " + (!dest.regalo?"rgba(255,255,255,0.3)":"#f0f1f4"), color:!dest.regalo?"#1a1f2e":"#9ca3af" }}>Sin regalo</div>
+                      <div onClick={() => setRegalo(i,null)} style={{ padding:"3px 9px", borderRadius:"7px", cursor:"pointer", fontSize:"11px", background:!dest.regalo?"#eceff3":"#f9fafb", border:"1px solid " + (!dest.regalo?"rgba(255,255,255,0.3)":"#e3e6ea"), color:!dest.regalo?"#1a1f2e":"#9ca3af" }}>Sin regalo</div>
                       {cat.regalos.map(r => {
                         const sel = dest.regalo && dest.regalo.id === r.id;
                         return (
-                          <div key={r.id} onClick={() => setRegalo(i,r)} style={{ padding:"3px 9px", borderRadius:"7px", cursor:"pointer", fontSize:"11px", background:sel?"#fef9e7":"#f9fafb", border:"2px solid " + (sel?"rgba(251,191,36,0.5)":"#f0f1f4"), color:sel?"#925c0a":"#9ca3af", fontWeight:sel?"700":"400" }}>
+                          <div key={r.id} onClick={() => setRegalo(i,r)} style={{ padding:"3px 9px", borderRadius:"7px", cursor:"pointer", fontSize:"11px", background:sel?"#fef9e7":"#f9fafb", border:"2px solid " + (sel?"rgba(251,191,36,0.5)":"#e3e6ea"), color:sel?"#925c0a":"#9ca3af", fontWeight:sel?"700":"400" }}>
                             {r.label}
                           </div>
                         );
@@ -345,7 +345,7 @@ function ChargeModal({ lead, onClose, onResult }) {
           <div>
             <div style={{ fontSize:"18px", fontWeight:"700", color:"#1a1f2e", marginBottom:"4px" }}>Confirmar Cobro</div>
             <div style={{ fontSize:"13px", color:"#9ca3af", marginBottom:"18px" }}>Se procesara el pago del cliente</div>
-            <div style={{ padding:"16px", borderRadius:"12px", background:"rgba(99,102,241,0.08)", border:"1px solid rgba(99,102,241,0.2)", marginBottom:"18px" }}>
+            <div style={{ padding:"16px", borderRadius:"12px", background:"rgba(21,101,192,0.06)", border:"1px solid rgba(21,101,192,0.2)", marginBottom:"18px" }}>
               {[["Cliente", exp.tarjetaNombre||exp.tFirstName+" "+exp.tLastName], ["Tarjeta", maskCard(exp.tarjetaNumero)], ["Tipo", exp.tarjetaTipo||"transferencia"]].map(([l,v]) => (
                 <div key={l} style={{ display:"flex", justifyContent:"space-between", marginBottom:"8px" }}>
                   <span style={{ fontSize:"13px", color:"#9ca3af" }}>{l}</span>
@@ -409,7 +409,7 @@ function SendDocsModal({ lead, onClose, onSent }) {
           { title:"Autorizacion de cargo", desc:"Firma autorizando el cobro del enganche" },
           { title:"Terminos y condiciones", desc:"Condiciones del paquete vacacional contratado" },
         ].map((doc,i) => (
-          <div key={i} style={{ display:"flex", gap:"12px", alignItems:"center", padding:"12px 14px", borderRadius:"10px", background:"#fafbfc", border:"1px solid #e3e6ea", marginBottom:"8px" }}>
+          <div key={i} style={{ display:"flex", gap:"12px", alignItems:"center", padding:"12px 14px", borderRadius:"10px", background:"#ffffff", border:"1px solid #e3e6ea", marginBottom:"8px" }}>
             <div>
               <div style={{ fontSize:"13px", fontWeight:"600", color:"#3d4554" }}>{doc.title}</div>
               <div style={{ fontSize:"12px", color:"#9ca3af" }}>{doc.desc}</div>
@@ -448,7 +448,7 @@ function FinishModal({ defaultResult, onClose, onFinish }) {
         <div style={{ fontSize:"18px", fontWeight:"700", color:"#1a1f2e", marginBottom:"18px" }}>Resultado de Verificacion</div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px", marginBottom:"18px" }}>
           {Object.entries(VERIF_RESULTS).map(([key,cfg]) => (
-            <div key={key} onClick={() => setResult(key)} style={{ padding:"14px", borderRadius:"12px", cursor:"pointer", border:"2px solid " + (result===key ? cfg.color : "#f0f1f4"), background:result===key ? cfg.bg : "transparent", transition:"all 0.18s" }}>
+            <div key={key} onClick={() => setResult(key)} style={{ padding:"14px", borderRadius:"12px", cursor:"pointer", border:"2px solid " + (result===key ? cfg.color : "#e3e6ea"), background:result===key ? cfg.bg : "transparent", transition:"all 0.18s" }}>
               <div style={{ fontSize:"13px", fontWeight:"600", color:result===key ? cfg.color : "#9ca3af" }}>{cfg.label}</div>
             </div>
           ))}
@@ -515,7 +515,7 @@ function UpsalePanel({ exp, onSave }) {
         <div style={{ marginTop:"14px" }}>
           <div style={{ display:"flex", gap:"5px", marginBottom:"14px" }}>
             {[["destino","Destino adicional"],["beneficios","Beneficios extra"]].map(([k,l]) => (
-              <button key={k} onClick={() => setUpTab(k)} style={{ padding:"6px 14px", borderRadius:"8px", cursor:"pointer", fontSize:"12px", fontWeight:upTab===k?"700":"400", background:upTab===k?"#e5eafd":"transparent", color:upTab===k?"#1565c0":"#9ca3af", border:upTab===k?"1px solid rgba(99,102,241,0.35)":"1px solid transparent" }}>{l}</button>
+              <button key={k} onClick={() => setUpTab(k)} style={{ padding:"6px 14px", borderRadius:"8px", cursor:"pointer", fontSize:"12px", fontWeight:upTab===k?"700":"400", background:upTab===k?"#e5eafd":"transparent", color:upTab===k?"#1565c0":"#9ca3af", border:upTab===k?"1px solid rgba(21,101,192,0.3)":"1px solid transparent" }}>{l}</button>
             ))}
           </div>
 
@@ -532,8 +532,8 @@ function UpsalePanel({ exp, onSave }) {
                 <div>
                   <div style={S.label}>Tipo</div>
                   <div style={{ display:"flex", gap:"6px" }}>
-                    <button onClick={() => { setDestTipo("qc"); if (destCat) setDestNoches(destCat.qc.noches); }} style={{ flex:1, padding:"8px", borderRadius:"8px", cursor:"pointer", fontSize:"12px", fontWeight:"600", background:destTipo==="qc"?"#e5eafd":"#f9fafb", color:destTipo==="qc"?"#1565c0":"#9ca3af", border:"1px solid " + (destTipo==="qc"?"#aab4f5":"#f0f1f4") }}>QC</button>
-                    <button onClick={() => { if (destCat && destCat.nq.enabled) { setDestTipo("nq"); setDestNoches(destCat.nq.noches); } }} style={{ flex:1, padding:"8px", borderRadius:"8px", cursor:"pointer", fontSize:"12px", fontWeight:"600", background:destTipo==="nq"?"#e5f3e8":"#f9fafb", color:destTipo==="nq"?"#1a7f3c":"#9ca3af", border:"1px solid " + (destTipo==="nq"?"#a3d9a5":"#f0f1f4"), opacity:destCat && !destCat.nq.enabled ? 0.3 : 1 }}>NQ</button>
+                    <button onClick={() => { setDestTipo("qc"); if (destCat) setDestNoches(destCat.qc.noches); }} style={{ flex:1, padding:"8px", borderRadius:"8px", cursor:"pointer", fontSize:"12px", fontWeight:"600", background:destTipo==="qc"?"#e5eafd":"#f9fafb", color:destTipo==="qc"?"#1565c0":"#9ca3af", border:"1px solid " + (destTipo==="qc"?"#aab4f5":"#e3e6ea") }}>QC</button>
+                    <button onClick={() => { if (destCat && destCat.nq.enabled) { setDestTipo("nq"); setDestNoches(destCat.nq.noches); } }} style={{ flex:1, padding:"8px", borderRadius:"8px", cursor:"pointer", fontSize:"12px", fontWeight:"600", background:destTipo==="nq"?"#e5f3e8":"#f9fafb", color:destTipo==="nq"?"#1a7f3c":"#9ca3af", border:"1px solid " + (destTipo==="nq"?"#a3d9a5":"#e3e6ea"), opacity:destCat && !destCat.nq.enabled ? 0.3 : 1 }}>NQ</button>
                   </div>
                 </div>
               </div>
@@ -541,7 +541,7 @@ function UpsalePanel({ exp, onSave }) {
                 <div>
                   <div style={S.label}>Noches</div>
                   <div style={{ display:"flex", gap:"5px" }}>
-                    {[3,4,5,6,7].map(n => <button key={n} onClick={() => setDestNoches(n)} style={{ flex:1, padding:"7px", borderRadius:"7px", cursor:"pointer", fontSize:"12px", fontWeight:"600", background:destNoches===n?"#e5eafd":"#f9fafb", color:destNoches===n?"#1565c0":"#9ca3af", border:"1px solid " + (destNoches===n?"#aab4f5":"#f0f1f4") }}>{n}</button>)}
+                    {[3,4,5,6,7].map(n => <button key={n} onClick={() => setDestNoches(n)} style={{ flex:1, padding:"7px", borderRadius:"7px", cursor:"pointer", fontSize:"12px", fontWeight:"600", background:destNoches===n?"#e5eafd":"#f9fafb", color:destNoches===n?"#1565c0":"#9ca3af", border:"1px solid " + (destNoches===n?"#aab4f5":"#e3e6ea") }}>{n}</button>)}
                   </div>
                 </div>
                 <div>
@@ -549,7 +549,7 @@ function UpsalePanel({ exp, onSave }) {
                   <input type="number" value={destPrecio} onChange={e => setDestPrecio(e.target.value)} placeholder="Ej: 800" min="0" style={S.input} />
                 </div>
               </div>
-              <button disabled={!destId||!destPrecio} onClick={handleAddDestino} style={{ width:"100%", padding:"9px", borderRadius:"9px", cursor:"pointer", fontSize:"13px", fontWeight:"700", background:"#e5eafd", color:"#1565c0", border:"1px solid rgba(99,102,241,0.3)", opacity:destId&&destPrecio?1:0.4 }}>
+              <button disabled={!destId||!destPrecio} onClick={handleAddDestino} style={{ width:"100%", padding:"9px", borderRadius:"9px", cursor:"pointer", fontSize:"13px", fontWeight:"700", background:"#e5eafd", color:"#1565c0", border:"1px solid rgba(21,101,192,0.25)", opacity:destId&&destPrecio?1:0.4 }}>
                 Agregar destino al paquete
               </button>
             </div>
@@ -562,7 +562,7 @@ function UpsalePanel({ exp, onSave }) {
                   const sel = selBenef.includes(b.id);
                   const precio = precioOvr[b.id] !== undefined ? precioOvr[b.id] : b.precio;
                   return (
-                    <div key={b.id} style={{ borderRadius:"9px", border:"2px solid " + (sel?"rgba(99,102,241,0.45)":"#f0f1f4"), background:sel?"rgba(99,102,241,0.08)":"#fafbfc", overflow:"hidden" }}>
+                    <div key={b.id} style={{ borderRadius:"9px", border:"2px solid " + (sel?"rgba(21,101,192,0.4)":"#e3e6ea"), background:sel?"rgba(21,101,192,0.06)":"#ffffff", overflow:"hidden" }}>
                       <div onClick={() => toggleBenef(b.id)} style={{ padding:"9px 11px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                         <span style={{ fontSize:"12px", fontWeight:"600", color:sel?"#1565c0":"#6b7280" }}>{b.label}</span>
                         <span style={{ fontSize:"11px", color:sel?"#1565c0":"#9ca3af", fontWeight:"700" }}>${precio}</span>
@@ -570,7 +570,7 @@ function UpsalePanel({ exp, onSave }) {
                       {sel && (
                         <div style={{ padding:"0 10px 9px", borderTop:"1px solid rgba(255,255,255,0.05)" }}>
                           <div style={{ fontSize:"10px", color:"#9ca3af", marginBottom:"3px", marginTop:"6px" }}>Precio editable</div>
-                          <input type="number" value={precio} onChange={e => setPrecioOvr(p => ({ ...p, [b.id]:e.target.value }))} min="0" style={{ width:"100%", background:"#f8f9fb", border:"1px solid rgba(99,102,241,0.3)", borderRadius:"6px", padding:"5px 9px", color:"#3d4554", fontSize:"12px", outline:"none", boxSizing:"border-box" }} />
+                          <input type="number" value={precio} onChange={e => setPrecioOvr(p => ({ ...p, [b.id]:e.target.value }))} min="0" style={{ width:"100%", background:"#ffffff", border:"1px solid rgba(21,101,192,0.25)", borderRadius:"6px", padding:"5px 9px", color:"#3d4554", fontSize:"12px", outline:"none", boxSizing:"border-box" }} />
                         </div>
                       )}
                     </div>
@@ -648,7 +648,7 @@ function SectionPaquete({ exp, onEdit }) {
           const cat = DEST_MAP[d.destId];
           if (!cat) return null;
           return (
-            <div key={i} style={{ padding:"10px 14px", borderRadius:"10px", background:"rgba(99,102,241,0.07)", border:"1px solid rgba(99,102,241,0.18)", marginBottom:"6px" }}>
+            <div key={i} style={{ padding:"10px 14px", borderRadius:"10px", background:"rgba(21,101,192,0.05)", border:"1px solid rgba(21,101,192,0.2)", marginBottom:"6px" }}>
               <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize:"14px", fontWeight:"600", color:"#3d4554" }}>{cat.nombre}</div>
@@ -940,7 +940,7 @@ export default function VerificationModule() {
                 { label:"No interesado", val:done.filter(l => l.verificacion.result==="cliente_no_interesado").length,    color:"#6b7280" },
                 { label:"Pend. pago",    val:done.filter(l => l.verificacion.result==="venta_pendiente").length,          color:"#925c0a" },
               ].map(s => (
-                <div key={s.label} style={{ flex:1, minWidth:"110px", padding:"16px 20px", borderRadius:"12px", background:"#fafbfc", border:"1px solid #e3e6ea" }}>
+                <div key={s.label} style={{ flex:1, minWidth:"110px", padding:"16px 20px", borderRadius:"12px", background:"#ffffff", border:"1px solid #e3e6ea" }}>
                   <div style={{ fontSize:"28px", fontWeight:"800", color:s.color }}>{s.val}</div>
                   <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"2px" }}>{s.label}</div>
                 </div>
