@@ -678,7 +678,7 @@ function SectionPaquete({ exp, onEdit }) {
 
 function SectionCobro({ exp, verif, onCharge }) {
   const [showCVV, setShowCVV] = useState(false);
-  const hasTarjeta = exp.metodoPago === "tarjeta" && exp.tarjetaNumero;
+  const hasTarjeta = ["tarjeta","tarjeta_credito","tarjeta_debito"].includes(exp.metodoPago) && exp.tarjetaNumero;
 
   return (
     <div style={S.card}>
@@ -939,7 +939,7 @@ function dbToVerifLead(r) {
       tarjetaNombre: r.tarjeta_nombre  || "",
       tarjetaVence:  r.tarjeta_vence   || "",
       tarjetaCVV:    r.tarjeta_cvv     || "",
-      tarjetaTipo:   r.tarjeta_tipo    || "",
+      tarjetaTipo:   r.tarjeta_tipo    || (r.metodo_pago === "tarjeta_credito" ? "credito" : r.metodo_pago === "tarjeta_debito" ? "debito" : ""),
       tarjetaCapturaTs: r.tarjeta_captura_ts || null,
       notas:         (r.notas || []).map(function(n){ return typeof n === "string" ? n : (n.nota || ""); }).join("\n"),
     },
