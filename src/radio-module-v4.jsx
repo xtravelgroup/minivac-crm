@@ -2319,11 +2319,20 @@ export default function RadioModule(props) {
               <div style={{fontSize:"12px",fontWeight:"600",color:C.text1}}>
                 {fmtFecha(semana.lunes)} - {fmtFecha(semana.domingo)}
               </div>
-              {esSemanaActual && (
-                <div style={{fontSize:"10px",color:C.mid,fontWeight:"600"}}>Semana actual</div>
-              )}
+              {(function(){
+                var hoyLunes = lunesDe(hoy());
+                if (semana.lunes === hoyLunes) {
+                  return <div style={{fontSize:"10px",color:C.mid,fontWeight:"600"}}>Semana actual</div>;
+                }
+                var diffMs = new Date(semana.lunes+"T12:00:00") - new Date(hoyLunes+"T12:00:00");
+                var diffSem = Math.round(diffMs / (7*24*60*60*1000));
+                if (diffSem > 0) {
+                  return <div style={{fontSize:"10px",color:C.amber,fontWeight:"600"}}>{diffSem === 1 ? "Semana siguiente" : diffSem+" semanas adelante"}</div>;
+                }
+                return <div style={{fontSize:"10px",color:C.text4,fontWeight:"600"}}>{Math.abs(diffSem)+" semanas atras"}</div>;
+              })()}
             </div>
-            <Btn v="ghost" sm onClick={nextSemana} disabled={esSemanaActual}>{">"}</Btn>
+            <Btn v="ghost" sm onClick={nextSemana}>{">"}</Btn>
             {!esSemanaActual && (
               <Btn v="blue" sm onClick={function(){
                 var l = lunesDe(hoy());
