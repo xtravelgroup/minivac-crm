@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SB } from "./supabase.js";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
 
 // 
@@ -849,16 +850,75 @@ function NuevoLeadModal({ currentUser, users, onClose, onSave }) {
   const vendedores = (users||[]).filter(u => u.role==="vendedor");
   const [nombre,   setNombre]   = useState("");
   const [tel,      setTel]      = useState("");
-  const [emisora,  setEmisora]  = useState(EMISORAS[0]);
+  const [spotId,   setSpotId]   = useState("");
+  const [emisora,  setEmisora]  = useState("");
   const [nota,     setNota]     = useState("");
   const [asignarA, setAsignarA] = useState(isSup ? (vendedores[0]?.id||"") : currentUser.id);
+  const [spots,    setSpots]    = useState([]);
+  const [emisoras, setEmisoras] = useState([]);
+  const [loadingSpots, setLoadingSpots] = useState(true);
   const valid = nombre.trim() && tel.trim();
+
+  // Cargar spots de la semana actual y siguientes desde Supabase
+  useState(() => {
+    const hoy = new Date().toISOString().split("T")[0];
+    Promise.all([
+      SB.from("radio_spots").select("*").gte("fecha", hoy).order("fecha").order("hora"),
+      SB.from("emisoras").select("id,nombre").order("nombre"),
+    ]).then(([resS, resE]) => {
+      setLoadingSpots(false);
+      if (resS.data) setSpots(resS.data);
+      if (resE.data) setEmisoras(resE.data);
+      if (resS.data && resS.data.length > 0) {
+        setSpotId(resS.data[0].id);
+        if (resE.data) {
+          const em = resE.data.find(e => e.id === resS.data[0].emisora_id);
+          setEmisora(em ? em.nombre : "");
+        }
+      }
+    }).catch(() => setLoadingSpots(false));
+  });
+
+  function emNombre(emId) {
+    const em = emisoras.find(e => e.id === emId);
+    return em ? em.nombre : emId;
+  }
+
+  function fmtHora(t) {
+    if (!t) return "";
+    const parts = t.split(":");
+    const h = parseInt(parts[0]);
+    const m = parts[1] || "00";
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return h12 + ":" + m + " " + ampm;
+  }
+
+  function fmtFechaCort(str) {
+    if (!str) return "";
+    return new Date(str + "T12:00:00").toLocaleDateString("es-MX", {weekday:"short", day:"2-digit", month:"short"});
+  }
+
+  function handleSpotChange(e) {
+    const sid = e.target.value;
+    setSpotId(sid);
+    if (sid === "__manual__") { setEmisora(""); return; }
+    const sp = spots.find(s => s.id === sid);
+    if (sp) {
+      const em = emisoras.find(e => e.id === sp.emisora_id);
+      setEmisora(em ? em.nombre : "");
+    }
+  }
 
   const handleSave = () => {
     if (!valid) return;
+    const sp = spots.find(s => s.id === spotId);
+    const emLabel = sp ? (emNombre(sp.emisora_id) + " - " + fmtHora(sp.hora) + " " + fmtFechaCort(sp.fecha)) : emisora;
     onSave(mkLead({
       id: "L"+Date.now(), folio:"F"+Date.now().toString().slice(-5),
-      nombre:nombre.trim(), tel:tel.trim(), emisora,
+      nombre:nombre.trim(), tel:tel.trim(),
+      emisora: emLabel,
+      spotId: spotId !== "__manual__" ? spotId : null,
       vendedorId:asignarA, status:"nuevo",
       fecha:TODAY, ultimoContacto:TODAY,
       notas: nota.trim() ? [{ts:TODAY,autor:currentUser.name,tipo:"llamada",nota:nota.trim()}] : [],
@@ -867,49 +927,69 @@ function NuevoLeadModal({ currentUser, users, onClose, onSave }) {
 
   return (
     <div style={S.modal} onClick={onClose}>
-      <div style={{ ...S.modalBox, maxWidth:"380px" }} onClick={e=>e.stopPropagation()}>
+      <div style={{ ...S.modalBox, maxWidth:"400px" }} onClick={e=>e.stopPropagation()}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"20px" }}>
           <div>
-            <div style={{ fontSize:"18px", fontWeight:"800", color:"#1a1f2e" }}> Nuevo lead</div>
+            <div style={{ fontSize:"18px", fontWeight:"800", color:"#1a1f2e" }}>Nuevo lead</div>
             <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"2px" }}>Captura rapida durante la llamada</div>
           </div>
-          <button style={{ ...S.btn("ghost"), padding:"5px 10px" }} onClick={onClose}></button>
+          <button style={{ ...S.btn("ghost"), padding:"5px 10px" }} onClick={onClose}>X</button>
         </div>
+
         <div style={{ marginBottom:"14px" }}>
           <div style={S.label}>Nombre *</div>
-          <input style={{ ...S.input, fontSize:"15px", borderColor:nombre?"":"#f5b8b8" }}
+          <input style={{ ...S.input, fontSize:"15px", borderColor:nombre?"#e3e6ea":"#f5b8b8" }}
             placeholder="Nombre del prospecto" value={nombre} onChange={e=>setNombre(e.target.value)} autoFocus />
         </div>
+
         <div style={{ marginBottom:"14px" }}>
           <div style={S.label}>Telefono *</div>
-          <input style={{ ...S.input, fontSize:"15px", borderColor:tel?"":"#f5b8b8" }}
+          <input style={{ ...S.input, fontSize:"15px", borderColor:tel?"#e3e6ea":"#f5b8b8" }}
             placeholder="305-123-4567" value={tel} onChange={e=>setTel(e.target.value)}
             onKeyDown={e=>e.key==="Enter"&&valid&&handleSave()} />
         </div>
+
         <div style={{ marginBottom:isSup?"14px":"16px" }}>
-          <div style={S.label}>Emisora *</div>
-          <select style={{ ...S.select, borderColor:"rgba(129,140,248,0.4)" }} value={emisora} onChange={e=>setEmisora(e.target.value)}>
-            {EMISORAS.map(e=><option key={e}>{e}</option>)}
-          </select>
+          <div style={S.label}>Spot del log de radio *</div>
+          {loadingSpots ? (
+            <div style={{ ...S.input, color:"#9ca3af", fontSize:"12px" }}>Cargando spots...</div>
+          ) : (
+            <select style={{ ...S.select, borderColor:"#aac4f0" }} value={spotId} onChange={handleSpotChange}>
+              {spots.length === 0 && <option value="">Sin spots disponibles</option>}
+              {spots.map(sp => (
+                <option key={sp.id} value={sp.id}>
+                  {emNombre(sp.emisora_id)} - {fmtHora(sp.hora)} - {fmtFechaCort(sp.fecha)}
+                </option>
+              ))}
+              <option value="__manual__">-- Ingresar emisora manualmente --</option>
+            </select>
+          )}
+          {spotId === "__manual__" && (
+            <input style={{ ...S.input, marginTop:"8px" }} placeholder="Nombre de la emisora"
+              value={emisora} onChange={e=>setEmisora(e.target.value)} />
+          )}
         </div>
+
         {isSup && (
           <div style={{ marginBottom:"16px" }}>
             <div style={S.label}>Asignar a *</div>
-            <select style={{ ...S.select, borderColor:"rgba(74,222,128,0.4)" }} value={asignarA} onChange={e=>setAsignarA(e.target.value)}>
+            <select style={{ ...S.select, borderColor:"#a3d9a5" }} value={asignarA} onChange={e=>setAsignarA(e.target.value)}>
               {vendedores.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}
             </select>
           </div>
         )}
+
         <div style={{ marginBottom:"18px" }}>
           <div style={S.label}>Nota rapida (opcional)</div>
           <input style={S.input} placeholder="Ej: muy interesado, viene con pareja..."
             value={nota} onChange={e=>setNota(e.target.value)}
             onKeyDown={e=>e.key==="Enter"&&valid&&handleSave()} />
         </div>
+
         <div style={{ display:"flex", gap:"8px" }}>
           <button style={{ ...S.btn("ghost"), flex:1 }} onClick={onClose}>Cancelar</button>
           <button style={{ ...S.btn("success"), flex:3, justifyContent:"center", fontSize:"14px", padding:"10px", opacity:valid?1:0.4 }}
-            disabled={!valid} onClick={handleSave}> Guardar lead</button>
+            disabled={!valid} onClick={handleSave}>Guardar lead</button>
         </div>
       </div>
     </div>
