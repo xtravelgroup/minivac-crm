@@ -1542,15 +1542,38 @@ function SupervisorView({ leads, users, currentUser, onUpdateLead, onBulkReassig
 // 
 // ROOT
 // 
-export default function SellerCRMv3() {
-  const [leads,       setLeads]       = useState(SEED_LEADS);
-  const [currentUser, setCurrentUser] = useState(SEED_USERS[0]);
-  const [toast,       setToast]       = useState(null);
-  const [showNuevo,   setShowNuevo]   = useState(false);
+export default function SellerCRMv3({ currentUser: shellUser }) {
+  const [leads,        setLeads]       = useState(SEED_LEADS);
+  const [toast,        setToast]       = useState(null);
+  const [showNuevo,    setShowNuevo]   = useState(false);
+  // Para supervisor: permite cambiar la vista entre vendedores de su equipo
+  const [vistaUserId,  setVistaUserId] = useState(null);
 
-  const notify = (msg, ok=true) => { setToast({msg,ok}); setTimeout(()=>setToast(null),3000); };
+  // Normalizar el usuario del shell al formato interno del modulo
+  // El shell pasa: { id, nombre, rol, auth_id, ... }
+  // El modulo usa: { id, name, role, supervisorId }
+  var rolShell = (shellUser && shellUser.rol) ? shellUser.rol : "vendedor";
+  var SUP_ROLES = ["admin", "director", "supervisor"];
+  var isSup = SUP_ROLES.includes(rolShell);
 
-  // Borra datos de tarjeta si tienen mas de 24h
+  var mappedUser = shellUser ? {
+    id:           shellUser.auth_id || shellUser.id || "U_shell",
+    name:         shellUser.nombre  || shellUser.name || "Usuario",
+    role:         isSup ? "supervisor" : "vendedor",
+    supervisorId: null,
+  } : SEED_USERS[0];
+
+  // Si es supervisor y cambia de vista, usamos vistaUserId; sino el propio usuario
+  var activeUser = (isSup && vistaUserId)
+    ? (SEED_USERS.find(function(u){ return u.id === vistaUserId; }) || mappedUser)
+    : mappedUser;
+
+  const notify = (msg, ok) => {
+    var isOk = ok === undefined ? true : ok;
+    setToast({msg:msg, ok:isOk});
+    setTimeout(function(){ setToast(null); }, 3000);
+  };
+
   const limpiarTarjeta = (lead) => ({
     ...lead,
     tarjetaNumero: null, tarjetaNombre: null,
@@ -1558,30 +1581,35 @@ export default function SellerCRMv3() {
     tarjetaTipo: null,   tarjetaCapturaTs: null,
   });
 
-  // Al iniciar: purgar tarjetas vencidas (>24h)
-  useState(() => {
-    const ahora = Date.now();
-    setLeads(p => p.map(l => {
+  useState(function(){
+    var ahora = Date.now();
+    setLeads(function(p){ return p.map(function(l){
       if (l.tarjetaCapturaTs && (ahora - new Date(l.tarjetaCapturaTs).getTime()) > 86400000) {
         return limpiarTarjeta(l);
       }
       return l;
-    }));
+    }); });
   });
 
-  const handleUpdateLead = u => {
-    // Si pasa a verificacion o venta  borrar datos de tarjeta
-    const prev = leads.find(l => l.id === u.id);
-    const recienVerificado = ["verificacion","venta"].includes(u.status) && !["verificacion","venta"].includes(prev?.status);
-    const final = recienVerificado ? limpiarTarjeta(u) : u;
-    setLeads(p => p.map(l => l.id === final.id ? final : l));
-    if (recienVerificado && u.tarjetaNumero) notify(" Datos de tarjeta eliminados al pasar a " + u.status);
-    else notify(" Lead actualizado");
+  const handleUpdateLead = function(u) {
+    var prev = leads.find(function(l){ return l.id === u.id; });
+    var recienVerificado = ["verificacion","venta"].includes(u.status) && !["verificacion","venta"].includes(prev ? prev.status : "");
+    var final = recienVerificado ? limpiarTarjeta(u) : u;
+    setLeads(function(p){ return p.map(function(l){ return l.id === final.id ? final : l; }); });
+    if (recienVerificado && u.tarjetaNumero) notify("Datos de tarjeta eliminados al pasar a " + u.status);
+    else notify("Lead actualizado");
   };
-  const handleAddLead     = l => { setLeads(p=>[l,...p]); notify(" Lead agregado - "+l.nombre); };
-  const handleBulkReassign= (ids,vid) => { const v=SEED_USERS.find(u=>u.id===vid); setLeads(p=>p.map(l=>ids.includes(l.id)?{...l,vendedorId:vid}:l)); notify(` ${ids.length} leads  ${v?.name}`); };
 
-  const isSup = currentUser.role==="supervisor";
+  const handleAddLead = function(l) {
+    setLeads(function(p){ return [l, ...p]; });
+    notify("Lead agregado - " + l.nombre);
+  };
+
+  const handleBulkReassign = function(ids, vid) {
+    var v = SEED_USERS.find(function(u){ return u.id === vid; });
+    setLeads(function(p){ return p.map(function(l){ return ids.includes(l.id) ? {...l, vendedorId:vid} : l; }); });
+    notify(ids.length + " leads reasignados a " + (v ? v.name : vid));
+  };
 
   return (
     <div style={S.wrap}>
@@ -1590,29 +1618,44 @@ export default function SellerCRMv3() {
         <div style={{ width:"1px", height:"16px", background:"#e3e6ea" }} />
         <div style={{ fontSize:"14px", fontWeight:"600", color:"#1a385a" }}>{isSup ? "Pipeline del equipo" : "Mis Leads"}</div>
         <div style={{ flex:1 }} />
-        <button style={{ ...S.btn("success"), padding:"7px 16px", fontSize:"13px", fontWeight:"700" }} onClick={()=>setShowNuevo(true)}>+ Nuevo lead</button>
-        <div style={{ width:"1px", height:"16px", background:"#e3e6ea" }} />
+        <button style={{ ...S.btn("success"), padding:"7px 16px", fontSize:"13px", fontWeight:"700" }} onClick={function(){ setShowNuevo(true); }}>+ Nuevo lead</button>
         {isSup && (
-          <div style={{ display:"flex", gap:"4px", alignItems:"center" }}>
-            <span style={{ fontSize:"11px", color:"#9ca3af" }}>Vista:</span>
-            {SEED_USERS.map(u=>(
-              <button key={u.id} style={{ ...S.btn(currentUser.id===u.id?"indigo":"ghost"), padding:"4px 9px", fontSize:"11px" }} onClick={()=>setCurrentUser(u)}>
-                {u.role==="supervisor" ? "S " : ""}{u.name.split(" ")[0]}
+          <>
+            <div style={{ width:"1px", height:"16px", background:"#e3e6ea" }} />
+            <div style={{ display:"flex", gap:"4px", alignItems:"center" }}>
+              <span style={{ fontSize:"11px", color:"#9ca3af" }}>Vista:</span>
+              <button style={{ ...S.btn(!vistaUserId?"indigo":"ghost"), padding:"4px 9px", fontSize:"11px" }}
+                onClick={function(){ setVistaUserId(null); }}>
+                Equipo
               </button>
-            ))}
-          </div>
+              {SEED_USERS.filter(function(u){ return u.role==="vendedor"; }).map(function(u){
+                return (
+                  <button key={u.id} style={{ ...S.btn(vistaUserId===u.id?"indigo":"ghost"), padding:"4px 9px", fontSize:"11px" }}
+                    onClick={function(){ setVistaUserId(u.id); }}>
+                    {u.name.split(" ")[0]}
+                  </button>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 
       {isSup
-        ? <SupervisorView leads={leads} users={SEED_USERS} currentUser={currentUser} onUpdateLead={handleUpdateLead} onBulkReassign={handleBulkReassign} />
-        : <VendedorView   leads={leads} users={SEED_USERS} currentUser={currentUser} onUpdateLead={handleUpdateLead} />
+        ? <SupervisorView leads={leads} users={SEED_USERS} currentUser={activeUser} onUpdateLead={handleUpdateLead} onBulkReassign={handleBulkReassign} />
+        : <VendedorView   leads={leads} users={SEED_USERS} currentUser={mappedUser}  onUpdateLead={handleUpdateLead} />
       }
 
-      {showNuevo && <NuevoLeadModal currentUser={currentUser} users={SEED_USERS} onClose={()=>setShowNuevo(false)} onSave={l=>{handleAddLead(l);setShowNuevo(false);}} />}
+      {showNuevo && (
+        <NuevoLeadModal currentUser={isSup ? activeUser : mappedUser} users={SEED_USERS}
+          onClose={function(){ setShowNuevo(false); }}
+          onSave={function(l){ handleAddLead(l); setShowNuevo(false); }} />
+      )}
 
       {toast && (
-        <div style={{ position:"fixed", bottom:"24px", right:"24px", zIndex:999, padding:"12px 20px", borderRadius:"10px", background:toast.ok?"#e5f3e8":"#fdeaea", border:`1px solid ${toast.ok?"#a3d9a5":"#f5b8b8"}`, color:toast.ok?"#1a7f3c":"#b91c1c", fontSize:"14px", fontWeight:"600", boxShadow:"0 4px 16px rgba(0,0,0,0.1)" }}>
+        <div style={{ position:"fixed", bottom:"24px", right:"24px", zIndex:999, padding:"12px 20px", borderRadius:"10px",
+          background:toast.ok?"#e5f3e8":"#fdeaea", border:"1px solid " + (toast.ok?"#a3d9a5":"#f5b8b8"),
+          color:toast.ok?"#1a7f3c":"#b91c1c", fontSize:"14px", fontWeight:"600", boxShadow:"0 4px 16px rgba(0,0,0,0.1)" }}>
           {toast.msg}
         </div>
       )}
