@@ -623,8 +623,13 @@ function LeadModal({ lead, users, currentUser, isSupervisor, onClose, onSave, on
           <div style={S.label}>Status</div>
           <select style={{ ...S.select, borderColor:sc?.color+"55", color:sc?.color }}
             value={draft.status} onChange={e => set("status", e.target.value)} disabled={!canEdit}>
-            {STATUS_ORDER.map(k => <option key={k} value={k}>{STATUS_CFG[k].label}</option>)}
+            {STATUS_ORDER.filter(function(k){ return isSupervisor || k !== "venta"; }).map(function(k){
+              return <option key={k} value={k}>{STATUS_CFG[k].label}</option>;
+            })}
           </select>
+          {!isSupervisor && draft.status !== "venta" && (
+            <div style={{ fontSize:"11px", color:"#9ca3af", marginTop:"4px" }}>El status "Venta" lo asigna el verificador</div>
+          )}
         </div>
 
         {/* Tabs */}
