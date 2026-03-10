@@ -1512,14 +1512,16 @@ export default function SellerCRMv3() {
         <div style={{ flex:1 }} />
         <button style={{ ...S.btn("success"), padding:"7px 16px", fontSize:"13px", fontWeight:"700" }} onClick={()=>setShowNuevo(true)}>+ Nuevo lead</button>
         <div style={{ width:"1px", height:"16px", background:"#e3e6ea" }} />
-        <div style={{ display:"flex", gap:"4px", alignItems:"center" }}>
-          <span style={{ fontSize:"11px", color:"#9ca3af" }}>Vista:</span>
-          {SEED_USERS.map(u=>(
-            <button key={u.id} style={{ ...S.btn(currentUser.id===u.id?"indigo":"ghost"), padding:"4px 9px", fontSize:"11px" }} onClick={()=>setCurrentUser(u)}>
-              {u.role==="supervisor" ? "S " : ""}{u.name.split(" ")[0]}
-            </button>
-          ))}
-        </div>
+        {isSup && (
+          <div style={{ display:"flex", gap:"4px", alignItems:"center" }}>
+            <span style={{ fontSize:"11px", color:"#9ca3af" }}>Vista:</span>
+            {SEED_USERS.map(u=>(
+              <button key={u.id} style={{ ...S.btn(currentUser.id===u.id?"indigo":"ghost"), padding:"4px 9px", fontSize:"11px" }} onClick={()=>setCurrentUser(u)}>
+                {u.role==="supervisor" ? "S " : ""}{u.name.split(" ")[0]}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {isSup
