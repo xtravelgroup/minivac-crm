@@ -861,22 +861,31 @@ function NuevoLeadModal({ currentUser, users, onClose, onSave }) {
 
   // Cargar spots de la semana actual y siguientes desde Supabase
   useState(() => {
-    const hoy = new Date().toISOString().split("T")[0];
+    var hoy = new Date();
+    var dia = hoy.getDay();
+    var lunesOffset = dia === 0 ? -6 : 1 - dia;
+    var lunes = new Date(hoy);
+    lunes.setDate(hoy.getDate() + lunesOffset);
+    var lunesStr = lunes.toISOString().split("T")[0];
     Promise.all([
-      SB.from("radio_spots").select("*").gte("fecha", hoy).order("fecha").order("hora"),
+      SB.from("radio_spots").select("*").gte("semana", lunesStr).order("semana").order("dia_semana").order("hora"),
       SB.from("emisoras").select("id,nombre").order("nombre"),
-    ]).then(([resS, resE]) => {
+    ]).then(function(results) {
+      var resS = results[0];
+      var resE = results[1];
       setLoadingSpots(false);
       if (resS.data) setSpots(resS.data);
       if (resE.data) setEmisoras(resE.data);
       if (resS.data && resS.data.length > 0) {
         setSpotId(resS.data[0].id);
         if (resE.data) {
-          const em = resE.data.find(e => e.id === resS.data[0].emisora_id);
+          var em = resE.data.find(function(e){ return e.id === resS.data[0].emisora_id; });
           setEmisora(em ? em.nombre : "");
         }
+      } else {
+        setSpotId("__manual__");
       }
-    }).catch(() => setLoadingSpots(false));
+    }).catch(function(){ setLoadingSpots(false); setSpotId("__manual__"); });
   });
 
   function emNombre(emId) {
@@ -894,9 +903,13 @@ function NuevoLeadModal({ currentUser, users, onClose, onSave }) {
     return h12 + ":" + m + " " + ampm;
   }
 
-  function fmtFechaCort(str) {
-    if (!str) return "";
-    return new Date(str + "T12:00:00").toLocaleDateString("es-MX", {weekday:"short", day:"2-digit", month:"short"});
+  function fmtFechaCort(sp) {
+    if (!sp) return "";
+    var dias = { lunes:0, martes:1, miercoles:2, jueves:3, viernes:4, sabado:5, domingo:6 };
+    var offset = dias[sp.dia_semana] !== undefined ? dias[sp.dia_semana] : 0;
+    var base = new Date(sp.semana + "T12:00:00");
+    base.setDate(base.getDate() + offset);
+    return base.toLocaleDateString("es-MX", {weekday:"short", day:"2-digit", month:"short"});
   }
 
   function handleSpotChange(e) {
@@ -913,7 +926,7 @@ function NuevoLeadModal({ currentUser, users, onClose, onSave }) {
   const handleSave = () => {
     if (!valid) return;
     const sp = spots.find(s => s.id === spotId);
-    const emLabel = sp ? (emNombre(sp.emisora_id) + " - " + fmtHora(sp.hora) + " " + fmtFechaCort(sp.fecha)) : emisora;
+    const emLabel = sp ? (emNombre(sp.emisora_id) + " - " + fmtHora(sp.hora) + " " + fmtFechaCort(sp)) : emisora;
     onSave(mkLead({
       id: "L"+Date.now(), folio:"F"+Date.now().toString().slice(-5),
       nombre:nombre.trim(), tel:tel.trim(),
@@ -958,7 +971,7 @@ function NuevoLeadModal({ currentUser, users, onClose, onSave }) {
               {spots.length === 0 && <option value="">Sin spots disponibles</option>}
               {spots.map(sp => (
                 <option key={sp.id} value={sp.id}>
-                  {emNombre(sp.emisora_id)} - {fmtHora(sp.hora)} - {fmtFechaCort(sp.fecha)}
+                  {emNombre(sp.emisora_id)} - {fmtHora(sp.hora)} - {fmtFechaCort(sp)}
                 </option>
               ))}
               <option value="__manual__">-- Ingresar emisora manualmente --</option>
