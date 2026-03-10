@@ -736,11 +736,89 @@ function TabLog(props) {
 
 //  Tab: Emisoras 
 
+function NotasEmisora(props) {
+  var emId = props.emisoraId;
+  var currentUser = props.currentUser;
+  var [notas, setNotas] = useState([]);
+  var [loading, setLoading] = useState(true);
+  var [nuevaNota, setNuevaNota] = useState("");
+  var [saving, setSaving] = useState(false);
+
+  useEffect(function() {
+    if (!emId) return;
+    setLoading(true);
+    SB.from("radio_emisora_notas")
+      .select("*, usuarios(nombre)")
+      .eq("emisora_id", emId)
+      .order("created_at", {ascending: false})
+      .then(function(res) {
+        setLoading(false);
+        if (res.data) setNotas(res.data);
+      });
+  }, [emId]);
+
+  function agregarNota() {
+    if (!nuevaNota.trim()) return;
+    setSaving(true);
+    SB.from("radio_emisora_notas").insert({
+      emisora_id: emId,
+      nota: nuevaNota.trim(),
+      created_by: currentUser ? currentUser.id : null,
+    }).select("*, usuarios(nombre)").single().then(function(res) {
+      setSaving(false);
+      if (res.error) { return; }
+      setNotas(function(p) { return [res.data].concat(p); });
+      setNuevaNota("");
+    });
+  }
+
+  function fmtTs(str) {
+    if (!str) return "";
+    return new Date(str).toLocaleString("es-MX", {day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
+  }
+
+  return (
+    <div>
+      <div style={{marginBottom:"12px"}}>
+        <textarea value={nuevaNota} onChange={function(e){setNuevaNota(e.target.value);}}
+          placeholder="Agregar nota..."
+          rows={3}
+          style={{width:"100%",padding:"9px 12px",border:"1.5px solid "+C.border,borderRadius:"8px",
+            fontSize:"13px",color:C.text1,background:C.surface,outline:"none",
+            boxSizing:"border-box",fontFamily:FONT,resize:"vertical"}}/>
+        <div style={{display:"flex",justifyContent:"flex-end",marginTop:"6px"}}>
+          <Btn sm onClick={agregarNota} disabled={saving||!nuevaNota.trim()}>
+            {saving ? "Guardando..." : "Agregar nota"}
+          </Btn>
+        </div>
+      </div>
+      {loading && <div style={{fontSize:"12px",color:C.text4,padding:"12px 0"}}>Cargando...</div>}
+      {!loading && notas.length === 0 && (
+        <div style={{fontSize:"12px",color:C.text4,padding:"12px 0",textAlign:"center"}}>Sin notas</div>
+      )}
+      {notas.map(function(n) {
+        return (
+          <div key={n.id} style={{padding:"10px 12px",background:C.bg,borderRadius:"8px",
+            border:"1px solid "+C.borderL,marginBottom:"8px"}}>
+            <div style={{fontSize:"13px",color:C.text1,lineHeight:"1.6",marginBottom:"6px"}}>{n.nota}</div>
+            <div style={{fontSize:"10px",color:C.text4}}>
+              {n.usuarios ? n.usuarios.nombre : "Sistema"} - {fmtTs(n.created_at)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function TabEmisoras(props) {
   var emisoras = props.emisoras;
   var spots    = props.spots;
   var isReadOnly = props.isReadOnly;
+  var currentUser = props.currentUser;
   var [sel, setSel] = useState(null);
+  var [busqueda, setBusqueda] = useState("");
+  var [selTab, setSelTab] = useState("info");
 
   function kpis(em) {
     var sps = spots.filter(function(s){return s.emisoraId===em.id;});
@@ -752,13 +830,28 @@ function TabEmisoras(props) {
     return {total:total, equipo:equipo, incs:incs, spots:sps.length, pendTotal:pendTotal};
   }
 
+  var emisorasFiltradas = emisoras.filter(function(em) {
+    var b = busqueda.toLowerCase();
+    if (!b) return true;
+    return (em.nombre||"").toLowerCase().indexOf(b) !== -1 ||
+           (em.ciudad||"").toLowerCase().indexOf(b) !== -1 ||
+           (em.frecuencia||"").toLowerCase().indexOf(b) !== -1;
+  });
+
   return (
     <div>
-      {!isReadOnly && (
-        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:"12px"}}>
-          <Btn onClick={props.onAddEmisora}>+ Nueva emisora</Btn>
-        </div>
-      )}
+      <div style={{display:"flex",gap:"8px",marginBottom:"12px",alignItems:"center"}}>
+        <input value={busqueda} onChange={function(e){setBusqueda(e.target.value);}}
+          placeholder="Buscar por nombre o ciudad..."
+          style={{flex:1,maxWidth:"320px",padding:"8px 12px",border:"1.5px solid "+C.border,
+            borderRadius:"8px",fontSize:"13px",color:C.text1,background:C.surface,
+            outline:"none",fontFamily:FONT}}/>
+        {!isReadOnly && (
+          <div style={{marginLeft:"auto"}}>
+            <Btn onClick={props.onAddEmisora}>+ Nueva emisora</Btn>
+          </div>
+        )}
+      </div>
 
       {emisoras.length === 0 && (
         <Card style={{padding:"48px",textAlign:"center"}}>
@@ -771,8 +864,14 @@ function TabEmisoras(props) {
         </Card>
       )}
 
+      {busqueda && emisorasFiltradas.length === 0 && (
+        <div style={{textAlign:"center",padding:"32px",fontSize:"13px",color:C.text4}}>
+          Sin resultados para "{busqueda}"
+        </div>
+      )}
+
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
-        {emisoras.map(function(em){
+        {emisorasFiltradas.map(function(em){
           var k = kpis(em);
           return (
             <Card key={em.id} style={{padding:"16px",cursor:"pointer",transition:"all 0.15s",
@@ -832,57 +931,233 @@ function TabEmisoras(props) {
         <div style={{position:"fixed",inset:0,background:"rgba(15,25,35,0.5)",zIndex:150,
           display:"flex",justifyContent:"flex-end"}}
           onClick={function(){setSel(null);}}>
-          <div style={{width:"480px",maxWidth:"95vw",background:C.surface,height:"100%",
+          <div style={{width:"500px",maxWidth:"95vw",background:C.surface,height:"100%",
+            overflowY:"auto",boxShadow:"-8px 0 32px rgba(0,0,0,0.12)",display:"flex",flexDirection:"column"}}
+            onClick={function(e){e.stopPropagation();}}>
+
+            {/* Header */}
+            <div style={{padding:"20px 24px",borderBottom:"1px solid "+C.border,flexShrink:0}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"14px"}}>
+                <div>
+                  <div style={{fontSize:"18px",fontWeight:"700",color:C.text1,marginBottom:"2px"}}>{sel.nombre}</div>
+                  <div style={{fontSize:"13px",color:C.mid}}>{sel.frecuencia}{sel.ciudad?" - "+sel.ciudad:""}</div>
+                </div>
+                <Btn v="ghost" sm onClick={function(){setSel(null);}}>Cerrar</Btn>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:"8px"}}>
+                {(function(){
+                  var k = kpis(sel);
+                  return [
+                    {l:"Spots",   v:k.spots,            color:C.text2},
+                    {l:"Neto",    v:fmtUSD(k.total),    color:C.red},
+                    {l:"Equipo",  v:fmtUSD(k.equipo),   color:C.amber},
+                    {l:"Pendiente",v:fmtUSD(k.pendTotal),color:C.dark},
+                  ].map(function(kp){
+                    return(
+                      <div key={kp.l} style={{textAlign:"center",padding:"8px",background:C.bg,borderRadius:"8px"}}>
+                        <div style={{fontSize:"13px",fontWeight:"700",color:kp.color}}>{kp.v}</div>
+                        <div style={{fontSize:"10px",color:C.text4,marginTop:"1px"}}>{kp.l}</div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+
+            {/* Sub-tabs */}
+            <div style={{display:"flex",gap:"2px",padding:"0 24px",borderBottom:"1px solid "+C.border,flexShrink:0}}>
+              {[{k:"info",l:"Informacion"},{k:"notas",l:"Historial de notas"}].map(function(t){
+                var isA = selTab===t.k;
+                return(
+                  <button key={t.k} onClick={function(){setSelTab(t.k);}}
+                    style={{padding:"10px 14px",background:"transparent",border:"none",cursor:"pointer",
+                      fontSize:"12px",fontFamily:FONT,fontWeight:isA?"700":"400",
+                      color:isA?C.dark:C.text3,
+                      borderBottom:"2px solid "+(isA?C.dark:"transparent")}}>
+                    {t.l}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Body */}
+            <div style={{flex:1,overflowY:"auto",padding:"20px 24px"}}>
+              {selTab==="info" && (
+                <div>
+                  {sel.vendedor && (
+                    <Card style={{padding:"12px",marginBottom:"12px"}}>
+                      <div style={{fontSize:"11px",fontWeight:"700",color:C.text4,marginBottom:"6px"}}>CONTACTO COMERCIAL</div>
+                      <div style={{fontSize:"13px",fontWeight:"600",color:C.text1}}>{sel.vendedor}</div>
+                      {sel.telefono && <div style={{fontSize:"12px",color:C.text3,marginTop:"2px"}}>{sel.telefono}</div>}
+                      {sel.email    && <div style={{fontSize:"12px",color:C.mid,marginTop:"2px"}}>{sel.email}</div>}
+                    </Card>
+                  )}
+                  {sel.contrato && (
+                    <Card style={{padding:"12px",marginBottom:"12px"}}>
+                      <div style={{fontSize:"11px",fontWeight:"700",color:C.text4,marginBottom:"4px"}}>CONTRATO</div>
+                      <div style={{fontSize:"13px",color:C.text1}}>{sel.contrato}</div>
+                    </Card>
+                  )}
+                  {sel.notas && (
+                    <Card style={{padding:"12px",marginBottom:"12px"}}>
+                      <div style={{fontSize:"11px",fontWeight:"700",color:C.text4,marginBottom:"6px"}}>NOTAS</div>
+                      <div style={{fontSize:"13px",color:C.text2,lineHeight:"1.6"}}>{sel.notas}</div>
+                    </Card>
+                  )}
+                  {!isReadOnly && (
+                    <Btn v="primary" onClick={function(){props.onEditEmisora(sel);setSel(null);}}>
+                      Editar emisora
+                    </Btn>
+                  )}
+                </div>
+              )}
+              {selTab==="notas" && (
+                <NotasEmisora emisoraId={sel.id} currentUser={currentUser}/>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+//  Tab: Ordenes (record global de todos los spots) 
+
+function TabOrdenes(props) {
+  var spots    = props.spots;
+  var emisoras = props.emisoras;
+  var [busqueda,  setBusqueda]  = useState("");
+  var [filtroEm,  setFiltroEm]  = useState("todas");
+  var [filtroSt,  setFiltroSt]  = useState("todos");
+  var [auditSpot, setAuditSpot] = useState(null);
+  var [audit,     setAudit]     = useState([]);
+  var [loadAudit, setLoadAudit] = useState(false);
+
+  function emNombre(id) {
+    for (var i=0;i<emisoras.length;i++){if(emisoras[i].id===id)return emisoras[i].nombre;}
+    return "-";
+  }
+
+  function verAudit(spot) {
+    setAuditSpot(spot);
+    setLoadAudit(true);
+    SB.from("radio_audit")
+      .select("*, usuarios(nombre)")
+      .eq("spot_id", spot.id)
+      .order("created_at", {ascending:false})
+      .then(function(res) {
+        setLoadAudit(false);
+        if (res.data) setAudit(res.data);
+      });
+  }
+
+  function fmtTs(str) {
+    if (!str) return "";
+    return new Date(str).toLocaleString("es-MX", {day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  }
+
+  var filtrados = spots.filter(function(s) {
+    var b = busqueda.toLowerCase();
+    var mB = b==="" || emNombre(s.emisoraId).toLowerCase().indexOf(b)!==-1 ||
+             (s.hora||"").indexOf(b)!==-1 || (s.tipo||"").toLowerCase().indexOf(b)!==-1;
+    var mE = filtroEm==="todas" || s.emisoraId===filtroEm;
+    var mS = filtroSt==="todos" || s.status===filtroSt;
+    return mB && mE && mS;
+  }).sort(function(a,b){ return (b.fecha||"").localeCompare(a.fecha||""); });
+
+  var INP = {padding:"8px 12px",border:"1.5px solid "+C.border,borderRadius:"8px",fontSize:"12px",
+    color:C.text1,background:C.surface,outline:"none",fontFamily:FONT,cursor:"pointer"};
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:"8px",marginBottom:"14px",flexWrap:"wrap"}}>
+        <input value={busqueda} onChange={function(e){setBusqueda(e.target.value);}}
+          placeholder="Buscar emisora, hora, tipo..."
+          style={Object.assign({},INP,{flex:1,minWidth:"180px",maxWidth:"280px",cursor:"text"})}/>
+        <select value={filtroEm} onChange={function(e){setFiltroEm(e.target.value);}} style={INP}>
+          <option value="todas">Todas las emisoras</option>
+          {emisoras.map(function(em){return <option key={em.id} value={em.id}>{em.nombre}</option>;})}
+        </select>
+        <select value={filtroSt} onChange={function(e){setFiltroSt(e.target.value);}} style={INP}>
+          <option value="todos">Todos los status</option>
+          {["pendiente","ordenado","confirmado","pagado"].map(function(s){
+            return <option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>;
+          })}
+        </select>
+        <div style={{marginLeft:"auto",fontSize:"12px",color:C.text4,display:"flex",alignItems:"center"}}>
+          {filtrados.length} ordenes
+        </div>
+      </div>
+
+      <Card style={{overflow:"hidden"}}>
+        <div style={{display:"grid",gridTemplateColumns:"1.5fr 1fr 80px 80px 90px 90px 80px",
+          padding:"8px 14px",background:"#f8f9fb",borderBottom:"1px solid "+C.border}}>
+          {["Emisora","Fecha","Hora","Tipo","Costo","Status",""].map(function(h,i){
+            return <div key={i} style={{fontSize:"10px",fontWeight:"700",color:C.text4,
+              textTransform:"uppercase",letterSpacing:"0.06em"}}>{h}</div>;
+          })}
+        </div>
+        {filtrados.length===0 && (
+          <div style={{padding:"32px",textAlign:"center",fontSize:"13px",color:C.text4}}>Sin ordenes</div>
+        )}
+        {filtrados.map(function(s, idx) {
+          var sm = STATUS_META[s.status] || STATUS_META.pendiente;
+          return (
+            <div key={s.id} style={{display:"grid",gridTemplateColumns:"1.5fr 1fr 80px 80px 90px 90px 80px",
+              padding:"9px 14px",alignItems:"center",
+              background:idx%2===0?C.surface:"#fafbfc",
+              borderBottom:"1px solid "+C.borderL}}>
+              <div style={{fontSize:"12px",fontWeight:"600",color:C.text1}}>{emNombre(s.emisoraId)}</div>
+              <div style={{fontSize:"11px",color:C.text3}}>{fmtFecha(s.fecha)}</div>
+              <div style={{fontSize:"11px",color:C.text2}}>{fmtHora(s.hora)}</div>
+              <div style={{fontSize:"11px",color:C.text3}}>{s.tipo}</div>
+              <div style={{fontSize:"12px",fontWeight:"600",color:C.text1}}>{fmtUSD(s.costo)}</div>
+              <div>
+                <Badge meta={sm}>{sm.label}</Badge>
+              </div>
+              <div>
+                <Btn v="ghost" sm onClick={function(){verAudit(s);}}>Historial</Btn>
+              </div>
+            </div>
+          );
+        })}
+      </Card>
+
+      {/* Drawer auditoria */}
+      {auditSpot && (
+        <div style={{position:"fixed",inset:0,background:"rgba(15,25,35,0.5)",zIndex:200,
+          display:"flex",justifyContent:"flex-end"}} onClick={function(){setAuditSpot(null);}}>
+          <div style={{width:"420px",maxWidth:"95vw",background:C.surface,height:"100%",
             overflowY:"auto",boxShadow:"-8px 0 32px rgba(0,0,0,0.12)",padding:"24px"}}
             onClick={function(e){e.stopPropagation();}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"20px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}}>
               <div>
-                <div style={{fontSize:"18px",fontWeight:"700",color:C.text1,marginBottom:"2px"}}>{sel.nombre}</div>
-                <div style={{fontSize:"13px",color:C.mid}}>{sel.frecuencia} - {sel.ciudad}</div>
+                <div style={{fontSize:"14px",fontWeight:"700",color:C.text1}}>Historial de cambios</div>
+                <div style={{fontSize:"12px",color:C.text3,marginTop:"2px"}}>
+                  {emNombre(auditSpot.emisoraId)} - {fmtFecha(auditSpot.fecha)} {fmtHora(auditSpot.hora)}
+                </div>
               </div>
-              <Btn v="ghost" sm onClick={function(){setSel(null);}}>Cerrar</Btn>
+              <Btn v="ghost" sm onClick={function(){setAuditSpot(null);}}>Cerrar</Btn>
             </div>
-
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"20px"}}>
-              {(function(){
-                var k = kpis(sel);
-                return [
-                  {l:"Total spots",  v:k.spots,          color:C.text2},
-                  {l:"Gasto neto",   v:fmtUSD(k.total),  color:C.red},
-                  {l:"Al equipo",    v:fmtUSD(k.equipo),  color:C.amber},
-                  {l:"Pendiente",    v:fmtUSD(k.pendTotal),color:C.dark},
-                ].map(function(kp){
-                  return (
-                    <Card key={kp.l} style={{padding:"12px",textAlign:"center"}}>
-                      <div style={{fontSize:"16px",fontWeight:"800",color:kp.color}}>{kp.v}</div>
-                      <div style={{fontSize:"10px",color:C.text4,marginTop:"2px"}}>{kp.l}</div>
-                    </Card>
-                  );
-                });
-              })()}
-            </div>
-
-            {sel.vendedor && (
-              <Card style={{padding:"12px",marginBottom:"12px"}}>
-                <div style={{fontSize:"11px",fontWeight:"700",color:C.text4,marginBottom:"6px"}}>CONTACTO</div>
-                <div style={{fontSize:"13px",fontWeight:"600",color:C.text1}}>{sel.vendedor}</div>
-                {sel.telefono && <div style={{fontSize:"12px",color:C.text3}}>{sel.telefono}</div>}
-                {sel.email    && <div style={{fontSize:"12px",color:C.mid}}>{sel.email}</div>}
-              </Card>
+            {loadAudit && <div style={{fontSize:"12px",color:C.text4,padding:"20px 0"}}>Cargando...</div>}
+            {!loadAudit && audit.length===0 && (
+              <div style={{fontSize:"12px",color:C.text4,padding:"20px 0",textAlign:"center"}}>
+                Sin historial registrado
+              </div>
             )}
-
-            {sel.notas && (
-              <Card style={{padding:"12px",marginBottom:"12px"}}>
-                <div style={{fontSize:"11px",fontWeight:"700",color:C.text4,marginBottom:"6px"}}>NOTAS</div>
-                <div style={{fontSize:"13px",color:C.text2,lineHeight:"1.6"}}>{sel.notas}</div>
-              </Card>
-            )}
-
-            <div style={{display:"flex",gap:"8px"}}>
-              <Btn v="primary" onClick={function(){props.onEditEmisora(sel);setSel(null);}}>
-                Editar emisora
-              </Btn>
-            </div>
+            {audit.map(function(a) {
+              return (
+                <div key={a.id} style={{padding:"10px 12px",background:C.bg,borderRadius:"8px",
+                  border:"1px solid "+C.borderL,marginBottom:"8px"}}>
+                  <div style={{fontSize:"12px",fontWeight:"600",color:C.text1,marginBottom:"3px"}}>{a.accion}</div>
+                  {a.detalle && <div style={{fontSize:"11px",color:C.text3,marginBottom:"4px"}}>{a.detalle}</div>}
+                  <div style={{fontSize:"10px",color:C.text4}}>
+                    {a.usuario_nombre || (a.usuarios ? a.usuarios.nombre : "Sistema")} - {fmtTs(a.created_at)}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -1685,6 +1960,7 @@ function ExpedienteEmisora(props) {
 export default function RadioModule(props) {
   var isSupervisor = props.isSupervisor;
   var isReadOnly   = props.isReadOnly;
+  var currentUser  = props.currentUser;
   var [emisoras,  setEmisoras]  = useState([]);
   var [spots,     setSpots]     = useState([]);
   var [pagos,     setPagos]     = useState([]);
@@ -1700,6 +1976,17 @@ export default function RadioModule(props) {
   function notify(msg, ok) {
     setToast({msg:msg, ok:ok !== false});
     setTimeout(function(){setToast(null);}, 3200);
+  }
+
+  function logAudit(spotId, accion, detalle) {
+    if (!spotId) return;
+    SB.from("radio_audit").insert({
+      spot_id:       spotId,
+      accion:        accion,
+      detalle:       detalle || null,
+      usuario_id:    currentUser ? currentUser.id   : null,
+      usuario_nombre:currentUser ? currentUser.nombre: "Sistema",
+    }).then(function(){});
   }
 
   //  Carga inicial 
@@ -1825,6 +2112,7 @@ export default function RadioModule(props) {
     if (modal && modal.spot) {
       SB.from("radio_spots").update(row).eq("id", draft.id).then(function(res){
         if (res.error) { notify("Error al guardar", false); return; }
+        logAudit(draft.id, "Spot editado", "Status: " + row.status + " | Costo: " + fmtUSD(row.costo));
         setSpots(function(p){return p.map(function(s){return s.id===draft.id?Object.assign({},draft):s;});});
         notify("Spot actualizado");
         setModal(null);
@@ -1832,6 +2120,7 @@ export default function RadioModule(props) {
     } else {
       SB.from("radio_spots").insert(row).select().single().then(function(res){
         if (res.error) { notify("Error al guardar", false); return; }
+        logAudit(res.data.id, "Spot creado", "Emisora: " + (row.emisora_id) + " | " + row.tipo + " | " + fmtUSD(row.costo));
         setSpots(function(p){return p.concat([Object.assign({},draft,{id:res.data.id,semana:semana.lunes})]);});
         notify("Spot agregado");
         setModal(null);
@@ -1989,6 +2278,7 @@ export default function RadioModule(props) {
   var TABS = [
     {id:"log",      label:"Log semanal"},
     {id:"emisoras", label:"Emisoras ("+emisoras.length+")"},
+    {id:"ordenes",  label:"Ordenes ("+spots.length+")"},
     {id:"pagos",    label:"Pagos" + (spotsPendTotal>0 ? " ("+spotsPendTotal+" pend.)":"")},
     {id:"finanzas", label:"Finanzas"},
   ];
@@ -2105,9 +2395,13 @@ export default function RadioModule(props) {
           <TabEmisoras
             emisoras={emisoras} spots={spots}
             isReadOnly={isReadOnly}
+            currentUser={currentUser}
             onAddEmisora={function(){if(!isReadOnly) setModal({type:"emisora",emisora:null});}}
             onEditEmisora={function(em){if(!isReadOnly) setModal({type:"emisora",emisora:em});}}
           />
+        )}
+        {!loading && tab==="ordenes" && (
+          <TabOrdenes spots={spots} emisoras={emisoras}/>
         )}
         {!loading && tab==="pagos" && (
           <TabPagos
