@@ -829,18 +829,37 @@ export default function CommissionsModule({ currentUser: shellUser }) {
     setConfigModal(null);
   };
 
-  // Si es vendedor, encontrar su card en SEED_USERS por nombre o mostrar el primero
+  // Si es vendedor/verificador, construir su propia card con su nombre real
+  // No usar datos de otro vendedor del seed - mostrar sus propios numeros (cero hasta conectar Supabase)
   var myVendCard = null;
   if (isVend && shellUser) {
-    myVendCard = users.find(function(u){
+    // Buscar por nombre exacto primero
+    var found = users.find(function(u){
       return u.name && shellUser.nombre && u.name.toLowerCase() === shellUser.nombre.toLowerCase();
-    }) || vendedores[0];
+    });
+    // Si no encontro, crear una card limpia con su nombre real
+    myVendCard = found || {
+      id: shellUser.auth_id || "me",
+      name: shellUser.nombre || "Mi cuenta",
+      role: "vendedor",
+      commPct: 10,
+      spiff: 0,
+      active: true,
+    };
   }
   var myVerifCard = null;
   if (isVerif && shellUser) {
-    myVerifCard = users.find(function(u){
+    var foundV = users.find(function(u){
       return u.name && shellUser.nombre && u.name.toLowerCase() === shellUser.nombre.toLowerCase();
-    }) || verificadores[0];
+    });
+    myVerifCard = foundV || {
+      id: shellUser.auth_id || "me",
+      name: shellUser.nombre || "Mi cuenta",
+      role: "verificador",
+      commPct: 2,
+      spiff: 0,
+      active: true,
+    };
   }
 
   return (
