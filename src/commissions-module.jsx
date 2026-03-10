@@ -111,27 +111,27 @@ const META_STATUS = {
 
 // --- STYLES ---
 const S = {
-  wrap:    { minHeight:"100vh", background:"#07090f", color:"#3d4554", fontFamily:"'DM Sans','Segoe UI',-apple-system,sans-serif" },
-  topbar:  { background:"rgba(10,14,26,0.97)", borderBottom:"1px solid #e8eaed", padding:"14px 28px", display:"flex", alignItems:"center", gap:14, position:"sticky", top:0, zIndex:100 },
-  logo:    { fontSize:12, fontWeight:700, color:"#9ca3af", letterSpacing:"0.12em", textTransform:"uppercase" },
-  tab:     (a) => ({ padding:"7px 16px", borderRadius:8, cursor:"pointer", fontSize:13, fontWeight:a?"600":"400", background:a?"rgba(99,102,241,0.18)":"transparent", color:a?"#1565c0":"#9ca3af", border:a?"1px solid rgba(99,102,241,0.3)":"1px solid transparent", transition:"all 0.15s" }),
-  card:    { background:"#fafbfc", border:"1px solid #e3e6ea", borderRadius:14, padding:20, marginBottom:14 },
-  label:   { fontSize:11, color:"#9ca3af", marginBottom:3, fontWeight:500 },
-  sTitle:  { fontSize:10, fontWeight:700, color:"#9ca3af", letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:12 },
-  divider: { height:1, background:"#f6f7f9", margin:"14px 0" },
+  wrap:    { minHeight:"100vh", background:"#f4f5f7", color:"#3d4554", fontFamily:"'DM Sans','Segoe UI',-apple-system,sans-serif" },
+  topbar:  { background:"#ffffff", borderBottom:"1px solid #e3e6ea", padding:"0 24px", display:"flex", alignItems:"center", gap:14, position:"sticky", top:0, zIndex:100, minHeight:52 },
+  logo:    { fontSize:12, fontWeight:700, color:"#9ca3af", letterSpacing:"0.1em", textTransform:"uppercase" },
+  tab:     (a) => ({ padding:"8px 16px", cursor:"pointer", fontSize:13, fontWeight:a?"700":"400", background:"transparent", color:a?"#1565c0":"#9ca3af", borderBottom:"2px solid " + (a?"#1565c0":"transparent"), border:"none", transition:"all 0.15s", whiteSpace:"nowrap", fontFamily:"'DM Sans','Segoe UI',sans-serif" }),
+  card:    { background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:12, padding:20, marginBottom:14, boxShadow:"0 1px 3px rgba(0,0,0,0.04)" },
+  label:   { fontSize:11, color:"#9ca3af", marginBottom:3, fontWeight:600 },
+  sTitle:  { fontSize:10, fontWeight:700, color:"#9ca3af", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:12 },
+  divider: { height:1, background:"#e3e6ea", margin:"14px 0" },
   badge:   (color, bg, border) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 10px", borderRadius:20, fontSize:11, fontWeight:600, color, background:bg, border:"1px solid " + border }),
-  input:   { background:"#f8f9fb", border:"1px solid #d4d8de", borderRadius:8, padding:"8px 12px", color:"#3d4554", fontSize:13, outline:"none", fontFamily:"inherit" },
-  modal:   { position:"fixed", inset:0, background:"rgba(15,20,30,0.5)", backdropFilter:"blur(2px)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:20 },
-  modalBox:{ background:"#ffffff", border:"1px solid #d8dbe0", borderRadius:18, padding:28, maxWidth:520, width:"100%", maxHeight:"90vh", overflowY:"auto" },
+  input:   { background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:8, padding:"8px 12px", color:"#1a1f2e", fontSize:13, outline:"none", fontFamily:"inherit" },
+  modal:   { position:"fixed", inset:0, background:"rgba(15,20,30,0.45)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:20 },
+  modalBox:{ background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:14, padding:28, maxWidth:520, width:"100%", maxHeight:"90vh", overflowY:"auto", boxShadow:"0 8px 32px rgba(0,0,0,0.10)" },
   btn:     (v="primary") => {
     const m = {
-      primary: { bg:"#4f46e5",                    color:"#fff",     border:"transparent"              },
-      success: { bg:"#e5f3e8",       color:"#1a7f3c",  border:"#a3d9a5"     },
-      danger:  { bg:"#fdeaea",      color:"#b91c1c",  border:"#f5b8b8"    },
-      warning: { bg:"#fffbeb",       color:"#925c0a",  border:"#f0d080"     },
-      ghost:   { bg:"#f6f7f9",      color:"#6b7280",  border:"#eceff3"    },
-      indigo:  { bg:"#e5eafd",       color:"#1565c0",  border:"#aab4f5"     },
-      purple:  { bg:"rgba(192,132,252,0.15)",      color:"#5b21b6",  border:"rgba(192,132,252,0.3)"    },
+      primary: { bg:"#1a385a",  color:"#fff",    border:"transparent"   },
+      success: { bg:"#edf7ee",  color:"#1a7f3c", border:"#a3d9a5"       },
+      danger:  { bg:"#fef2f2",  color:"#b91c1c", border:"#f5b8b8"       },
+      warning: { bg:"#fef9e7",  color:"#925c0a", border:"#f0d080"       },
+      ghost:   { bg:"#f4f5f7",  color:"#6b7280", border:"#e3e6ea"       },
+      indigo:  { bg:"#e8f0fe",  color:"#1565c0", border:"#aac4f0"       },
+      purple:  { bg:"#f3e8ff",  color:"#5b21b6", border:"#d8b4fe"       },
     };
     const s = m[v] || m.primary;
     return { display:"inline-flex", alignItems:"center", gap:7, padding:"9px 18px", borderRadius:9, cursor:"pointer", fontSize:13, fontWeight:600, background:s.bg, color:s.color, border:"1px solid " + s.border, transition:"all 0.18s", whiteSpace:"nowrap" };
@@ -801,86 +801,99 @@ function TablaVentas({ ventas, users, week }) {
 }
 
 // --- ROOT ---
-export default function CommissionsModule() {
+export default function CommissionsModule({ currentUser: shellUser }) {
   const [users,       setUsers]       = useState(SEED_USERS);
   const [ventas]                      = useState(SEED_VENTAS);
   const [numeros]                     = useState(SEED_NUMEROS);
-  const [tab,         setTab]         = useState("vendedores");
   const [configModal, setConfigModal] = useState(null);
   const [toast,       setToast]       = useState(null);
-  const [role,        setRole]        = useState("admin");
 
-  const notify   = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
-  const isAdmin  = role==="admin" || role==="director" || role==="supervisor";
-  const week     = WEEK;
-  const vendedores    = users.filter(u => u.role==="vendedor"    && u.active);
-  const verificadores = users.filter(u => u.role==="verificador" && u.active);
+  // Derivar rol desde el usuario real del shell
+  var rolShell = shellUser && shellUser.rol ? shellUser.rol : "vendedor";
+  var isAdmin  = rolShell === "admin" || rolShell === "director" || rolShell === "supervisor";
+  var isVerif  = rolShell === "verificador";
+  var isVend   = rolShell === "vendedor";
 
-  const handleSaveConfig = (updated) => {
-    setUsers(p => p.map(u => u.id===updated.id?updated:u));
+  // Tab inicial segun rol
+  var tabInicial = isVerif ? "verificadores" : "vendedores";
+  const [tab, setTab] = useState(tabInicial);
+
+  const notify = function(msg) { setToast(msg); setTimeout(function(){ setToast(null); }, 3000); };
+  var week        = WEEK;
+  var vendedores    = users.filter(function(u){ return u.role==="vendedor"    && u.active; });
+  var verificadores = users.filter(function(u){ return u.role==="verificador" && u.active; });
+
+  const handleSaveConfig = function(updated) {
+    setUsers(function(p){ return p.map(function(u){ return u.id===updated.id ? updated : u; }); });
     notify("Configuracion guardada");
     setConfigModal(null);
   };
 
+  // Si es vendedor, encontrar su card en SEED_USERS por nombre o mostrar el primero
+  var myVendCard = null;
+  if (isVend && shellUser) {
+    myVendCard = users.find(function(u){
+      return u.name && shellUser.nombre && u.name.toLowerCase() === shellUser.nombre.toLowerCase();
+    }) || vendedores[0];
+  }
+  var myVerifCard = null;
+  if (isVerif && shellUser) {
+    myVerifCard = users.find(function(u){
+      return u.name && shellUser.nombre && u.name.toLowerCase() === shellUser.nombre.toLowerCase();
+    }) || verificadores[0];
+  }
+
   return (
     <div style={S.wrap}>
-      {/* Topbar */}
       <div style={S.topbar}>
         <div style={S.logo}>Mini-Vac CRM</div>
-        <div style={{ width:1, height:18, background:"#eff1f4" }} />
-        <div style={{ fontSize:14, fontWeight:600, color:"#925c0a" }}>Reportes y Comisiones</div>
+        <div style={{ width:1, height:18, background:"#e3e6ea" }} />
+        <div style={{ fontSize:14, fontWeight:600, color:"#1a385a" }}>Reportes y Comisiones</div>
         <div style={{ flex:1 }} />
-        <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-          <span style={{ fontSize:11, color:"#9ca3af" }}>Vista:</span>
-          {["admin","supervisor","vendedor","verificador"].map(r => (
-            <button key={r} style={{ ...S.btn(role===r?"indigo":"ghost"), padding:"4px 10px", fontSize:11 }}
-              onClick={() => { setRole(r); setTab(r==="verificador"?"verificadores":r==="vendedor"?"vendedores":"spiffs"); }}>
-              {r==="admin"?"Admin":r==="supervisor"?"Supervisor":r==="vendedor"?"Vendedor":"Verificador"}
-            </button>
-          ))}
+        <div style={{ fontSize:12, color:"#9ca3af" }}>
+          {shellUser ? shellUser.nombre : ""}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ padding:"14px 28px 0", display:"flex", gap:8, borderBottom:"1px solid #e8eaed" }}>
-        {(isAdmin||role==="vendedor")    && <button style={S.tab(tab==="vendedores")}    onClick={() => setTab("vendedores")}>Vendedores</button>}
-        {(isAdmin||role==="verificador") && <button style={S.tab(tab==="verificadores")} onClick={() => setTab("verificadores")}>Verificadores</button>}
-        {(isAdmin||role==="supervisor")  && <button style={S.tab(tab==="spiffs")}        onClick={() => setTab("spiffs")}>Metas y Spiffs</button>}
-        {isAdmin                         && <button style={S.tab(tab==="resumen")}       onClick={() => setTab("resumen")}>Resumen ejecutivo</button>}
-        {isAdmin                         && <button style={S.tab(tab==="detalle")}       onClick={() => setTab("detalle")}>Detalle ventas</button>}
+      <div style={{ padding:"0 24px", display:"flex", gap:4, borderBottom:"1px solid #e3e6ea", background:"#ffffff" }}>
+        {(isAdmin || isVend)  && <button style={S.tab(tab==="vendedores")}    onClick={function(){ setTab("vendedores"); }}>Vendedores</button>}
+        {(isAdmin || isVerif) && <button style={S.tab(tab==="verificadores")} onClick={function(){ setTab("verificadores"); }}>Verificadores</button>}
+        {isAdmin              && <button style={S.tab(tab==="spiffs")}        onClick={function(){ setTab("spiffs"); }}>Metas y Spiffs</button>}
+        {isAdmin              && <button style={S.tab(tab==="resumen")}       onClick={function(){ setTab("resumen"); }}>Resumen ejecutivo</button>}
+        {isAdmin              && <button style={S.tab(tab==="detalle")}       onClick={function(){ setTab("detalle"); }}>Detalle ventas</button>}
       </div>
 
       <div style={{ padding:"24px 28px", maxWidth:1100, margin:"0 auto" }}>
         <div style={{ marginBottom:18, display:"flex", alignItems:"center", gap:10 }}>
-          <span style={S.badge("#1565c0","rgba(129,140,248,0.08)","rgba(129,140,248,0.2)")}>
-            Semana: {fmtDate(week.mon)} - {fmtDate(week.sun)}
+          <span style={S.badge("#1565c0","#e8f0fe","#aac4f0")}>
+            {"Semana: " + fmtDate(week.mon) + " - " + fmtDate(week.sun)}
           </span>
           <span style={{ fontSize:12, color:"#9ca3af" }}>Lunes a Domingo - Comisiones calculadas al cierre del domingo</span>
         </div>
 
         {tab==="vendedores" && (
-          role==="vendedor"
-            ? <VendedorCard user={users.find(u=>u.id==="U05")||vendedores[0]} ventas={ventas} numeros={numeros} week={week} isAdmin={false} onConfig={()=>{}} />
-            : vendedores.map(u => <VendedorCard key={u.id} user={u} ventas={ventas} numeros={numeros} week={week} isAdmin={isAdmin} onConfig={setConfigModal} />)
+          isVend
+            ? <VendedorCard user={myVendCard} ventas={ventas} numeros={numeros} week={week} isAdmin={false} onConfig={function(){}} />
+            : vendedores.map(function(u){ return <VendedorCard key={u.id} user={u} ventas={ventas} numeros={numeros} week={week} isAdmin={isAdmin} onConfig={setConfigModal} />; })
         )}
 
         {tab==="verificadores" && (
-          role==="verificador"
-            ? <VerificadorCard user={users.find(u=>u.id==="U04")||verificadores[0]} ventas={ventas} week={week} isAdmin={false} onConfig={()=>{}} />
-            : verificadores.map(u => <VerificadorCard key={u.id} user={u} ventas={ventas} week={week} isAdmin={isAdmin} onConfig={setConfigModal} />)
+          isVerif
+            ? <VerificadorCard user={myVerifCard} ventas={ventas} week={week} isAdmin={false} onConfig={function(){}} />
+            : verificadores.map(function(u){ return <VerificadorCard key={u.id} user={u} ventas={ventas} week={week} isAdmin={isAdmin} onConfig={setConfigModal} />; })
         )}
 
-        {tab==="spiffs" && <SpiffPanel users={users} week={week} notify={notify} role={role} />}
-
-        {tab==="resumen" && isAdmin && <ResumenEjecutivo users={users} ventas={ventas} week={week} />}
-
-        {tab==="detalle" && isAdmin && <TablaVentas ventas={ventas} users={users} week={week} />}
+        {tab==="spiffs"       && isAdmin && <SpiffPanel users={users} week={week} notify={notify} role={rolShell} />}
+        {tab==="resumen"      && isAdmin && <ResumenEjecutivo users={users} ventas={ventas} week={week} />}
+        {tab==="detalle"      && isAdmin && <TablaVentas ventas={ventas} users={users} week={week} />}
       </div>
 
-      {configModal && <ConfigModal user={configModal} onClose={() => setConfigModal(null)} onSave={handleSaveConfig} />}
+      {configModal && <ConfigModal user={configModal} onClose={function(){ setConfigModal(null); }} onSave={handleSaveConfig} />}
 
       {toast && (
-        <div style={{ position:"fixed", bottom:24, right:24, zIndex:999, padding:"12px 20px", borderRadius:10, background:"#e5f3e8", border:"1px solid rgba(74,222,128,0.3)", color:"#1a7f3c", fontSize:14, fontWeight:600, boxShadow:"0 4px 16px rgba(0,0,0,0.1)" }}>
+        <div style={{ position:"fixed", bottom:24, right:24, zIndex:999, padding:"12px 20px", borderRadius:10,
+          background:"#edf7ee", border:"1px solid #a3d9a5", color:"#1a7f3c", fontSize:14, fontWeight:600,
+          boxShadow:"0 4px 16px rgba(0,0,0,0.1)" }}>
           {toast}
         </div>
       )}
