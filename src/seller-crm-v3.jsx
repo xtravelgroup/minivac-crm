@@ -1527,76 +1527,231 @@ function SupervisorView({ leads, users, currentUser, onUpdateLead, onBulkReassig
 }
 
 // 
+// SUPABASE HELPERS - mapeo DB al modulo
+// 
+
+function dbToLead(r) {
+  return {
+    id:                  r.id,
+    folio:               r.folio               || "",
+    nombre:              r.nombre              || "",
+    apellido:            r.apellido            || "",
+    edad:                r.edad                || 0,
+    estadoCivil:         r.estado_civil        || "",
+    tel:                 r.tel                 || "",
+    whatsapp:            r.whatsapp            || "",
+    email:               r.email               || "",
+    coProp:              r.co_prop             || "",
+    coPropEdad:          r.co_prop_edad        || 0,
+    coPropTel:           r.co_prop_tel         || "",
+    direccion:           r.direccion           || "",
+    ciudad:              r.ciudad              || "Miami",
+    estado:              r.estado_us           || "FL",
+    emisora:             r.emisora             || "",
+    emisoraId:           r.emisora_id          || null,
+    spotId:              r.spot_id             || null,
+    status:              r.status              || "nuevo",
+    vendedorId:          r.vendedor_id         || null,
+    supervisorId:        r.supervisor_id       || null,
+    ultimoContacto:      r.ultimo_contacto     || TODAY,
+    proximoSeguimiento:  r.proximo_seguimiento || null,
+    salePrice:           Number(r.sale_price)  || 0,
+    pagoInicial:         Number(r.pago_inicial)|| 0,
+    metodoPago:          r.metodo_pago         || "",
+    bloqueado:           r.bloqueado           || false,
+    bloqueadoNota:       r.bloqueado_nota      || "",
+    destinos:            r.destinos            || [],
+    notas:               r.notas               || [],
+    fecha:               r.fecha               || TODAY,
+    tarjetaNumero:       r.tarjeta_numero      || null,
+    tarjetaNombre:       r.tarjeta_nombre      || null,
+    tarjetaVence:        r.tarjeta_vence       || null,
+    tarjetaCVV:          r.tarjeta_cvv         || null,
+    tarjetaTipo:         r.tarjeta_tipo        || null,
+    tarjetaCapturaTs:    r.tarjeta_captura_ts  || null,
+  };
+}
+
+function leadToDb(l) {
+  return {
+    folio:               l.folio               || null,
+    nombre:              l.nombre              || null,
+    apellido:            l.apellido            || null,
+    edad:                l.edad                || null,
+    estado_civil:        l.estadoCivil         || null,
+    tel:                 l.tel                 || null,
+    whatsapp:            l.whatsapp            || null,
+    email:               l.email               || null,
+    co_prop:             l.coProp              || null,
+    co_prop_edad:        l.coPropEdad          || null,
+    co_prop_tel:         l.coPropTel           || null,
+    direccion:           l.direccion           || null,
+    ciudad:              l.ciudad              || "Miami",
+    estado_us:           l.estado              || "FL",
+    emisora:             l.emisora             || null,
+    emisora_id:          l.emisoraId           || null,
+    spot_id:             l.spotId              || null,
+    status:              l.status              || "nuevo",
+    vendedor_id:         l.vendedorId          || null,
+    supervisor_id:       l.supervisorId        || null,
+    ultimo_contacto:     l.ultimoContacto      || TODAY,
+    proximo_seguimiento: l.proximoSeguimiento  || null,
+    sale_price:          l.salePrice           || null,
+    pago_inicial:        l.pagoInicial         || null,
+    metodo_pago:         l.metodoPago          || null,
+    bloqueado:           l.bloqueado           || false,
+    bloqueado_nota:      l.bloqueadoNota       || null,
+    destinos:            l.destinos            || [],
+    notas:               l.notas               || [],
+    fecha:               l.fecha               || TODAY,
+    tarjeta_numero:      l.tarjetaNumero       || null,
+    tarjeta_nombre:      l.tarjetaNombre       || null,
+    tarjeta_vence:       l.tarjetaVence        || null,
+    tarjeta_cvv:         l.tarjetaCVV          || null,
+    tarjeta_tipo:        l.tarjetaTipo         || null,
+    tarjeta_captura_ts:  l.tarjetaCapturaTs    || null,
+  };
+}
+
+// 
 // ROOT
 // 
 export default function SellerCRMv3({ currentUser: shellUser }) {
-  const [leads,        setLeads]       = useState(SEED_LEADS);
-  const [toast,        setToast]       = useState(null);
-  const [showNuevo,    setShowNuevo]   = useState(false);
-  // Para supervisor: permite cambiar la vista entre vendedores de su equipo
-  const [vistaUserId,  setVistaUserId] = useState(null);
+  const [leads,        setLeads]      = useState([]);
+  const [sbUsers,      setSbUsers]    = useState([]);
+  const [loading,      setLoading]    = useState(true);
+  const [toast,        setToast]      = useState(null);
+  const [showNuevo,    setShowNuevo]  = useState(false);
+  const [vistaUserId,  setVistaUserId]= useState(null);
 
-  // Normalizar el usuario del shell al formato interno del modulo
-  // El shell pasa: { id, nombre, rol, auth_id, ... }
-  // El modulo usa: { id, name, role, supervisorId }
-  var rolShell = (shellUser && shellUser.rol) ? shellUser.rol : "vendedor";
+  var rolShell  = (shellUser && shellUser.rol) ? shellUser.rol : "vendedor";
   var SUP_ROLES = ["admin", "director", "supervisor"];
-  var isSup = SUP_ROLES.includes(rolShell);
+  var isSup     = SUP_ROLES.includes(rolShell);
+  var myAuthId  = shellUser ? (shellUser.auth_id || shellUser.id) : null;
 
   var mappedUser = shellUser ? {
-    id:           shellUser.auth_id || shellUser.id || "U_shell",
-    name:         shellUser.nombre  || shellUser.name || "Usuario",
-    role:         isSup ? "supervisor" : "vendedor",
+    id:    myAuthId || "U_shell",
+    name:  shellUser.nombre || shellUser.name || "Usuario",
+    role:  isSup ? "supervisor" : "vendedor",
     supervisorId: null,
   } : SEED_USERS[0];
 
-  // Si es supervisor y cambia de vista, usamos vistaUserId; sino el propio usuario
+  // Supervisor puede ver equipo o un vendedor especifico
   var activeUser = (isSup && vistaUserId)
-    ? (SEED_USERS.find(function(u){ return u.id === vistaUserId; }) || mappedUser)
+    ? (sbUsers.find(function(u){ return u.id === vistaUserId; }) || mappedUser)
     : mappedUser;
 
-  const notify = (msg, ok) => {
+  const notify = function(msg, ok) {
     var isOk = ok === undefined ? true : ok;
     setToast({msg:msg, ok:isOk});
     setTimeout(function(){ setToast(null); }, 3000);
   };
 
-  const limpiarTarjeta = (lead) => ({
-    ...lead,
-    tarjetaNumero: null, tarjetaNombre: null,
-    tarjetaVence: null,  tarjetaCVV: null,
-    tarjetaTipo: null,   tarjetaCapturaTs: null,
-  });
-
-  useState(function(){
-    var ahora = Date.now();
-    setLeads(function(p){ return p.map(function(l){
-      if (l.tarjetaCapturaTs && (ahora - new Date(l.tarjetaCapturaTs).getTime()) > 86400000) {
-        return limpiarTarjeta(l);
+  // ---- Cargar leads desde Supabase ----
+  function cargarLeads() {
+    var query = SB.from("leads").select("*").order("created_at", {ascending:false});
+    // Vendedor solo ve los suyos (RLS lo filtra tambien, pero filtramos en cliente por seguridad)
+    if (!isSup && myAuthId) {
+      query = query.eq("vendedor_id", myAuthId);
+    }
+    query.then(function(res) {
+      setLoading(false);
+      if (res.data) {
+        setLeads(res.data.map(dbToLead));
+      } else {
+        console.error("Error cargando leads:", res.error);
       }
-      return l;
-    }); });
+    });
+  }
+
+  // Cargar usuarios del equipo para el supervisor
+  function cargarUsuarios() {
+    SB.from("usuarios").select("id,nombre,rol,auth_id,activo")
+      .in("rol", ["vendedor","supervisor","admin","director"])
+      .eq("activo", true)
+      .order("nombre")
+      .then(function(res) {
+        if (res.data) {
+          setSbUsers(res.data.map(function(u) {
+            return { id: u.auth_id || u.id, name: u.nombre, role: u.rol, supervisorId: null };
+          }));
+        }
+      });
+  }
+
+  // Cargar al montar
+  useState(function() {
+    cargarLeads();
+    if (isSup) cargarUsuarios();
   });
 
+  const limpiarTarjeta = function(lead) {
+    return {
+      ...lead,
+      tarjetaNumero: null, tarjetaNombre: null,
+      tarjetaVence: null,  tarjetaCVV: null,
+      tarjetaTipo: null,   tarjetaCapturaTs: null,
+    };
+  };
+
+  // ---- Guardar lead actualizado en Supabase ----
   const handleUpdateLead = function(u) {
     var prev = leads.find(function(l){ return l.id === u.id; });
     var recienVerificado = ["verificacion","venta"].includes(u.status) && !["verificacion","venta"].includes(prev ? prev.status : "");
     var final = recienVerificado ? limpiarTarjeta(u) : u;
+    // Actualizar estado local inmediatamente (optimistic)
     setLeads(function(p){ return p.map(function(l){ return l.id === final.id ? final : l; }); });
-    if (recienVerificado && u.tarjetaNumero) notify("Datos de tarjeta eliminados al pasar a " + u.status);
-    else notify("Lead actualizado");
+    // Persistir en Supabase
+    SB.from("leads").update(leadToDb(final)).eq("id", final.id).then(function(res) {
+      if (res.error) {
+        notify("Error al guardar: " + res.error.message, false);
+        cargarLeads(); // revertir
+      } else {
+        if (recienVerificado && u.tarjetaNumero) notify("Datos de tarjeta eliminados al pasar a " + u.status);
+        else notify("Lead actualizado");
+      }
+    });
   };
 
+  // ---- Insertar nuevo lead en Supabase ----
   const handleAddLead = function(l) {
-    setLeads(function(p){ return [l, ...p]; });
-    notify("Lead agregado - " + l.nombre);
+    var dbRow = leadToDb(l);
+    // Asignar vendedor_id al auth_id real del usuario logueado
+    if (!isSup && myAuthId) dbRow.vendedor_id = myAuthId;
+    SB.from("leads").insert(dbRow).select().then(function(res) {
+      if (res.error) {
+        notify("Error al crear lead: " + res.error.message, false);
+      } else if (res.data && res.data[0]) {
+        var nuevo = dbToLead(res.data[0]);
+        setLeads(function(p){ return [nuevo, ...p]; });
+        notify("Lead agregado - " + nuevo.nombre);
+      }
+    });
   };
 
+  // ---- Reasignacion masiva ----
   const handleBulkReassign = function(ids, vid) {
-    var v = SEED_USERS.find(function(u){ return u.id === vid; });
-    setLeads(function(p){ return p.map(function(l){ return ids.includes(l.id) ? {...l, vendedorId:vid} : l; }); });
-    notify(ids.length + " leads reasignados a " + (v ? v.name : vid));
+    var v = sbUsers.find(function(u){ return u.id === vid; });
+    SB.from("leads").update({vendedor_id: vid}).in("id", ids).then(function(res) {
+      if (res.error) {
+        notify("Error al reasignar", false);
+      } else {
+        setLeads(function(p){ return p.map(function(l){ return ids.includes(l.id) ? {...l, vendedorId:vid} : l; }); });
+        notify(ids.length + " leads reasignados a " + (v ? v.name : vid));
+      }
+    });
   };
+
+  var usersParaVista = sbUsers.length > 0 ? sbUsers : SEED_USERS;
+  var vendedoresEquipo = usersParaVista.filter(function(u){ return u.role === "vendedor"; });
+
+  if (loading) {
+    return (
+      <div style={{ ...S.wrap, display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <div style={{ fontSize:"14px", color:"#9ca3af" }}>Cargando leads...</div>
+      </div>
+    );
+  }
 
   return (
     <div style={S.wrap}>
@@ -1606,7 +1761,7 @@ export default function SellerCRMv3({ currentUser: shellUser }) {
         <div style={{ fontSize:"14px", fontWeight:"600", color:"#1a385a" }}>{isSup ? "Pipeline del equipo" : "Mis Leads"}</div>
         <div style={{ flex:1 }} />
         <button style={{ ...S.btn("success"), padding:"7px 16px", fontSize:"13px", fontWeight:"700" }} onClick={function(){ setShowNuevo(true); }}>+ Nuevo lead</button>
-        {isSup && (
+        {isSup && vendedoresEquipo.length > 0 && (
           <>
             <div style={{ width:"1px", height:"16px", background:"#e3e6ea" }} />
             <div style={{ display:"flex", gap:"4px", alignItems:"center" }}>
@@ -1615,7 +1770,7 @@ export default function SellerCRMv3({ currentUser: shellUser }) {
                 onClick={function(){ setVistaUserId(null); }}>
                 Equipo
               </button>
-              {SEED_USERS.filter(function(u){ return u.role==="vendedor"; }).map(function(u){
+              {vendedoresEquipo.map(function(u){
                 return (
                   <button key={u.id} style={{ ...S.btn(vistaUserId===u.id?"indigo":"ghost"), padding:"4px 9px", fontSize:"11px" }}
                     onClick={function(){ setVistaUserId(u.id); }}>
@@ -1629,12 +1784,12 @@ export default function SellerCRMv3({ currentUser: shellUser }) {
       </div>
 
       {isSup
-        ? <SupervisorView leads={leads} users={SEED_USERS} currentUser={activeUser} onUpdateLead={handleUpdateLead} onBulkReassign={handleBulkReassign} />
-        : <VendedorView   leads={leads} users={SEED_USERS} currentUser={mappedUser}  onUpdateLead={handleUpdateLead} />
+        ? <SupervisorView leads={leads} users={usersParaVista} currentUser={activeUser} onUpdateLead={handleUpdateLead} onBulkReassign={handleBulkReassign} />
+        : <VendedorView   leads={leads} users={usersParaVista} currentUser={mappedUser}  onUpdateLead={handleUpdateLead} />
       }
 
       {showNuevo && (
-        <NuevoLeadModal currentUser={isSup ? activeUser : mappedUser} users={SEED_USERS}
+        <NuevoLeadModal currentUser={isSup ? activeUser : mappedUser} users={usersParaVista}
           onClose={function(){ setShowNuevo(false); }}
           onSave={function(l){ handleAddLead(l); setShowNuevo(false); }} />
       )}
