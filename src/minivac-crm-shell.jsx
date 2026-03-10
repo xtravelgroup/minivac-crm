@@ -1,5 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
 import RadioModule          from "./radio-module-v4.jsx";
+
+var SB = createClient(
+  "https://gsvnvahrjgswwejnuiyn.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA"
+);
 import SellerCRM            from "./seller-crm-v3.jsx";
 import VerificationModule   from "./verification-module-v2.jsx";
 import Reservaciones        from "./reservaciones-v2.jsx";
@@ -54,21 +60,7 @@ var T = {
   r: "6px",
 };
 
-// 
-// USUARIOS (demo local - Supabase Auth activo en paralelo)
-// 
-var USERS = [
-  {id:"U01",nombre:"Ricardo Flores",   email:"admin@minivac.mx",       pass:"admin123", rol:"admin"},
-  {id:"U02",nombre:"Gabriela Montoya", email:"directora@minivac.mx",   pass:"dir123",   rol:"director"},
-  {id:"U03",nombre:"Marco Silva",      email:"msuperviso@minivac.mx",  pass:"super123", rol:"supervisor"},
-  {id:"U04",nombre:"Sofia Pena",       email:"verificador@minivac.mx", pass:"verif123", rol:"verificador"},
-  {id:"U05",nombre:"Carlos Vega",      email:"cvega@minivac.mx",       pass:"vend123",  rol:"vendedor"},
-  {id:"U06",nombre:"Ana Morales",      email:"amorales@minivac.mx",    pass:"vend123",  rol:"vendedor"},
-  {id:"U07",nombre:"Luis Ramos",       email:"lramos@minivac.mx",      pass:"vend123",  rol:"vendedor"},
-  {id:"U09",nombre:"Diana Ortiz",      email:"dortiz@minivac.mx",      pass:"vend123",  rol:"vendedor"},
-  {id:"U10",nombre:"Esp. Radio",       email:"radio@minivac.mx",       pass:"radio123", rol:"especialista_radio"},
-  {id:"U11",nombre:"Contador",         email:"contador@minivac.mx",    pass:"cont123",  rol:"contador"},
-];
+// Usuarios cargados desde Supabase Auth + tabla usuarios
 
 var ROL_META = {
   admin:             {label:"Admin",        color:T.brand,   bg:T.brandLt,  bd:T.brandBd},
@@ -160,7 +152,7 @@ function Icon(props) {
 }
 
 // 
-// LOGIN SCREEN - Zoho style: fondo gris, card centrada, limpio
+// LOGIN SCREEN - Supabase Auth real
 // 
 function LoginScreen(props) {
   var [email,    setEmail]    = useState("");
@@ -170,18 +162,35 @@ function LoginScreen(props) {
   var [loading,  setLoading]  = useState(false);
 
   function doLogin() {
+    if (!email.trim() || !pass) { setErr("Ingresa tu correo y contrasena"); return; }
     setLoading(true);
-    setTimeout(function() {
-      var u = null;
-      for (var i = 0; i < USERS.length; i++) {
-        if (USERS[i].email === email.trim().toLowerCase() && USERS[i].pass === pass) {
-          u = USERS[i]; break;
+    setErr("");
+    SB.auth.signInWithPassword({email: email.trim().toLowerCase(), password: pass})
+      .then(function(res) {
+        setLoading(false);
+        if (res.error) {
+          setErr("Credenciales incorrectas");
+          return;
         }
-      }
-      setLoading(false);
-      if (!u) { setErr("Credenciales incorrectas"); return; }
-      props.onLogin(u);
-    }, 500);
+        // Cargar perfil desde tabla usuarios
+        SB.from("usuarios").select("*")
+          .eq("auth_id", res.data.user.id)
+          .eq("activo", true)
+          .single()
+          .then(function(perfil) {
+            if (perfil.error || !perfil.data) {
+              SB.auth.signOut();
+              setErr("Usuario no encontrado o inactivo. Contacta al administrador.");
+              return;
+            }
+            props.onLogin({
+              id:     perfil.data.id,
+              nombre: perfil.data.nombre,
+              email:  perfil.data.email || email.trim().toLowerCase(),
+              rol:    perfil.data.rol,
+            });
+          });
+      });
   }
   function onKey(e) { if (e.key === "Enter") doLogin(); }
 
@@ -280,50 +289,6 @@ function LoginScreen(props) {
           }}>
             {loading ? "Verificando..." : "Entrar"}
           </button>
-        </div>
-
-        {/* Acceso rapido */}
-        <div style={{marginTop: "20px"}}>
-          <div style={{
-            display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px",
-          }}>
-            <div style={{flex:1,height:"1px",background:T.border}}/>
-            <span style={{fontSize:"10px",color:T.t4,letterSpacing:"0.06em"}}>ACCESO RAPIDO</span>
-            <div style={{flex:1,height:"1px",background:T.border}}/>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
-            {[
-              ["admin@minivac.mx",       "admin123",  "admin"],
-              ["directora@minivac.mx",   "dir123",    "director"],
-              ["msuperviso@minivac.mx",  "super123",  "supervisor"],
-              ["verificador@minivac.mx", "verif123",  "verificador"],
-              ["cvega@minivac.mx",       "vend123",   "vendedor"],
-            ].map(function(r){
-              var m = ROL_META[r[2]] || ROL_META.vendedor;
-              return (
-                <div key={r[0]} onClick={function(){setEmail(r[0]);setPass(r[1]);setErr("");}}
-                  style={{
-                    display:"flex", justifyContent:"space-between", alignItems:"center",
-                    padding:"7px 10px", borderRadius:T.r, cursor:"pointer",
-                    background:T.surface, border:"1px solid "+T.borderL,
-                  }}
-                  onMouseEnter={function(e){e.currentTarget.style.background=T.surfaceHov;}}
-                  onMouseLeave={function(e){e.currentTarget.style.background=T.surface;}}
-                >
-                  <span style={{fontSize:"12px",color:T.t2}}>{r[0]}</span>
-                  <span style={{
-                    fontSize:"10px",fontWeight:"600",
-                    color:m.color, background:m.bg,
-                    border:"1px solid "+m.bd,
-                    padding:"2px 7px", borderRadius:"4px",
-                    letterSpacing:"0.04em",
-                  }}>
-                    {m.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
         </div>
 
       </div>
@@ -701,19 +666,66 @@ function Bienvenida(props) {
 // APP ROOT
 // 
 export default function MinivacShell() {
-  var [user,   setUser]   = useState(null);
-  var [activo, setActivo] = useState(null);
-  var [col,    setCol]    = useState(true);
+  var [user,    setUser]    = useState(null);
+  var [activo,  setActivo]  = useState(null);
+  var [col,     setCol]     = useState(true);
+  var [checking,setChecking]= useState(true);
+
+  // Sesion persistente - al recargar la pagina se restaura automaticamente
+  useEffect(function() {
+    SB.auth.getSession().then(function(res) {
+      if (res.data && res.data.session) {
+        SB.from("usuarios").select("*")
+          .eq("auth_id", res.data.session.user.id)
+          .eq("activo", true)
+          .single()
+          .then(function(perfil) {
+            if (perfil.data) {
+              setUser({
+                id:     perfil.data.id,
+                nombre: perfil.data.nombre,
+                email:  perfil.data.email || res.data.session.user.email,
+                rol:    perfil.data.rol,
+              });
+            }
+            setChecking(false);
+          });
+      } else {
+        setChecking(false);
+      }
+    });
+
+    var sub = SB.auth.onAuthStateChange(function(event, session) {
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+        setActivo(null);
+      }
+    });
+    return function() { sub.data.subscription.unsubscribe(); };
+  }, []);
 
   function handleLogin(u) {
     setUser(u);
-    var mods = modulosDelRol(u);
-    setActivo(mods.length > 0 ? null : null);
+    setActivo(null);
   }
-  function handleLogout() { setUser(null); setActivo(null); }
+  function handleLogout() {
+    SB.auth.signOut().then(function() {
+      setUser(null);
+      setActivo(null);
+    });
+  }
   function handleNav(id) {
-    if (!user || !tieneAcceso(user,id)) return;
+    if (!user || !tieneAcceso(user, id)) return;
     setActivo(id);
+  }
+
+  if (checking) {
+    return (
+      <div style={{minHeight:"100vh",display:"flex",alignItems:"center",
+        justifyContent:"center",background:T.bg,fontFamily:T.font}}>
+        <div style={{fontSize:"13px",color:T.t4}}>Cargando...</div>
+      </div>
+    );
   }
 
   if (!user) return <LoginScreen onLogin={handleLogin}/>;
