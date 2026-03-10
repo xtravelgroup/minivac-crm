@@ -38,13 +38,13 @@ async function callClaude(prompt, max = 1000) {
 // 
 const STATUS_ORDER = ["nuevo","contactado","interesado","cita","verificacion","venta","no_interesado"];
 const STATUS_CFG = {
-  nuevo:         { label:"Nuevo",         icon:"", color:"#4fc3f7", bg:"rgba(79,195,247,0.08)",  border:"rgba(79,195,247,0.25)"  },
-  contactado:    { label:"Contactado",    icon:"", color:"#ce93d8", bg:"rgba(206,147,216,0.08)", border:"rgba(206,147,216,0.25)" },
-  interesado:    { label:"Interesado",    icon:"", color:"#ffcc80", bg:"rgba(255,204,128,0.08)", border:"rgba(255,204,128,0.25)" },
-  cita:          { label:"Cita",          icon:"", color:"#80cbc4", bg:"rgba(128,203,196,0.08)", border:"rgba(128,203,196,0.25)" },
-  verificacion:  { label:"Verificacion",  icon:"", color:"#a5d6a7", bg:"rgba(165,214,167,0.08)", border:"rgba(165,214,167,0.25)" },
-  venta:         { label:"!Venta!",       icon:"", color:"#fff176", bg:"rgba(255,241,118,0.08)", border:"rgba(255,241,118,0.25)" },
-  no_interesado: { label:"No interesado", icon:"", color:"#546e7a", bg:"rgba(84,110,122,0.08)",  border:"rgba(84,110,122,0.2)"   },
+  nuevo:         { label:"Nuevo",         icon:"", color:"#0369a1", bg:"#e0f2fe", border:"#bae6fd"  },
+  contactado:    { label:"Contactado",    icon:"", color:"#5b21b6", bg:"#ede9fe", border:"#c4b5fd"  },
+  interesado:    { label:"Interesado",    icon:"", color:"#925c0a", bg:"#fef9e7", border:"#f0d080"  },
+  cita:          { label:"Cita",          icon:"", color:"#0f766e", bg:"#f0fdfa", border:"#99f6e4"  },
+  verificacion:  { label:"Verificacion",  icon:"", color:"#1a7f3c", bg:"#edf7ee", border:"#a3d9a5"  },
+  venta:         { label:"Venta",         icon:"", color:"#1a385a", bg:"#eaf0f7", border:"#b8cfe0"  },
+  no_interesado: { label:"No interesado", icon:"", color:"#6b7280", bg:"#f4f5f7", border:"#e3e6ea"  },
 };
 
 const TIPOS_CONTACTO = ["llamada","whatsapp","cita","email","venta","verificacion","nota"];
@@ -196,26 +196,26 @@ const SEED_LEADS = [
 // STYLES
 // 
 const S = {
-  wrap:     { minHeight:"100vh", background:"#07090f", color:"#3d4554", fontFamily:"'DM Sans','Segoe UI',-apple-system,sans-serif" },
-  topbar:   { background:"rgba(10,14,26,0.97)", backdropFilter:"blur(16px)", borderBottom:"1px solid #e8eaed", padding:"12px 24px", display:"flex", alignItems:"center", gap:"12px", position:"sticky", top:0, zIndex:100 },
-  card:     { background:"#fafbfc", border:"1px solid #e3e6ea", borderRadius:"12px", padding:"16px", marginBottom:"12px" },
-  label:    { fontSize:"11px", color:"#9ca3af", marginBottom:"4px", fontWeight:"500" },
-  sTitle:   { fontSize:"10px", fontWeight:"700", color:"#9ca3af", letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:"10px" },
+  wrap:     { minHeight:"100vh", background:"#f4f5f7", color:"#3d4554", fontFamily:"'DM Sans','Segoe UI',-apple-system,sans-serif" },
+  topbar:   { background:"#ffffff", borderBottom:"1px solid #e3e6ea", padding:"0 20px", display:"flex", alignItems:"center", gap:"12px", position:"sticky", top:0, zIndex:100, minHeight:"52px" },
+  card:     { background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:"10px", padding:"14px 16px", marginBottom:"10px", boxShadow:"0 1px 3px rgba(0,0,0,0.04)" },
+  label:    { fontSize:"11px", color:"#9ca3af", marginBottom:"4px", fontWeight:"600" },
+  sTitle:   { fontSize:"10px", fontWeight:"700", color:"#9ca3af", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:"10px" },
   badge:    (color, bg, border) => ({ display:"inline-flex", alignItems:"center", gap:"4px", padding:"2px 9px", borderRadius:"20px", fontSize:"11px", fontWeight:"600", color, background:bg, border:`1px solid ${border}` }),
-  input:    { width:"100%", background:"#f8f9fb", border:"1px solid #d4d8de", borderRadius:"8px", padding:"8px 12px", color:"#3d4554", fontSize:"13px", outline:"none", boxSizing:"border-box", fontFamily:"inherit" },
-  select:   { width:"100%", background:"#ffffff", border:"1px solid #d4d8de", borderRadius:"8px", padding:"8px 12px", color:"#3d4554", fontSize:"13px", outline:"none", cursor:"pointer", fontFamily:"inherit", boxSizing:"border-box" },
-  modal:    { position:"fixed", inset:0, background:"rgba(15,20,30,0.5)", backdropFilter:"blur(2px)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:"20px" },
-  modalBox: { background:"#ffffff", border:"1px solid #d8dbe0", borderRadius:"16px", padding:"24px", maxWidth:"580px", width:"100%", maxHeight:"90vh", overflowY:"auto" },
-  tab:      (a, c="#1565c0") => ({ padding:"6px 14px", borderRadius:"8px", cursor:"pointer", fontSize:"12px", fontWeight:a?"600":"400", background:a?`${c}20`:"transparent", color:a?c:"#9ca3af", border:a?`1px solid ${c}35`:"1px solid transparent", transition:"all 0.15s", whiteSpace:"nowrap" }),
+  input:    { width:"100%", background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:"8px", padding:"8px 12px", color:"#1a1f2e", fontSize:"13px", outline:"none", boxSizing:"border-box", fontFamily:"inherit" },
+  select:   { width:"100%", background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:"8px", padding:"8px 12px", color:"#1a1f2e", fontSize:"13px", outline:"none", cursor:"pointer", fontFamily:"inherit", boxSizing:"border-box" },
+  modal:    { position:"fixed", inset:0, background:"rgba(15,20,30,0.45)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:"20px" },
+  modalBox: { background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:"14px", padding:"24px", maxWidth:"580px", width:"100%", maxHeight:"90vh", overflowY:"auto", boxShadow:"0 8px 32px rgba(0,0,0,0.10)" },
+  tab:      (a, c="#1565c0") => ({ padding:"8px 14px", cursor:"pointer", fontSize:"12px", fontWeight:a?"700":"400", background:"transparent", color:a?c:"#9ca3af", borderBottom:`2px solid ${a?c:"transparent"}`, border:"none", transition:"all 0.15s", whiteSpace:"nowrap", fontFamily:"'DM Sans','Segoe UI',sans-serif" }),
   btn:      (v="ghost") => {
     const m = {
-      primary: { bg:"#4f46e5", color:"#fff", border:"transparent" },
-      success: { bg:"#e5f3e8", color:"#1a7f3c", border:"#a3d9a5" },
-      danger:  { bg:"#fdeaea", color:"#b91c1c", border:"#f5b8b8" },
-      warning: { bg:"#fffbeb", color:"#925c0a", border:"#f0d080" },
-      ghost:   { bg:"#f6f7f9", color:"#6b7280", border:"#eceff3" },
-      indigo:  { bg:"#e5eafd", color:"#1565c0", border:"#aab4f5" },
-      alert:   { bg:"rgba(251,146,60,0.15)", color:"#925c0a", border:"#f0d080" },
+      primary: { bg:"#1a385a", color:"#fff",     border:"transparent" },
+      success: { bg:"#edf7ee", color:"#1a7f3c",  border:"#a3d9a5" },
+      danger:  { bg:"#fef2f2", color:"#b91c1c",  border:"#f5b8b8" },
+      warning: { bg:"#fef9e7", color:"#925c0a",  border:"#f0d080" },
+      ghost:   { bg:"#f4f5f7", color:"#6b7280",  border:"#e3e6ea" },
+      indigo:  { bg:"#e8f0fe", color:"#1565c0",  border:"#aac4f0" },
+      alert:   { bg:"#fef9e7", color:"#925c0a",  border:"#f0d080" },
     };
     const s = m[v] || m.ghost;
     return { display:"inline-flex", alignItems:"center", gap:"6px", padding:"7px 14px", borderRadius:"8px", cursor:"pointer", fontSize:"12px", fontWeight:"600", background:s.bg, color:s.color, border:`1px solid ${s.border}`, transition:"all 0.15s", whiteSpace:"nowrap" };
@@ -389,7 +389,7 @@ function PaqueteTab({ draft, set }) {
                     <div style={{ fontSize:"9px", color:"#925c0a", fontWeight:"700", textTransform:"uppercase", marginBottom:"5px" }}>Regalo QC (elige 1)</div>
                     <div style={{ display:"flex", gap:"5px", flexWrap:"wrap" }}>
                       <div onClick={() => setRegalo(i, null)}
-                        style={{ padding:"4px 9px", borderRadius:"7px", cursor:"pointer", fontSize:"11px", background: !d.regalo ? "#eceff3" : "#f9fafb", border:`1px solid ${!d.regalo ? "rgba(255,255,255,0.3)" : "#f0f1f4"}`, color: !d.regalo ? "#1a1f2e" : "#9ca3af" }}>
+                        style={{ padding:"4px 9px", borderRadius:"7px", cursor:"pointer", fontSize:"11px", background: !d.regalo ? "#f4f5f7" : "#ffffff", border:`1px solid ${!d.regalo ? "#e3e6ea" : "#e3e6ea"}`, color: !d.regalo ? "#1a1f2e" : "#9ca3af" }}>
                         Sin regalo
                       </div>
                       {regalos.map(r => {
@@ -976,7 +976,7 @@ function KanbanCol({ status, leads, isSupervisor, selectedIds, onSelect, onCardC
       </div>
       <div style={{ flex:1, minHeight:"60px" }}>
         {leads.map(l => <LeadCard key={l.id} lead={l} isSupervisor={isSupervisor} isSelected={selectedIds?.includes(l.id)} onSelect={onSelect} onClick={onCardClick} onDragStart={onDragStart} onAI={onAI} />)}
-        {!leads.length && <div style={{ padding:"14px", textAlign:"center", color:"#374151", fontSize:"11px", border:"1px dashed rgba(255,255,255,0.05)", borderRadius:"8px" }}>Sin leads</div>}
+        {!leads.length && <div style={{ padding:"14px", textAlign:"center", color:"#b0b8c4", fontSize:"11px", border:"1px dashed #e3e6ea", borderRadius:"8px" }}>Sin leads</div>}
       </div>
     </div>
   );
@@ -1348,7 +1348,7 @@ function SupervisorView({ leads, users, currentUser, onUpdateLead, onBulkReassig
                   onDragOver={e=>{e.preventDefault();setDragOverV(v.id);}}
                   onDragLeave={()=>setDragOverV(null)}
                   onDrop={e=>handleDropV(e,v.id)}>
-                  <div style={{ padding:"12px 14px", borderRadius:"10px 10px 0 0", marginBottom:"6px", background:isOver?"rgba(129,140,248,0.15)":"#f8f9fb", border:`2px solid ${isOver?"rgba(129,140,248,0.6)":"#f0f1f4"}`, transition:"all 0.15s" }}>
+                  <div style={{ padding:"12px 14px", borderRadius:"10px 10px 0 0", marginBottom:"6px", background:isOver?"#e8f0fe":"#f4f5f7", border:`2px solid ${isOver?"#aac4f0":"#e3e6ea"}`, transition:"all 0.15s" }}>
                     <div style={{ fontSize:"14px", fontWeight:"700", color:"#1a1f2e" }}>{v.name}</div>
                     <div style={{ display:"flex", gap:"10px", marginTop:"5px" }}>
                       <span style={{ fontSize:"11px", color:"#1565c0" }}>{vl.filter(l=>!l.bloqueado).length} leads</span>
@@ -1358,7 +1358,7 @@ function SupervisorView({ leads, users, currentUser, onUpdateLead, onBulkReassig
                   </div>
                   <div style={{ minHeight:"150px" }}>
                     {vl.map(l=><LeadCard key={l.id} lead={l} isSupervisor={true} isSelected={selIds.includes(l.id)} onSelect={toggleSel} onClick={setSelLead} onDragStart={handleDragStart} />)}
-                    {!vl.length && <div style={{ padding:"20px", textAlign:"center", color:"#374151", fontSize:"11px", border:"2px dashed rgba(255,255,255,0.06)", borderRadius:"8px" }}>Suelta aqui</div>}
+                    {!vl.length && <div style={{ padding:"20px", textAlign:"center", color:"#b0b8c4", fontSize:"11px", border:"2px dashed #e3e6ea", borderRadius:"8px" }}>Suelta aqui</div>}
                   </div>
                 </div>
               );
@@ -1506,17 +1506,17 @@ export default function SellerCRMv3() {
   return (
     <div style={S.wrap}>
       <div style={S.topbar}>
-        <div style={{ fontSize:"12px", fontWeight:"700", color:"#9ca3af", letterSpacing:"0.12em", textTransform:"uppercase" }}>Mini-Vac CRM</div>
-        <div style={{ width:"1px", height:"16px", background:"#eff1f4" }} />
-        <div style={{ fontSize:"14px", fontWeight:"600", color:"#1a7f3c" }}>{isSup?" Pipeline del equipo":" Mis Leads"}</div>
+        <div style={{ fontSize:"12px", fontWeight:"700", color:"#9ca3af", letterSpacing:"0.1em", textTransform:"uppercase" }}>Mini-Vac CRM</div>
+        <div style={{ width:"1px", height:"16px", background:"#e3e6ea" }} />
+        <div style={{ fontSize:"14px", fontWeight:"600", color:"#1a385a" }}>{isSup ? "Pipeline del equipo" : "Mis Leads"}</div>
         <div style={{ flex:1 }} />
         <button style={{ ...S.btn("success"), padding:"7px 16px", fontSize:"13px", fontWeight:"700" }} onClick={()=>setShowNuevo(true)}>+ Nuevo lead</button>
-        <div style={{ width:"1px", height:"16px", background:"#eff1f4" }} />
+        <div style={{ width:"1px", height:"16px", background:"#e3e6ea" }} />
         <div style={{ display:"flex", gap:"4px", alignItems:"center" }}>
           <span style={{ fontSize:"11px", color:"#9ca3af" }}>Vista:</span>
           {SEED_USERS.map(u=>(
             <button key={u.id} style={{ ...S.btn(currentUser.id===u.id?"indigo":"ghost"), padding:"4px 9px", fontSize:"11px" }} onClick={()=>setCurrentUser(u)}>
-              {u.role==="supervisor"?" ":""}{u.name.split(" ")[0]}
+              {u.role==="supervisor" ? "S " : ""}{u.name.split(" ")[0]}
             </button>
           ))}
         </div>
