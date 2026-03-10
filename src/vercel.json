@@ -1,0 +1,13 @@
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://payments.zoho.com https://*.zoho.com; style-src 'self' 'unsafe-inline' https://*.zoho.com; frame-src https://*.zoho.com https://payments.zoho.com; connect-src 'self' https://*.zoho.com https://payments.zoho.com https://*.supabase.co; img-src 'self' data: https://*.zoho.com;"
+        }
+      ]
+    }
+  ]
+}
