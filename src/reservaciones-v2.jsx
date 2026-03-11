@@ -828,7 +828,7 @@ function CalView(props){
   );
 }
 
-export default function ReservacionesModule(){
+export default function ReservacionesModule(props){
   var [res,      setRes]      = useState([]);
   var [loading,  setLoading]  = useState(true);
   var [mainTab,  setMainTab]  = useState("reservaciones");
