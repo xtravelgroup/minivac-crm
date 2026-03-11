@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase as SB } from "./supabase.js";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
 
