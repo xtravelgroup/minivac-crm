@@ -1641,16 +1641,19 @@ function ZohoCardCapture({ lead, onSaved }) {
 
       instance.requestPaymentMethod(options)
         .then(function(result) {
+          console.log("ZPay result:", JSON.stringify(result));
           setLoading(false);
           instance.close();
           var pmId  = result.payment_method_id || result.paymentMethodId || "";
           var last4 = result.card ? result.card.last_four_digits || "" : "";
           var brand = result.card ? result.card.brand || "" : "";
+          console.log("pmId:", pmId, "last4:", last4, "brand:", brand);
           onSaved(pmId, customerId, last4, brand);
         })
         .catch(function(err) {
           setLoading(false);
           instance.close();
+          console.log("ZPay error:", JSON.stringify(err));
           if (err.code !== "widget_closed") {
             setError("Error: " + (err.message || JSON.stringify(err)));
           }
