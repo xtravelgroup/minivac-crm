@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
-import { SB } from "./supabase";
+import { supabase as SB } from "./supabase";
 
 var TODAY = new Date().toISOString().split("T")[0];
 function addDays(d,n){ var dt=new Date(d+"T12:00:00"); dt.setDate(dt.getDate()+n); return dt.toISOString().split("T")[0]; }
