@@ -909,6 +909,12 @@ function DetailView({ lead, onBack, onUpdate }) {
   const [finishModal, setFinishModal] = useState(null);
   const comm = useCommPanel();
 
+  // Sincronizar cuando el lead se actualiza desde polling
+  useEffect(function() {
+    setExp({ ...lead.exp });
+    setVerif(lead.verificacion || null);
+  }, [lead.id, lead.status, lead.exp && lead.exp.zohoPaymentMethodId]);
+
   const vr = verif && verif.result ? VERIF_RESULTS[verif.result] : null;
 
   const limpiarTarjeta = (e) => ({ ...e, tarjetaNumero:"", tarjetaNombre:"", tarjetaVence:"", tarjetaCVV:"", tarjetaCapturaTs:null });
@@ -1150,7 +1156,11 @@ export default function VerificationModule() {
       });
   }
 
-  useState(function(){ cargarLeads(); });
+  useEffect(function() {
+    cargarLeads();
+    var interval = setInterval(function() { cargarLeads(); }, 30000);
+    return function() { clearInterval(interval); };
+  }, []);
 
   const updateLead = function(u) {
     // Guardar verificacion en Supabase
