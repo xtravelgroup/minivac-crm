@@ -189,14 +189,14 @@ function leadToMiembro(r) {
     id:             r.id,
     folio:          "XT-"+String(r.id).slice(0,6).toUpperCase(),
     nombre:         nombre,
-    coProp:         coProp,
-    coPropTel:      exp.pPhone || null,
-    estadoCivil:    exp.tEstadoCivil || r.estado_civil || "",
+    coProp:         r.co_prop      || coProp,
+    coPropTel:      r.co_prop_tel  || exp.pPhone || null,
+    estadoCivil:    r.estado_civil || exp.tEstadoCivil || "",
     edad:           edad,
-    tel:            exp.tPhone || r.whatsapp || "",
-    whatsapp:       r.whatsapp || exp.tPhone || "",
-    email:          exp.tEmail || r.email || "",
-    direccion:      [exp.address,exp.city,exp.state].filter(Boolean).join(", ") || "",
+    tel:            r.tel          || exp.tPhone || r.whatsapp || "",
+    whatsapp:       r.whatsapp     || exp.tPhone || "",
+    email:          r.email        || exp.tEmail || "",
+    direccion:      r.direccion    || [exp.address,exp.city,exp.state].filter(Boolean).join(", ") || "",
     membresia:      "Silver",
     vendedor:       r.vendedor_nombre || "",
     compra:         r.created_at ? r.created_at.split("T")[0] : TODAY,
@@ -206,6 +206,7 @@ function leadToMiembro(r) {
     totalPagado:    totalPagado,
     saldoPendiente: saldo,
     pagos:          pagos,
+    reservasData:   r.reservas_historial || [],
     statusCliente:  "activo",
     motivoRetencion:null,
     destinos:       destinos,
@@ -934,25 +935,15 @@ function EditContactoModal(props) {
 
   function handleSave() {
     setSaving(true); setErr("");
-    // Leer expediente actual para no perder otros campos
-    SB.from("leads").select("verificacion").eq("id", c.id).single()
-    .then(function(res2) {
-      var verif = (res2.data && res2.data.verificacion) ? Object.assign({}, res2.data.verificacion) : {};
-      var verifNuevo = Object.assign({}, verif, {
-        tPhone: d.tel,
-        tEmail: d.email,
-        address: d.direccion,
-        tEstadoCivil: d.estadoCivil,
-        estadoCivil:  d.estadoCivil,
-        pPhone: d.coPropTel,
-      });
-      return SB.from("leads").update({
-        whatsapp:      d.whatsapp,
-        email:         d.email,
-        estado_civil:  d.estadoCivil,
-        verificacion:  verifNuevo,
-      }).eq("id", c.id);
-    })
+    SB.from("leads").update({
+      tel:          d.tel,
+      whatsapp:     d.whatsapp,
+      email:        d.email,
+      direccion:    d.direccion,
+      estado_civil: d.estadoCivil,
+      co_prop:      d.coProp,
+      co_prop_tel:  d.coPropTel,
+    }).eq("id", c.id)
     .then(function(res) {
       setSaving(false);
       if (res.error) { setErr("Error al guardar: " + res.error.message); return; }
@@ -1589,6 +1580,14 @@ export default function CsReservasV3() {
         setLoading(false);
         if(res.error){ setError(res.error.message); return; }
         var m=(res.data||[]).map(leadToMiembro);
+        // Cargar todas las reservas de los miembros
+        var todasReservas = [];
+        m.forEach(function(mb){
+          (mb.reservasData||[]).forEach(function(rv){
+            todasReservas.push(Object.assign({}, rv, { clienteFolio: mb.folio }));
+          });
+        });
+        setReservas(todasReservas);
         setMiembros(function(prev){
           // Detectar nuevas ventas vs prev
           if(prev.length>0 && m.length>prev.length){
@@ -1647,13 +1646,36 @@ export default function CsReservasV3() {
     showToast("Retención iniciada para "+c.nombre);
   }
 
-  function saveReserva(clienteFolio,datos,esEdit,resId){
-    var folio = esEdit?resId:("RES-"+uid().toUpperCase().slice(0,6));
-    var obj = Object.assign({},datos,{id:folio,folio:folio,clienteFolio:clienteFolio,status:"solicitud",confirmacion:"",agente:datos.agente||rolCfg.label,creadoEn:TODAY,historial:[{fecha:TODAY,texto:esEdit?"Reserva modificada":"Reserva creada",autor:datos.agente||rolCfg.label}]});
-    if(esEdit){ setReservas(function(p){return p.map(function(r){return r.id===resId?obj:r;}); }); }
-    else { setReservas(function(p){return [obj,...p];}); }
-    addEvento(clienteFolio,"reserva_"+(esEdit?"modificada":"creada"),"sistema",(esEdit?"Reserva "+resId+" modificada":"Reserva "+folio+" creada: "+datos.destino+" — "+datos.hotel),datos.agente||rolCfg.label);
-    showToast(esEdit?"Reserva actualizada":"Reserva creada: "+folio);
+  function saveReserva(clienteFolio, datos, esEdit, resId) {
+    var folio = esEdit ? resId : ("RES-" + uid().toUpperCase().slice(0,6));
+    var obj = Object.assign({}, datos, {
+      id: folio, folio: folio, clienteFolio: clienteFolio,
+      status: "solicitud", confirmacion: "", agente: datos.agente || rolCfg.label,
+      creadoEn: TODAY,
+      historial: [{fecha: TODAY, texto: esEdit ? "Reserva modificada" : "Reserva creada", autor: datos.agente || rolCfg.label}]
+    });
+    // Actualizar estado local
+    if (esEdit) { setReservas(function(p){ return p.map(function(r){ return r.id===resId ? obj : r; }); }); }
+    else { setReservas(function(p){ return [obj, ...p]; }); }
+
+    // Persistir en Supabase — guardar en reservas_historial del lead
+    var miembro = miembros.find(function(m){ return m.folio === clienteFolio; });
+    if (miembro) {
+      SB.from("leads").select("reservas_historial").eq("id", miembro.id).single()
+      .then(function(res2) {
+        var existing = (res2.data && res2.data.reservas_historial) ? res2.data.reservas_historial : [];
+        var updated = esEdit
+          ? existing.map(function(r){ return r.id === resId ? obj : r; })
+          : [obj].concat(existing);
+        return SB.from("leads").update({ reservas_historial: updated }).eq("id", miembro.id);
+      })
+      .then(function(res2) {
+        if (res2 && res2.error) { showToast("Error al guardar reserva: " + res2.error.message); }
+        else { showToast(esEdit ? "Reserva actualizada" : "Reserva creada: " + folio); }
+      });
+    }
+    addEvento(clienteFolio, "reserva_" + (esEdit ? "modificada" : "creada"), "sistema",
+      (esEdit ? "Reserva " + resId + " modificada" : "Reserva " + folio + " creada: " + datos.destino), datos.agente || rolCfg.label);
   }
 
   function confirmarReserva(resId,numConf){
