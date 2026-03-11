@@ -12,7 +12,7 @@ var CORAL  = "#f97316";
 var TEAL   = "#0ea5a0";
 var INDIGO = "#6366f1";
 
-var DESTINOS_OPTS = ["Cancun","Los Cabos","Riviera Maya","Puerto Vallarta","Huatulco","Las Vegas","Orlando","Punta Cana","Aruba","Miami","Nueva York","Hawaii","Europa"];
+// Destinos se cargan desde Supabase (destinos_catalog)
 var CATEGORIAS    = ["3 estrellas","4 estrellas","5 estrellas","Boutique","Gran Lujo"];
 var PLANES        = ["Todo Incluido","Todo Incluido Premium","Solo Habitacion","Desayuno incluido","Media pension"];
 var TIPO_CAMA     = ["King","Queen","Doble","Matrimonial","Literas"];
@@ -113,6 +113,7 @@ function CadenaModal(props){
 
 // ─── MODAL HOTEL ──────────────────────────────────────────
 function HotelModal(props){
+  var DESTINOS_OPTS = props.destinosOpts || [];
   var s=S(); var isNew=!props.hotel;
   var blank={
     nombre:"",destino:"",categoria:"5 estrellas",plan:"Todo Incluido",activo:true,descripcion:"",
@@ -184,9 +185,9 @@ function HotelModal(props){
           <div style={s.g2}>
             <div><label style={s.lbl}>Nombre del hotel *</label><input style={s.inp} value={form.nombre} onChange={function(e){set("nombre",e.target.value);}} placeholder="Ej: Grand Oasis Palm"/></div>
             <div><label style={s.lbl}>Destino *</label>
-              <select style={s.sel} value={form.destino} onChange={function(e){set("destino",e.target.value);}}>
+              <select style={s.sel} value={form.destino||""} onChange={function(e){set("destino",e.target.value);}}>
                 <option value="">-- Seleccionar --</option>
-                {DESTINOS_OPTS.map(function(d){return <option key={d}>{d}</option>;})}
+                {DESTINOS_OPTS.map(function(d){return <option key={d} value={d}>{d}</option>;})}
               </select>
             </div>
             <div><label style={s.lbl}>Categoria</label>
@@ -334,6 +335,7 @@ function HotelModal(props){
 
 // ─── VISTA HOTELES DE UNA CADENA ──────────────────────────
 function CadenaDetalle(props){
+  var DESTINOS_OPTS = props.destinosOpts || [];
   var s=S();
   var cadena=props.cadena;
   var hotels=props.hotels;
@@ -452,7 +454,7 @@ function CadenaDetalle(props){
             </div>
           )}
         </div>
-        {hotelModal&&<HotelModal hotel={hotelModal.hotel} cadenaId={cadena.id} onSave={function(f){props.onSaveHotel(f);setHotelModal(null);setHotelDetalle(f);}} onDelete={function(id){props.onDeleteHotel(id);setHotelModal(null);setHotelDetalle(null);}} onClose={function(){setHotelModal(null);}}/>}
+        {hotelModal&&<HotelModal hotel={hotelModal.hotel} cadenaId={cadena.id} onSave={function(f){props.onSaveHotel(f);setHotelModal(null);setHotelDetalle(f);}} onDelete={function(id){props.onDeleteHotel(id);setHotelModal(null);setHotelDetalle(null);}} onClose={function(){setHotelModal(null);}} destinosOpts={DESTINOS_OPTS}/>}
       </div>
     );
   }
@@ -523,7 +525,7 @@ function CadenaDetalle(props){
           })}
         </div>
       </div>
-      {hotelModal&&<HotelModal hotel={preloadData||hotelModal.hotel} cadenaId={cadena.id} onSave={function(f){props.onSaveHotel(f);setHotelModal(null);setPreloadData(null);}} onDelete={function(id){props.onDeleteHotel(id);setHotelModal(null);setPreloadData(null);}} onClose={function(){setHotelModal(null);setPreloadData(null);}}/>}
+      {hotelModal&&<HotelModal hotel={preloadData||hotelModal.hotel} cadenaId={cadena.id} onSave={function(f){props.onSaveHotel(f);setHotelModal(null);setPreloadData(null);}} onDelete={function(id){props.onDeleteHotel(id);setHotelModal(null);setPreloadData(null);}} onClose={function(){setHotelModal(null);setPreloadData(null);}} destinosOpts={DESTINOS_OPTS}/>}
     </div>
   );
 }
@@ -533,6 +535,7 @@ export default function HotelsModule(){
   var s=S();
   var [cadenas,  setCadenas]  = useState([]);
   var [hotels,   setHotels]   = useState([]);
+  var [destinos, setDestinos] = useState([]);
   var [loading,  setLoading]  = useState(true);
   var [cadSel,   setCadSel]   = useState(null);
   var [cadModal, setCadModal] = useState(null);
@@ -542,10 +545,12 @@ export default function HotelsModule(){
     Promise.all([
       SB.from("cadenas_hoteleras").select("*").order("nombre",{ascending:true}),
       SB.from("hoteles").select("*").order("nombre",{ascending:true}),
+      SB.from("destinos_catalog").select("id,nombre").eq("activo",true).order("nombre",{ascending:true}),
     ]).then(function(results){
       setLoading(false);
       if(!results[0].error) setCadenas(results[0].data||[]);
       if(!results[1].error) setHotels(results[1].data||[]);
+      if(!results[2].error) setDestinos((results[2].data||[]).map(function(d){return d.nombre;}));
     });
   }
   useEffect(function(){ cargar(); },[]);
@@ -589,6 +594,7 @@ export default function HotelsModule(){
       <CadenaDetalle
         cadena={cadenaActual}
         hotels={hotelsDeCadena}
+        destinosOpts={destinos}
         onBack={function(){setCadSel(null);}}
         onEditCadena={function(){setCadModal({cadena:cadenaActual});}}
         onSaveHotel={saveHotel}
