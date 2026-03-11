@@ -1629,15 +1629,13 @@ function ZohoCardCapture({ lead, onSaved }) {
       var instance = new window.ZPayments(config);
 
       var options = {
-        payment_method:           "card",
-        transaction_type:         "add",
-        customer_id:              customerId,
+        payment_method:            "card",
+        transaction_type:          "add",
+        customer_id:               customerId,
         payment_method_session_id: sessionId,
-        address: {
-          name:  (lead.nombre || "") + " " + (lead.apellido || ""),
-          email: lead.email || "",
-        },
       };
+
+      console.log("ZPay options:", JSON.stringify(options));
 
       instance.requestPaymentMethod(options)
         .then(function(result) {
