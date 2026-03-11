@@ -265,7 +265,10 @@ function FormModal(props){
   var [hIdxReset,setHIdxReset]=useState(0);
   var [notas,setNotas]=useState(ex?ex.notasAgente:"");
   var currentUser=props.currentUser||{nombre:"Sistema",rol:"agente"};
-  var [agente]=useState(ex?ex.agente:currentUser.nombre);
+  var [agente,    setAgente]    = useState(ex?ex.agente:currentUser.nombre);
+  var [ingresos,  setIngresos]  = useState(ex?ex.ingresos||"":"");
+  var [profTit,   setProfTit]   = useState(ex?ex.profTit||"":"");
+  var [profCo,    setProfCo]    = useState(ex?ex.profCo||"":"");
 
   var tipoFiltro=tipo;
   var hoteles=(HOTELES[dest]||[]).filter(function(h){
@@ -323,6 +326,7 @@ function FormModal(props){
       nBase:parseInt(nBase)||5,nExtra:parseInt(nExtra)||0,
       tipo:tipo,fee:fee,upg:upg,temp:temp,total:total,
       notasAgente:notas,agente:agente,
+      ingresos:ingresos,profTit:profTit,profCo:profCo,
     });
     props.onClose();
   }
@@ -482,10 +486,40 @@ function FormModal(props){
               </select>
             </div>
             <div>
-              <label style={S.lbl}>Agente</label>
-              <div style={{padding:"8px 12px",background:"#fafbfc",border:"1px solid #e3e6ea",borderRadius:"8px",fontSize:"13px",color:"#3d4554"}}>{agente}</div>
+              <label style={S.lbl}>Agente de reservas</label>
+              <input style={S.inp} value={agente} onChange={function(e){setAgente(e.target.value);}} placeholder="Nombre del agente"/>
             </div>
           </div>
+
+          {/* ── PERFIL DEL CLIENTE ── */}
+          {clienteSel&&(
+            <div style={{background:"#f8f9fb",border:"1px solid #e3e6ea",borderRadius:10,padding:"12px 14px",marginBottom:10}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:8}}>Perfil del titular</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:8}}>
+                <div><span style={{fontSize:11,color:"#9ca3af"}}>Estado civil</span><div style={{fontSize:12,fontWeight:600,color:"#1a1f2e"}}>{clienteSel.estadoCivil||"--"}</div></div>
+                <div><span style={{fontSize:11,color:"#9ca3af"}}>Edad titular</span><div style={{fontSize:12,fontWeight:600,color:"#1a1f2e"}}>{clienteSel.edad||"--"}</div></div>
+                {clienteSel.coProp&&<div><span style={{fontSize:11,color:"#9ca3af"}}>Co-propietario</span><div style={{fontSize:12,fontWeight:600,color:"#1a1f2e"}}>{clienteSel.coProp}</div></div>}
+                {clienteSel.coPropEdad&&<div><span style={{fontSize:11,color:"#9ca3af"}}>Edad co-prop</span><div style={{fontSize:12,fontWeight:600,color:"#1a1f2e"}}>{clienteSel.coPropEdad}</div></div>}
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                <div>
+                  <label style={S.lbl}>Profesion titular</label>
+                  <input style={S.inp} value={profTit} onChange={function(e){setProfTit(e.target.value);}} placeholder="Ej: Medico, Ingeniero..."/>
+                </div>
+                {clienteSel.coProp&&(
+                  <div>
+                    <label style={S.lbl}>Profesion co-prop</label>
+                    <input style={S.inp} value={profCo} onChange={function(e){setProfCo(e.target.value);}} placeholder="Ej: Abogada, Maestra..."/>
+                  </div>
+                )}
+                <div>
+                  <label style={S.lbl}>Ingresos anuales combinados</label>
+                  <input style={S.inp} value={ingresos} onChange={function(e){setIngresos(e.target.value);}} placeholder="Ej: $80,000"/>
+                </div>
+              </div>
+            </div>
+          )}
+
           {hotel&&(
             <div style={{padding:"8px 12px",borderRadius:"8px",background:"#fafbfc",border:"1px solid #e3e6ea",marginBottom:"10px",display:"flex",gap:"12px",flexWrap:"wrap",fontSize:"11px"}}>
               <span style={{color:"#9ca3af"}}>Fee: <strong style={{color:"#3d4554"}}>{fmtUSD(fee)}</strong></span>
@@ -878,6 +912,9 @@ export default function ReservacionesModule(props){
       notasHotel:  rv.notas_hotel  || "",
       hist:        rv.historial || [{f: rv.created_at ? rv.created_at.split("T")[0] : TODAY, t:"Reserva creada", a: rv.agente_nombre||"Sistema"}],
       lead_id:     rv.lead_id,
+      ingresos:    rv.ingresos_anuales  || "",
+      profTit:     rv.profesion_titular || "",
+      profCo:      rv.profesion_coprop  || "",
     };
   }
 
@@ -935,6 +972,9 @@ export default function ReservacionesModule(props){
       agente_nombre:  data.agente || currentUser.nombre,
       status:         "solicitada",
       historial:      [{f:TODAY, t:"Solicitud creada", a:data.agente||currentUser.nombre}],
+      ingresos_anuales: data.ingresos || null,
+      profesion_titular: data.profTit || null,
+      profesion_coprop:  data.profCo  || null,
     };
     SB.from("reservaciones").insert(dbData).then(function(r) {
       if (r.error) { notify("Error: " + r.error.message); return; }
