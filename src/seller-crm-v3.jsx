@@ -287,11 +287,15 @@ function PaqueteTab({ draft, set }) {
           <ZohoCardCapture
             lead={draft}
             onSaved={function(pmId, custId, last4, brand) {
-              set("zohoPaymentMethodId", pmId);
-              set("zohoCustomerId", custId);
-              set("tarjetaLast4", last4);
-              set("tarjetaBrand", brand);
-              set("tarjetaCapturaTs", new Date().toISOString());
+              var updated = Object.assign({}, draft, {
+                zohoPaymentMethodId: pmId,
+                zohoCustomerId: custId,
+                tarjetaLast4: last4,
+                tarjetaBrand: brand,
+                tarjetaCapturaTs: new Date().toISOString()
+              });
+              setDraft(updated);
+              onSave(updated);
             }}
           />
         )}
