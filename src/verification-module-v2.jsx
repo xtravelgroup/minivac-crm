@@ -686,10 +686,13 @@ var AUTH_HDR    = { "Content-Type": "application/json", "Authorization": "Bearer
 
 function SectionCobro({ lead, exp, verif, onChargeResult }) {
   console.log("SectionCobro zohoPaymentMethodId:", exp.zohoPaymentMethodId, "zohoCustomerId:", exp.zohoCustomerId);
-  var [loading,  setLoading]  = useState(false);
-  var [error,    setError]    = useState(null);
-  var [zohoReady, setZohoReady] = useState(false);
+  var [loading,        setLoading]        = useState(false);
+  var [error,          setError]          = useState(null);
+  var [zohoReady,      setZohoReady]      = useState(false);
+  var [usarOtra,       setUsarOtra]       = useState(false);
   var yaPagado = verif && verif.paymentStatus === "approved";
+
+  var tieneGuardada = !usarOtra && (exp.zohoPaymentMethodId || "");
 
   // Cargar script de Zoho Payments una vez
   useEffect(function() {
@@ -705,8 +708,8 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
     setLoading(true);
     setError(null);
 
-    var pmId   = exp.zohoPaymentMethodId || lead.zohoPaymentMethodId || "";
-    var custId = exp.zohoCustomerId      || lead.zohoCustomerId      || "";
+    var pmId   = tieneGuardada ? (exp.zohoPaymentMethodId || "") : "";
+    var custId = tieneGuardada ? (exp.zohoCustomerId || "") : "";
 
     // Si tiene tarjeta guardada via Zoho, cobrar directo
     if (pmId && custId) {
@@ -844,15 +847,34 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
       )}
 
       {/* Tarjeta guardada */}
-      {!yaPagado && (exp.zohoPaymentMethodId || lead.zohoPaymentMethodId) && (
-        <div style={{ padding:"10px 14px", borderRadius:"8px", background:"#edf7ee", border:"1px solid #a3d9a5", marginBottom:"10px", display:"flex", alignItems:"center", gap:"10px" }}>
-          <div style={{ fontSize:"18px" }}>CC</div>
-          <div>
-            <div style={{ fontSize:"12px", fontWeight:"700", color:"#1a7f3c" }}>Tarjeta guardada</div>
-            <div style={{ fontSize:"11px", color:"#374151" }}>
-              {(exp.tarjetaBrand || lead.tarjetaBrand || "Tarjeta") + " **** " + (exp.tarjetaLast4 || lead.tarjetaLast4 || "----")}
+      {!yaPagado && tieneGuardada && (
+        <div style={{ padding:"10px 14px", borderRadius:"8px", background:"#edf7ee", border:"1px solid #a3d9a5", marginBottom:"10px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:"10px" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
+            <div style={{ fontSize:"18px" }}>CC</div>
+            <div>
+              <div style={{ fontSize:"12px", fontWeight:"700", color:"#1a7f3c" }}>Tarjeta guardada</div>
+              <div style={{ fontSize:"11px", color:"#374151" }}>
+                {(exp.tarjetaBrand || "Tarjeta") + " **** " + (exp.tarjetaLast4 || "----")}
+              </div>
             </div>
           </div>
+          <button
+            style={{ fontSize:"11px", color:"#1565c0", background:"none", border:"none", cursor:"pointer", textDecoration:"underline", padding:"0" }}
+            onClick={function() { setUsarOtra(true); setError(null); }}>
+            Usar otra tarjeta
+          </button>
+        </div>
+      )}
+
+      {/* Aviso cuando se usa otra tarjeta */}
+      {!yaPagado && usarOtra && (
+        <div style={{ padding:"9px 12px", borderRadius:"8px", background:"#fffce5", border:"1px solid #f0d080", marginBottom:"10px", fontSize:"12px", color:"#925c0a", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <span>Nueva tarjeta - se abrira el widget de Zoho</span>
+          <button
+            style={{ fontSize:"11px", color:"#1565c0", background:"none", border:"none", cursor:"pointer", textDecoration:"underline", padding:"0" }}
+            onClick={function() { setUsarOtra(false); setError(null); }}>
+            Volver a tarjeta guardada
+          </button>
         </div>
       )}
 
@@ -863,9 +885,9 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
           disabled={loading}
           onClick={handleCobrar}>
           {loading ? "Procesando pago..." :
-            (exp.zohoPaymentMethodId || lead.zohoPaymentMethodId)
+            tieneGuardada
               ? "Cobrar " + fmtUSD(exp.pagoInicial) + " con tarjeta guardada"
-              : "Cobrar " + fmtUSD(exp.pagoInicial) + " con Zoho Payments"
+              : "Cobrar " + fmtUSD(exp.pagoInicial) + " con nueva tarjeta"
           }
         </button>
       )}
