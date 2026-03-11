@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
+import { SB } from "./supabase";
 
 var TODAY = new Date().toISOString().split("T")[0];
 function addDays(d,n){ var dt=new Date(d+"T12:00:00"); dt.setDate(dt.getDate()+n); return dt.toISOString().split("T")[0]; }
@@ -39,10 +40,13 @@ var INDIGO="#6366f1",TEAL="#0ea5a0",VIOLET="#5b21b6",RED="#b91c1c",GREEN="#1a7f3
 
 var STATUS = {
   solicitud:       {label:"Solicitud",       c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
+  solicitada:      {label:"Solicitud",       c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
+  en_proceso:      {label:"En proceso",      c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
   vlo_proceso:     {label:"VLO en proceso",  c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
   rechazado_hotel: {label:"Rechazado hotel", c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
+  rechazada:       {label:"Rechazada",       c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
   confirmada:      {label:"Confirmada",      c:GREEN,  bg:"#eaf5ec", br:"#a3d9a5"},
-  cancelada:       {label:"Cancelada",       c:RED,    bg:"#fef0f0",br:"#f5b8b8"},
+  cancelada:       {label:"Cancelada",       c:RED,    bg:"#fef0f0", br:"#f5b8b8"},
   completada:      {label:"Completada",      c:"#9ca3af",bg:"rgba(100,116,139,0.1)",br:"rgba(100,116,139,0.3)"},
 };
 
@@ -145,7 +149,7 @@ function btn(v){
 }
 function tabS(a,col){ var c=col||INDIGO; return {padding:"7px 14px",borderRadius:"8px",cursor:"pointer",fontSize:"12px",fontWeight:a?"600":"400",background:a?(c+"20"):"transparent",color:a?c:"#9ca3af",border:a?("1px solid "+c+"44"):"1px solid transparent",whiteSpace:"nowrap"}; }
 function bdg(c,bg,br){ return {display:"inline-flex",alignItems:"center",padding:"2px 9px",borderRadius:"20px",fontSize:"11px",fontWeight:"600",color:c,background:bg,border:"1px solid "+br}; }
-function stBdg(st){ var s=STATUS[st]||STATUS.solicitud; return bdg(s.c,s.bg,s.br); }
+function stBdg(st){ var s=STATUS[st]||STATUS.solicitada||STATUS.solicitud; return bdg(s.c,s.bg,s.br); }
 
 function MWrap(props){
   return (
@@ -165,7 +169,7 @@ function MWrap(props){
 }
 
 function Stepper(props){
-  var steps=[{k:"solicitud",l:"Solicitud"},{k:"vlo_proceso",l:"VLO"},{k:"confirmada",l:"Confirmada"},{k:"completada",l:"Completada"}];
+  var steps=[{k:"solicitada",l:"Solicitud"},{k:"vlo_proceso",l:"VLO"},{k:"confirmada",l:"Confirmada"},{k:"completada",l:"Completada"}];
   var cur=props.status;
   var curIdx=-1;
   for(var i=0;i<steps.length;i++){ if(steps[i].k===cur){curIdx=i;break;} }
@@ -535,7 +539,7 @@ function VLOModal(props){
           Motivo rechazo: {r.notasHotel}
         </div>
       )}
-      {(r.status==="solicitud"||r.status==="vlo_proceso")&&(
+      {(r.status==="solicitud"||r.status==="solicitada"||r.status==="vlo_proceso")&&(
         <div>
           <div style={{marginBottom:"10px"}}>
             <label style={S.lbl}>Notas del hotel / respuesta</label>
@@ -785,7 +789,7 @@ function CalView(props){
             var isToday=f===TODAY;
             var isSel=f===selDia;
             var tieneConf=rDia.some(function(r){return r.status==="confirmada";});
-            var tienePend=rDia.some(function(r){return r.status==="solicitud"||r.status==="vlo_proceso";});
+            var tienePend=rDia.some(function(r){return r.status==="solicitud"||r.status==="solicitada"||r.status==="vlo_proceso";});
             var dotCol=tieneConf?GREEN:(tienePend?AMBER:null);
             return (
               <div key={f} onClick={function(){setSelDia(f);}}
@@ -825,60 +829,175 @@ function CalView(props){
 }
 
 export default function ReservacionesModule(){
-  var [res,setRes]=useState(SEED);
-  var [mainTab,setMainTab]=useState("reservaciones");
-  var [view,setView]=useState("lista");
-  var [rol,setRol]=useState("agente");
-  var [fStatus,setFStatus]=useState("all");
-  var [fDest,setFDest]=useState("all");
-  var [fTipo,setFTipo]=useState("all");
-  var [search,setSearch]=useState("");
-  var [sel,setSel]=useState(null);
-  var [formModal,setFormModal]=useState(null);
-  var [vloModal,setVloModal]=useState(null);
-  var [toast,setToast]=useState(null);
-  var currentUser={nombre:"Jorge P.",rol:"agente"};
-  var comm=useCommPanel();
+  var [res,      setRes]      = useState([]);
+  var [loading,  setLoading]  = useState(true);
+  var [mainTab,  setMainTab]  = useState("reservaciones");
+  var [view,     setView]     = useState("lista");
+  var [rol,      setRol]      = useState("agente");
+  var [fStatus,  setFStatus]  = useState("all");
+  var [fDest,    setFDest]    = useState("all");
+  var [fTipo,    setFTipo]    = useState("all");
+  var [search,   setSearch]   = useState("");
+  var [sel,      setSel]      = useState(null);
+  var [formModal,setFormModal]= useState(null);
+  var [vloModal, setVloModal] = useState(null);
+  var [toast,    setToast]    = useState(null);
+  var currentUser = { nombre:"Agente", rol:"agente" };
+  var comm = useCommPanel();
 
-  function notify(m){ setToast(m); setTimeout(function(){setToast(null);},3000); }
+  function notify(m){ setToast(m); setTimeout(function(){ setToast(null); }, 3000); }
 
-  function addHist(r,txt,autor){
-    return Object.assign({},r,{hist:[{f:TODAY,t:txt,a:autor||"Sistema"}].concat(r.hist||[])});
-  }
-  function upd(updated){
-    setRes(function(prev){return prev.map(function(x){return x.id===updated.id?updated:x;});});
-    if(sel&&sel.id===updated.id) setSel(updated);
-  }
-
-  function onNueva(data){
-    var idx=res.length+1;
-    var nid="RES-"+(idx<10?"00"+(idx):(idx<100?"0"+idx:String(idx)));
-    var nueva=Object.assign({},data,{id:nid,status:"solicitud",conf:"",notasHotel:"",creado:TODAY,hist:[{f:TODAY,t:"Solicitud creada",a:data.agente}]});
-    setRes(function(prev){return [nueva].concat(prev);});
-    notify("Reserva "+nid+" creada");
-  }
-  function onEditar(data){
-    var updated=addHist(Object.assign({},formModal,data),"Datos modificados","Sistema");
-    upd(updated); setFormModal(null); notify("Actualizado");
-  }
-  function onConfirmar(r,conf,notasH){
-    upd(addHist(Object.assign({},r,{status:"confirmada",conf:conf,notasHotel:notasH}),"Confirmada. No. "+conf,rol));
-    notify("Confirmada");
-  }
-  function onRechazar(r,motivo){
-    upd(addHist(Object.assign({},r,{status:"rechazado_hotel",notasHotel:motivo}),"Hotel rechaza: "+motivo,rol));
-    notify("Rechazada por hotel");
-  }
-  function onCancelar(r){
-    upd(addHist(Object.assign({},r,{status:"cancelada"}),"Cancelada","Sistema"));
-    notify("Cancelada");
-  }
-  function onEnviarVLO(r){
-    upd(addHist(Object.assign({},r,{status:"vlo_proceso"}),"Enviada a VLO",rol));
-    notify("Enviada a VLO");
+  // ── Mapear fila de Supabase al formato interno
+  function rvToLocal(rv) {
+    return {
+      id:          rv.id,
+      folio:       rv.folio || rv.id,
+      cFolio:      rv.lead_id || "",
+      cliente:     rv.cliente_nombre || rv.agente_nombre || "",
+      destino:     rv.destino_nombre || rv.destino_id || "",
+      checkin:     rv.checkin  || "",
+      checkout:    rv.checkout || "",
+      hotel:       rv.hotel    || "",
+      hab:         rv.habitacion || "",
+      reg:         rv.regimen  || "",
+      pax:         rv.adultos  || rv.pax || 2,
+      adultos:     rv.adultos  || 2,
+      ninos:       rv.ninos    || 0,
+      nBase:       rv.noches_base  || 0,
+      nExtra:      rv.noches_extra || 0,
+      tipo:        rv.tipo     || "qc",
+      status:      rv.status   || "solicitada",
+      conf:        rv.num_confirmacion || "",
+      fee:         rv.fee      || 0,
+      upg:         rv.upgrade  || 0,
+      temp:        rv.temporada_extra || 0,
+      total:       rv.total    || 0,
+      agente:      rv.agente_nombre || "",
+      creado:      rv.created_at ? rv.created_at.split("T")[0] : TODAY,
+      notasAgente: rv.notas_agente || "",
+      notasHotel:  rv.notas_hotel  || "",
+      hist:        rv.historial || [{f: rv.created_at ? rv.created_at.split("T")[0] : TODAY, t:"Reserva creada", a: rv.agente_nombre||"Sistema"}],
+      lead_id:     rv.lead_id,
+    };
   }
 
-  var vloQ=res.filter(function(r){return r.status==="solicitud"||r.status==="vlo_proceso";});
+  // ── Cargar desde Supabase
+  function cargarReservas() {
+    SB.from("reservaciones")
+      .select("*, leads(nombre)")
+      .order("created_at", { ascending: false })
+      .then(function(r) {
+        setLoading(false);
+        if (r.error) { notify("Error al cargar: " + r.error.message); return; }
+        var mapped = (r.data || []).map(function(rv) {
+          var local = rvToLocal(rv);
+          if (rv.leads && rv.leads.nombre) local.cliente = rv.leads.nombre;
+          return local;
+        });
+        setRes(mapped);
+      });
+  }
+
+  useEffect(function() {
+    cargarReservas();
+    var iv = setInterval(cargarReservas, 30000);
+    return function() { clearInterval(iv); };
+  }, []);
+
+  function addHist(r, txt, autor) {
+    return Object.assign({}, r, { hist: [{f:TODAY, t:txt, a:autor||"Sistema"}].concat(r.hist||[]) });
+  }
+  function upd(updated) {
+    setRes(function(prev){ return prev.map(function(x){ return x.id===updated.id ? updated : x; }); });
+    if (sel && sel.id===updated.id) setSel(updated);
+  }
+
+  function onNueva(data) {
+    var folioNew = "RES-" + Math.random().toString(36).slice(2,8).toUpperCase();
+    var dbData = {
+      folio:          folioNew,
+      lead_id:        data.lead_id || null,
+      destino_nombre: data.destino || "",
+      checkin:        data.checkin || null,
+      checkout:       data.checkout || null,
+      hotel:          data.hotel || "",
+      habitacion:     data.hab || "",
+      regimen:        data.reg || "",
+      adultos:        data.pax || 2,
+      pax:            data.pax || 2,
+      tipo:           data.tipo || "qc",
+      noches_base:    data.nBase || 0,
+      noches_extra:   data.nExtra || 0,
+      fee:            data.fee || 0,
+      upgrade:        data.upg || 0,
+      total:          data.total || 0,
+      notas_agente:   data.notasAgente || "",
+      agente_nombre:  data.agente || currentUser.nombre,
+      status:         "solicitada",
+      historial:      [{f:TODAY, t:"Solicitud creada", a:data.agente||currentUser.nombre}],
+    };
+    SB.from("reservaciones").insert(dbData).then(function(r) {
+      if (r.error) { notify("Error: " + r.error.message); return; }
+      notify("Reserva " + folioNew + " creada");
+      cargarReservas();
+    });
+  }
+
+  function onEditar(data) {
+    var updated = addHist(Object.assign({}, formModal, data), "Datos modificados", "Sistema");
+    SB.from("reservaciones").update({
+      destino_nombre: updated.destino,
+      checkin:        updated.checkin,
+      checkout:       updated.checkout,
+      hotel:          updated.hotel,
+      habitacion:     updated.hab,
+      regimen:        updated.reg,
+      adultos:        updated.pax,
+      notas_agente:   updated.notasAgente,
+      historial:      updated.hist,
+    }).eq("id", updated.id).then(function(r) {
+      if (r.error) { notify("Error: " + r.error.message); return; }
+      upd(updated); setFormModal(null); notify("Actualizado");
+    });
+  }
+
+  function onConfirmar(r, conf, notasH) {
+    var updated = addHist(Object.assign({}, r, {status:"confirmada", conf:conf, notasHotel:notasH}), "Confirmada. No. "+conf, rol);
+    SB.from("reservaciones").update({ status:"confirmada", num_confirmacion:conf, notas_hotel:notasH, historial:updated.hist }).eq("id", r.id)
+    .then(function(res2) {
+      if (res2.error) { notify("Error: " + res2.error.message); return; }
+      upd(updated); notify("Confirmada");
+    });
+  }
+
+  function onRechazar(r, motivo) {
+    var updated = addHist(Object.assign({}, r, {status:"rechazado_hotel", notasHotel:motivo}), "Hotel rechaza: "+motivo, rol);
+    SB.from("reservaciones").update({ status:"rechazado_hotel", motivo_rechazo:motivo, historial:updated.hist }).eq("id", r.id)
+    .then(function(res2) {
+      if (res2.error) { notify("Error: " + res2.error.message); return; }
+      upd(updated); notify("Rechazada por hotel");
+    });
+  }
+
+  function onCancelar(r) {
+    var updated = addHist(Object.assign({}, r, {status:"cancelada"}), "Cancelada", "Sistema");
+    SB.from("reservaciones").update({ status:"cancelada", historial:updated.hist }).eq("id", r.id)
+    .then(function(res2) {
+      if (res2.error) { notify("Error: " + res2.error.message); return; }
+      upd(updated); notify("Cancelada");
+    });
+  }
+
+  function onEnviarVLO(r) {
+    var updated = addHist(Object.assign({}, r, {status:"vlo_proceso"}), "Enviada a VLO", rol);
+    SB.from("reservaciones").update({ status:"vlo_proceso", historial:updated.hist }).eq("id", r.id)
+    .then(function(res2) {
+      if (res2.error) { notify("Error: " + res2.error.message); return; }
+      upd(updated); notify("Enviada a VLO");
+    });
+  }
+
+  var vloQ=res.filter(function(r){return r.status==="solicitud"||r.status==="solicitada"||r.status==="vlo_proceso";});
   var rechQ=res.filter(function(r){return r.status==="rechazado_hotel";});
 
   var filtered=res.filter(function(r){
@@ -896,6 +1015,12 @@ export default function ReservacionesModule(){
   Object.keys(STATUS).forEach(function(k){cnts[k]=res.filter(function(r){return r.status===k;}).length;});
 
   var ROLES=[{k:"agente",l:"Agente",alerta:rechQ.length},{k:"vlo",l:"VLO",alerta:vloQ.length},{k:"supervisor",l:"Supervisor",alerta:0}];
+
+  if (loading) return (
+    <div style={{minHeight:"100vh",background:"#f4f5f7",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{fontSize:13,color:"#9ca3af"}}>Cargando reservaciones...</div>
+    </div>
+  );
 
   return (
     <div style={S.wrap}>
