@@ -181,65 +181,209 @@ const S = {
 // 
 // PAQUETE TAB  (componente separado para claridad)
 // 
-function PaqueteTab({ draft, set }) {
-  const edad = Number(draft.edad) || 0;
-  const ec   = draft.estadoCivil || "";
-  const { qc: destQC, nq: destNQ } = calificarDestinos(edad, ec);
-  const hasPerfil = edad > 0 && ec;
+// ─────────────────────────────────────────────────────────────
+// TAB DESTINOS — calificación y selección de destinos
+// ─────────────────────────────────────────────────────────────
+function DestinosTab({ draft, set, destCatalog }) {
+  var catalog = (destCatalog && destCatalog.length > 0) ? destCatalog : DESTINOS_CATALOG;
+  var edad = Number(draft.edad) || 0;
+  var ec   = draft.estadoCivil || "";
+  var hasPerfil = edad > 0 && ec;
 
-  const addDest = (dest, tipo) => {
-    set("destinos", [...(draft.destinos || []), {
+  // Calificar usando el catálogo recibido
+  var destQC = []; var destNQ = [];
+  if (hasPerfil) {
+    catalog.filter(function(d){ return d.activo !== false; }).forEach(function(dest) {
+      var qc = dest.qc || {};
+      var califica = edad >= (qc.ageMin||18) && edad <= (qc.ageMax||99) && (qc.marital||[]).includes(ec);
+      if (califica) { destQC.push(dest); }
+      else if (dest.nq && dest.nq.enabled) { destNQ.push(dest); }
+    });
+  }
+
+  var selIds = (draft.destinos || []).map(function(d){ return d.destId; });
+
+  function addDest(dest, tipo) {
+    set("destinos", (draft.destinos||[]).concat([{
       destId: dest.id,
-      tipo,
-      noches: tipo === "qc" ? dest.qc.noches : dest.nq.noches,
+      tipo:   tipo,
+      noches: tipo === "qc" ? (dest.qc.noches||dest.qc.nights||5) : (dest.nq.noches||dest.nq.nights||3),
       regalo: null,
-    }]);
-  };
+    }]));
+  }
 
-  const removeDest = (i) => set("destinos", (draft.destinos || []).filter((_, j) => j !== i));
+  function removeDest(i) {
+    set("destinos", (draft.destinos||[]).filter(function(_,j){ return j!==i; }));
+  }
 
-  const setRegalo = (i, regalo) => {
-    const nd = [...(draft.destinos || [])];
-    nd[i] = { ...nd[i], regalo };
+  function setRegalo(i, regalo) {
+    var nd = (draft.destinos||[]).map(function(x,j){ return j===i ? Object.assign({},x,{regalo:regalo}) : x; });
     set("destinos", nd);
-  };
+  }
 
-  const getCatalog = (destId) => DESTINOS_CATALOG.find(d => d.id === destId);
-
-  // IDs ya seleccionados
-  const selIds = (draft.destinos || []).map(d => d.destId);
+  function getCatalog(destId) {
+    return catalog.find(function(d){ return d.id === destId; });
+  }
 
   return (
     <div>
-      {/*  Financiero  */}
-      <div style={{ padding:"14px", borderRadius:"12px", background:"rgba(251,191,36,0.05)", border:"1px solid rgba(251,191,36,0.2)", marginBottom:"14px" }}>
-        <div style={{ ...S.sTitle, color:"#925c0a" }}> Precio y forma de pago</div>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px", marginBottom:"10px" }}>
+      {/* Destinos ya seleccionados */}
+      {(draft.destinos||[]).length > 0 && (
+        <div style={{marginBottom:14}}>
+          <div style={{...S.sTitle, color:"#0ea5a0"}}>🗺️ Destinos del paquete</div>
+          {(draft.destinos||[]).map(function(d, i) {
+            var cat = getCatalog(d.destId);
+            if (!cat) return null;
+            var regalos = cat.regalosDisponibles || [];
+            return (
+              <div key={i} style={{padding:"12px 14px",borderRadius:10,background:d.tipo==="qc"?"rgba(165,214,167,0.06)":"rgba(206,147,216,0.06)",border:"2px solid "+(d.tipo==="qc"?"rgba(165,214,167,0.3)":"rgba(206,147,216,0.3)"),marginBottom:8}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:20}}>{cat.icon}</span>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:700,color:"#1a1f2e"}}>{cat.nombre}</div>
+                      <div style={{fontSize:11,color:d.tipo==="qc"?"#1a7f3c":"#7c3aed"}}>
+                        {d.tipo==="qc"?"⭐ QC":"🔹 NQ"} · {d.noches} noches
+                        {d.tipo==="nq"&&cat.nq&&cat.nq.label?" · "+cat.nq.label:""}
+                      </div>
+                    </div>
+                  </div>
+                  <button style={{...S.btn("danger"),padding:"3px 9px",fontSize:11}} onClick={function(){ removeDest(i); }}>✕</button>
+                </div>
+                {regalos.length > 0 && d.tipo === "qc" && (
+                  <div>
+                    <div style={{fontSize:9,color:"#925c0a",fontWeight:700,textTransform:"uppercase",marginBottom:5}}>🎁 Regalo QC (elige 1)</div>
+                    <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                      <div onClick={function(){ setRegalo(i,null); }}
+                        style={{padding:"4px 9px",borderRadius:7,cursor:"pointer",fontSize:11,background:!d.regalo?"#f4f5f7":"#fff",border:"1px solid #e3e6ea",color:!d.regalo?"#1a1f2e":"#9ca3af"}}>
+                        Sin regalo
+                      </div>
+                      {regalos.map(function(r){
+                        var sel = d.regalo && d.regalo.id === r.id;
+                        return (
+                          <div key={r.id} onClick={function(){ setRegalo(i,r); }}
+                            style={{padding:"4px 9px",borderRadius:7,cursor:"pointer",display:"flex",alignItems:"center",gap:4,fontSize:11,
+                              background:sel?"#fef9e7":"#f9fafb",border:"2px solid "+(sel?"rgba(251,191,36,0.5)":"#f0f1f4"),
+                              color:sel?"#925c0a":"#9ca3af",fontWeight:sel?700:400}}>
+                            <span>{r.icon}</span>{r.label}{sel&&<span style={{color:"#925c0a"}}>✓</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Agregar destinos */}
+      {!hasPerfil ? (
+        <div style={{padding:16,borderRadius:12,background:"rgba(251,146,60,0.07)",border:"1px solid rgba(251,146,60,0.25)",textAlign:"center"}}>
+          <div style={{fontSize:20,marginBottom:8}}>⚠️</div>
+          <div style={{fontSize:13,color:"#925c0a",fontWeight:600,marginBottom:4}}>Perfil incompleto</div>
+          <div style={{fontSize:12,color:"#92400e"}}>Ve a <b>📋 Datos</b> y llena la <b>edad</b> y <b>estado civil</b> para ver destinos disponibles.</div>
+        </div>
+      ) : (
+        <div>
+          {destQC.length > 0 && (
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#1a7f3c",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>
+                ⭐ Califica QC — {destQC.length} destino{destQC.length>1?"s":""}
+              </div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+                {destQC.map(function(dest){
+                  var yaSel = selIds.includes(dest.id);
+                  return (
+                    <button key={dest.id} disabled={yaSel} onClick={function(){ if(!yaSel) addDest(dest,"qc"); }}
+                      style={{padding:"8px 14px",borderRadius:10,cursor:yaSel?"default":"pointer",display:"flex",alignItems:"center",gap:7,
+                        background:yaSel?"rgba(165,214,167,0.15)":"rgba(165,214,167,0.07)",
+                        border:"2px solid "+(yaSel?"rgba(165,214,167,0.5)":"rgba(165,214,167,0.2)"),opacity:yaSel?0.6:1}}>
+                      <span style={{fontSize:18}}>{dest.icon}</span>
+                      <div style={{textAlign:"left"}}>
+                        <div style={{fontSize:12,fontWeight:700,color:yaSel?"#1a7f3c":"#3d4554"}}>{dest.nombre}</div>
+                        <div style={{fontSize:10,color:"#1a7f3c"}}>QC · {dest.qc.noches||dest.qc.nights||5}n</div>
+                      </div>
+                      {yaSel?<span style={{fontSize:12,color:"#1a7f3c"}}>✓</span>:<span style={{fontSize:11,color:"#a5d6a7"}}>+</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {destNQ.length > 0 && (
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#7c3aed",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4}}>
+                🔹 No califica QC — Paquete NQ disponible
+              </div>
+              <div style={{fontSize:10,color:"#7c3aed",marginBottom:8}}>
+                El titular no cumple la edad o estado civil para QC, pero puede acceder al paquete NQ.
+              </div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+                {destNQ.map(function(dest){
+                  var yaSel = selIds.includes(dest.id);
+                  return (
+                    <button key={dest.id} disabled={yaSel} onClick={function(){ if(!yaSel) addDest(dest,"nq"); }}
+                      style={{padding:"8px 14px",borderRadius:10,cursor:yaSel?"default":"pointer",display:"flex",alignItems:"center",gap:7,
+                        background:yaSel?"rgba(206,147,216,0.15)":"rgba(206,147,216,0.07)",
+                        border:"2px solid "+(yaSel?"rgba(206,147,216,0.5)":"rgba(206,147,216,0.2)"),opacity:yaSel?0.6:1}}>
+                      <span style={{fontSize:18}}>{dest.icon}</span>
+                      <div style={{textAlign:"left"}}>
+                        <div style={{fontSize:12,fontWeight:700,color:yaSel?"#7c3aed":"#3d4554"}}>{dest.nombre}</div>
+                        <div style={{fontSize:10,color:"#7c3aed"}}>NQ · {dest.nq.noches||dest.nq.nights||3}n · {dest.nq.label}</div>
+                      </div>
+                      {yaSel?<span style={{fontSize:12,color:"#7c3aed"}}>✓</span>:<span style={{fontSize:11,color:"#ce93d8"}}>+</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {destQC.length===0 && destNQ.length===0 && (
+            <div style={{padding:14,borderRadius:10,background:"#f4f5f7",border:"1px solid #e3e6ea",textAlign:"center",fontSize:12,color:"#9ca3af"}}>
+              Sin destinos disponibles para este perfil.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// TAB PAGO — precio, forma de pago, tarjeta
+// ─────────────────────────────────────────────────────────────
+function PagoTab({ draft, set, onSave }) {
+  return (
+    <div>
+      <div style={{padding:14,borderRadius:12,background:"rgba(251,191,36,0.05)",border:"1px solid rgba(251,191,36,0.2)",marginBottom:14}}>
+        <div style={{...S.sTitle,color:"#925c0a"}}>💰 Precio y forma de pago</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
           <div>
             <div style={S.label}>Precio total (USD)</div>
-            <input style={{ ...S.input, fontWeight:"700", fontSize:"15px" }} type="number" min="0" placeholder="0"
-              value={draft.salePrice || ""} onChange={e => set("salePrice", Number(e.target.value))} />
+            <input style={{...S.input,fontWeight:700,fontSize:15}} type="number" min="0" placeholder="0"
+              value={draft.salePrice||""} onChange={function(e){ set("salePrice",Number(e.target.value)); }} />
           </div>
           <div>
             <div style={S.label}>Pago hoy (USD)</div>
-            <input style={{ ...S.input, fontWeight:"700", fontSize:"15px" }} type="number" min="0" placeholder="0"
-              value={draft.pagoInicial || ""} onChange={e => set("pagoInicial", Number(e.target.value))} />
+            <input style={{...S.input,fontWeight:700,fontSize:15}} type="number" min="0" placeholder="0"
+              value={draft.pagoInicial||""} onChange={function(e){ set("pagoInicial",Number(e.target.value)); }} />
           </div>
         </div>
-        <div style={{ marginBottom:"10px" }}>
-          <div style={S.label}>Metodo de pago</div>
-          <div style={{ display:"flex", gap:"8px" }}>
-            {[
-              { val:"tarjeta",       label:" Tarjeta" },
-              { val:"transferencia", label:" Transferencia" },
-            ].map(op => {
-              const sel = draft.metodoPago === op.val;
+
+        <div style={{marginBottom:10}}>
+          <div style={S.label}>Método de pago</div>
+          <div style={{display:"flex",gap:8}}>
+            {[{val:"tarjeta",label:"💳 Tarjeta"},{val:"transferencia",label:"🏦 Transferencia"}].map(function(op){
+              var sel = draft.metodoPago === op.val;
               return (
-                <div key={op.val} onClick={() => set("metodoPago", op.val)}
-                  style={{ flex:1, padding:"10px 14px", borderRadius:"10px", cursor:"pointer", textAlign:"center", fontWeight:"700", fontSize:"13px",
-                    background: sel ? "rgba(129,140,248,0.15)" : "#f8f9fb",
-                    border: `2px solid ${sel ? "rgba(129,140,248,0.5)" : "#f0f1f4"}`,
-                    color: sel ? "#1565c0" : "#9ca3af", transition:"all 0.15s" }}>
+                <div key={op.val} onClick={function(){ set("metodoPago",op.val); }}
+                  style={{flex:1,padding:"10px 14px",borderRadius:10,cursor:"pointer",textAlign:"center",fontWeight:700,fontSize:13,
+                    background:sel?"#e8f0fe":"#f8f9fb",border:"2px solid "+(sel?"#aac4f0":"#f0f1f4"),
+                    color:sel?"#1565c0":"#9ca3af",transition:"all 0.15s"}}>
                   {op.label}
                 </div>
               );
@@ -256,150 +400,42 @@ function PaqueteTab({ draft, set }) {
               set("tarjetaLast4", last4);
               set("tarjetaBrand", brand);
               set("tarjetaCapturaTs", new Date().toISOString());
-              var updated = Object.assign({}, draft, {
-                zohoPaymentMethodId: pmId,
-                zohoCustomerId: custId,
-                tarjetaLast4: last4,
-                tarjetaBrand: brand,
+              if (onSave) onSave(Object.assign({}, draft, {
+                zohoPaymentMethodId: pmId, zohoCustomerId: custId,
+                tarjetaLast4: last4, tarjetaBrand: brand,
                 tarjetaCapturaTs: new Date().toISOString()
-              });
-              onSave(updated);
+              }));
             }}
           />
         )}
+
         {draft.salePrice > 0 && (
-          <div style={{ display:"flex", gap:"12px", padding:"10px 12px", borderRadius:"9px", background:"#fffce5", border:"1px solid rgba(251,191,36,0.15)", flexWrap:"wrap", marginTop:"10px" }}>
-            <div><div style={{ fontSize:"9px", color:"#92400e", textTransform:"uppercase", fontWeight:"700" }}>Total</div><div style={{ fontSize:"16px", fontWeight:"800", color:"#925c0a" }}>${(draft.salePrice||0).toLocaleString()}</div></div>
-            <div><div style={{ fontSize:"9px", color:"#92400e", textTransform:"uppercase", fontWeight:"700" }}>Pago hoy</div><div style={{ fontSize:"16px", fontWeight:"800", color:"#1a7f3c" }}>${(draft.pagoInicial||0).toLocaleString()}</div></div>
-            <div><div style={{ fontSize:"9px", color:"#92400e", textTransform:"uppercase", fontWeight:"700" }}>Saldo</div><div style={{ fontSize:"16px", fontWeight:"800", color:"#b91c1c" }}>${Math.max(0,(draft.salePrice||0)-(draft.pagoInicial||0)).toLocaleString()}</div></div>
-            {draft.metodoPago && <div><div style={{ fontSize:"9px", color:"#92400e", textTransform:"uppercase", fontWeight:"700" }}>Metodo</div><div style={{ fontSize:"13px", fontWeight:"700", color:"#925c0a" }}>{{ tarjeta:" Tarjeta", transferencia:" Transferencia" }[draft.metodoPago]}</div></div>}
+          <div style={{display:"flex",gap:12,padding:"10px 12px",borderRadius:9,background:"#fffce5",border:"1px solid rgba(251,191,36,0.2)",flexWrap:"wrap",marginTop:10}}>
+            <div>
+              <div style={{fontSize:9,color:"#92400e",textTransform:"uppercase",fontWeight:700}}>Total</div>
+              <div style={{fontSize:16,fontWeight:800,color:"#925c0a"}}>${(draft.salePrice||0).toLocaleString()}</div>
+            </div>
+            <div>
+              <div style={{fontSize:9,color:"#92400e",textTransform:"uppercase",fontWeight:700}}>Pago hoy</div>
+              <div style={{fontSize:16,fontWeight:800,color:"#1a7f3c"}}>${(draft.pagoInicial||0).toLocaleString()}</div>
+            </div>
+            <div>
+              <div style={{fontSize:9,color:"#92400e",textTransform:"uppercase",fontWeight:700}}>Saldo</div>
+              <div style={{fontSize:16,fontWeight:800,color:"#b91c1c"}}>${Math.max(0,(draft.salePrice||0)-(draft.pagoInicial||0)).toLocaleString()}</div>
+            </div>
+            {draft.metodoPago && (
+              <div>
+                <div style={{fontSize:9,color:"#92400e",textTransform:"uppercase",fontWeight:700}}>Método</div>
+                <div style={{fontSize:13,fontWeight:700,color:"#925c0a"}}>{{tarjeta:"💳 Tarjeta",transferencia:"🏦 Transferencia"}[draft.metodoPago]}</div>
+              </div>
+            )}
           </div>
         )}
       </div>
-
-      {/*  Destinos seleccionados  */}
-      {(draft.destinos || []).length > 0 && (
-        <div style={{ marginBottom:"14px" }}>
-          <div style={{ ...S.sTitle, color:"#0ea5a0" }}> Destinos del paquete</div>
-          {(draft.destinos || []).map((d, i) => {
-            const cat = getCatalog(d.destId);
-            if (!cat) return null;
-            const regalos = cat.regalosDisponibles || [];
-            return (
-              <div key={i} style={{ padding:"12px 14px", borderRadius:"10px", background:"rgba(14,165,160,0.05)", border:`2px solid ${d.tipo === "qc" ? "rgba(165,214,167,0.3)" : "rgba(206,147,216,0.3)"}`, marginBottom:"8px" }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"8px" }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-                    <span style={{ fontSize:"20px" }}>{cat.icon}</span>
-                    <div>
-                      <div style={{ fontSize:"13px", fontWeight:"700", color:"#1a1f2e" }}>{cat.nombre}</div>
-                      <div style={{ fontSize:"11px", color: d.tipo === "qc" ? "#a5d6a7" : "#ce93d8" }}>
-                        {d.tipo === "qc" ? " QC" : " NQ"} . {d.noches} noches
-                        {d.tipo === "nq" && cat.nq.label ? ` - ${cat.nq.label}` : ""}
-                      </div>
-                    </div>
-                  </div>
-                  <button style={{ ...S.btn("danger"), padding:"3px 9px", fontSize:"11px" }} onClick={() => removeDest(i)}></button>
-                </div>
-                {regalos.length > 0 && d.tipo === "qc" && (
-                  <div>
-                    <div style={{ fontSize:"9px", color:"#925c0a", fontWeight:"700", textTransform:"uppercase", marginBottom:"5px" }}>Regalo QC (elige 1)</div>
-                    <div style={{ display:"flex", gap:"5px", flexWrap:"wrap" }}>
-                      <div onClick={() => setRegalo(i, null)}
-                        style={{ padding:"4px 9px", borderRadius:"7px", cursor:"pointer", fontSize:"11px", background: !d.regalo ? "#f4f5f7" : "#ffffff", border:`1px solid ${!d.regalo ? "#e3e6ea" : "#e3e6ea"}`, color: !d.regalo ? "#1a1f2e" : "#9ca3af" }}>
-                        Sin regalo
-                      </div>
-                      {regalos.map(r => {
-                        const sel = d.regalo?.id === r.id;
-                        return (
-                          <div key={r.id} onClick={() => setRegalo(i, r)}
-                            style={{ padding:"4px 9px", borderRadius:"7px", cursor:"pointer", display:"flex", alignItems:"center", gap:"4px", fontSize:"11px", background: sel ? "#fef9e7" : "#f9fafb", border:`2px solid ${sel ? "rgba(251,191,36,0.5)" : "#f0f1f4"}`, color: sel ? "#925c0a" : "#9ca3af", fontWeight: sel ? "700" : "400" }}>
-                            <span>{r.icon}</span>{r.label}{sel && <span style={{ color:"#925c0a" }}></span>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/*  Agregar destinos  */}
-      {!hasPerfil ? (
-        <div style={{ padding:"16px", borderRadius:"12px", background:"rgba(251,146,60,0.07)", border:"1px solid rgba(251,146,60,0.25)", textAlign:"center" }}>
-          <div style={{ fontSize:"20px", marginBottom:"8px" }}></div>
-          <div style={{ fontSize:"13px", color:"#925c0a", fontWeight:"600", marginBottom:"4px" }}>Perfil incompleto</div>
-          <div style={{ fontSize:"12px", color:"#92400e" }}>Ve a la pestana <b> Datos</b> y llena la <b>edad</b> y <b>estado civil</b> para ver los destinos disponibles.</div>
-        </div>
-      ) : (
-        <div>
-          {/* QC */}
-          {destQC.length > 0 && (
-            <div style={{ marginBottom:"12px" }}>
-              <div style={{ fontSize:"11px", fontWeight:"700", color:"#a5d6a7", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:"8px" }}>
-                 Califica QC - {destQC.length} destino{destQC.length > 1 ? "s" : ""}
-              </div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:"7px" }}>
-                {destQC.map(dest => {
-                  const yaSel = selIds.includes(dest.id);
-                  return (
-                    <button key={dest.id} disabled={yaSel}
-                      onClick={() => addDest(dest, "qc")}
-                      style={{ padding:"8px 14px", borderRadius:"10px", cursor: yaSel ? "default" : "pointer", display:"flex", alignItems:"center", gap:"7px", background: yaSel ? "rgba(165,214,167,0.15)" : "rgba(165,214,167,0.07)", border:`2px solid ${yaSel ? "rgba(165,214,167,0.5)" : "rgba(165,214,167,0.2)"}`, opacity: yaSel ? 0.6 : 1 }}>
-                      <span style={{ fontSize:"18px" }}>{dest.icon}</span>
-                      <div style={{ textAlign:"left" }}>
-                        <div style={{ fontSize:"12px", fontWeight:"700", color: yaSel ? "#a5d6a7" : "#3d4554" }}>{dest.nombre}</div>
-                        <div style={{ fontSize:"10px", color:"#1a7f3c" }}>QC . {dest.qc.noches}n</div>
-                      </div>
-                      {yaSel ? <span style={{ fontSize:"12px", color:"#1a7f3c" }}></span> : <span style={{ fontSize:"11px", color:"#a5d6a7" }}>+</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* NQ */}
-          {destNQ.length > 0 && (
-            <div style={{ marginBottom:"12px" }}>
-              <div style={{ fontSize:"11px", fontWeight:"700", color:"#ce93d8", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:"4px" }}>
-                 No califica QC - Paquete NQ disponible
-              </div>
-              <div style={{ fontSize:"10px", color:"#7c3aed", marginBottom:"8px" }}>
-                El titular no cumple la edad o estado civil para el paquete premium de estos destinos, pero puede acceder al paquete NQ.
-              </div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:"7px" }}>
-                {destNQ.map(dest => {
-                  const yaSel = selIds.includes(dest.id);
-                  return (
-                    <button key={dest.id} disabled={yaSel}
-                      onClick={() => addDest(dest, "nq")}
-                      style={{ padding:"8px 14px", borderRadius:"10px", cursor: yaSel ? "default" : "pointer", display:"flex", alignItems:"center", gap:"7px", background: yaSel ? "rgba(206,147,216,0.15)" : "rgba(206,147,216,0.07)", border:`2px solid ${yaSel ? "rgba(206,147,216,0.5)" : "rgba(206,147,216,0.2)"}`, opacity: yaSel ? 0.6 : 1 }}>
-                      <span style={{ fontSize:"18px" }}>{dest.icon}</span>
-                      <div style={{ textAlign:"left" }}>
-                        <div style={{ fontSize:"12px", fontWeight:"700", color: yaSel ? "#ce93d8" : "#3d4554" }}>{dest.nombre}</div>
-                        <div style={{ fontSize:"10px", color:"#ce93d8" }}>NQ . {dest.nq.noches}n . {dest.nq.label}</div>
-                      </div>
-                      {yaSel ? <span style={{ fontSize:"12px", color:"#ce93d8" }}></span> : <span style={{ fontSize:"11px", color:"#ce93d8" }}>+</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {destQC.length === 0 && destNQ.length === 0 && (
-            <div style={{ padding:"14px", borderRadius:"10px", background:"rgba(84,110,122,0.08)", border:"1px solid rgba(84,110,122,0.2)", textAlign:"center", fontSize:"12px", color:"#9ca3af" }}>
-              Sin destinos disponibles para este perfil.
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
+
 
 // 
 // AI PANEL
@@ -493,7 +529,7 @@ Responde con EXACTAMENTE este JSON:
 // 
 // LEAD MODAL
 // 
-function LeadModal({ lead, users, currentUser, isSupervisor, onClose, onSave, onBlock, onUnblock }) {
+function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClose, onSave, onBlock, onUnblock }) {
   const [draft, setDraft]           = useState({ ...lead, notas: (lead.notas||[]).map(n => typeof n === "string" ? {ts:TODAY,autor:currentUser.name,tipo:"nota",nota:n} : n) });
   const [tab, setTab]               = useState("datos");
   const [newNota, setNewNota]       = useState("");
@@ -558,10 +594,11 @@ function LeadModal({ lead, users, currentUser, isSupervisor, onClose, onSave, on
 
         {/* Tabs */}
         <div style={{ display:"flex", gap:"5px", borderBottom:"1px solid #e3e6ea", marginBottom:"14px", flexWrap:"wrap", paddingBottom:"8px" }}>
-          {tabBtn("datos",       " Datos")}
-          {tabBtn("seguimiento", ` Seguim.${(draft.notas||[]).length>0?` (${draft.notas.length})`:""}`, "#925c0a")}
-          {canSeePaquete && tabBtn("paquete", " Paquete", "#1a7f3c")}
-          {isSupervisor  && tabBtn("admin",   " Admin",   "#b91c1c")}
+          {tabBtn("datos",       "📋 Datos")}
+          {tabBtn("seguimiento", `📝 Seguim.${(draft.notas||[]).length>0?" ("+draft.notas.length+")":""}`, "#925c0a")}
+          {canSeePaquete && tabBtn("destinos", "🗺️ Destinos", "#1a7f3c")}
+          {canSeePaquete && tabBtn("pago",     "💳 Pago",     "#1565c0")}
+          {isSupervisor  && tabBtn("admin",    "⚙️ Admin",    "#b91c1c")}
         </div>
 
         {/* TAB: DATOS */}
@@ -672,9 +709,14 @@ function LeadModal({ lead, users, currentUser, isSupervisor, onClose, onSave, on
           </div>
         )}
 
-        {/* TAB: PAQUETE */}
-        {tab === "paquete" && canSeePaquete && (
-          <PaqueteTab draft={draft} set={set} />
+        {/* TAB: DESTINOS */}
+        {tab === "destinos" && canSeePaquete && (
+          <DestinosTab draft={draft} set={set} destCatalog={destCatalog} />
+        )}
+
+        {/* TAB: PAGO */}
+        {tab === "pago" && canSeePaquete && (
+          <PagoTab draft={draft} set={set} onSave={onSave} />
         )}
 
         {/* TAB: ADMIN */}
@@ -1086,7 +1128,7 @@ JSON: {"estadoGeneral":"bueno|regular|critico","resumenEjecutivo":"","acciones":
 // 
 // VENDEDOR VIEW
 // 
-function VendedorView({ leads, users, currentUser, onUpdateLead }) {
+function VendedorView({ leads, users, currentUser, destCatalog, onUpdateLead }) {
   const [sel,     setSel]    = useState(null);
   const [aiLead,  setAiLead] = useState(null);
   const [search,  setSearch] = useState("");
@@ -1149,7 +1191,7 @@ function VendedorView({ leads, users, currentUser, onUpdateLead }) {
           </div>
         </>
       )}
-      {sel && <LeadModal lead={sel} users={users} currentUser={currentUser} isSupervisor={false}
+      {sel && <LeadModal lead={sel} users={users} currentUser={currentUser} isSupervisor={false} destCatalog={destCatalog}
         onClose={()=>setSel(null)} onSave={u=>{onUpdateLead(u);setSel(null);}} onBlock={()=>{}} onUnblock={()=>{}} />}
       {aiLead && <LeadAIPanel lead={aiLead} onClose={()=>setAiLead(null)} />}
     </div>
@@ -1159,7 +1201,7 @@ function VendedorView({ leads, users, currentUser, onUpdateLead }) {
 // 
 // SUPERVISOR VIEW
 // 
-function SupervisorView({ leads, users, currentUser, onUpdateLead, onBulkReassign }) {
+function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, onBulkReassign }) {
   const [tab,           setTab]           = useState("pipeline");
   const [selLead,       setSelLead]       = useState(null);
   const [selIds,        setSelIds]        = useState([]);
@@ -1418,7 +1460,7 @@ function SupervisorView({ leads, users, currentUser, onUpdateLead, onBulkReassig
       {tab==="briefing" && <BriefingAI leads={leads} users={users} currentUser={currentUser} />}
 
       {selLead && (
-        <LeadModal lead={selLead} users={users} currentUser={currentUser} isSupervisor={true}
+        <LeadModal lead={selLead} users={users} currentUser={currentUser} isSupervisor={true} destCatalog={destCatalog}
           onClose={()=>setSelLead(null)} onSave={u=>{onUpdateLead(u);setSelLead(null);}}
           onBlock={handleBlock} onUnblock={handleUnblock} />
       )}
@@ -1866,8 +1908,8 @@ export default function SellerCRMv3({ currentUser: shellUser }) {
       </div>
 
       {isSup
-        ? <SupervisorView leads={leads} users={usersParaVista} currentUser={activeUser} onUpdateLead={handleUpdateLead} onBulkReassign={handleBulkReassign} />
-        : <VendedorView   leads={leads} users={usersParaVista} currentUser={mappedUser}  onUpdateLead={handleUpdateLead} />
+        ? <SupervisorView leads={leads} users={usersParaVista} currentUser={activeUser} destCatalog={destCatalog} onUpdateLead={handleUpdateLead} onBulkReassign={handleBulkReassign} />
+        : <VendedorView   leads={leads} users={usersParaVista} currentUser={mappedUser}  destCatalog={destCatalog} onUpdateLead={handleUpdateLead} />
       }
 
       {showNuevo && (
