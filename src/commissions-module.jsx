@@ -831,29 +831,36 @@ export default function CommissionsModule({ currentUser: shellUser }) {
             };
           });
           setVentas(mapped);
+          cargarVentasDebug(mapped);
         }
       });
   }
 
   // Cargar usuarios reales de Supabase
   function cargarUsers() {
-    SB.from("users")
+    SB.from("usuarios")
       .select("*")
       .then(function(res) {
         if (res.data && res.data.length > 0) {
           var mapped = res.data.map(function(u) {
             return {
               id:       u.auth_id || u.id,
+              name:     u.nombre || "",
               nombre:   u.nombre || "",
               role:     u.rol || "vendedor",
-              active:   true,
+              active:   u.activo !== false,
               commPct:  u.comision_pct || 10,
               spiffAmt: u.spiff || 0,
             };
           });
+          console.log("cargarUsers:", JSON.stringify(mapped.map(function(u){ return { id: u.id, name: u.name, role: u.role }; })));
           setUsers(mapped);
         }
       });
+  }
+
+  function cargarVentasDebug(mapped) {
+    console.log("cargarVentas:", JSON.stringify(mapped.map(function(v){ return { id: v.id, vendedorId: v.vendedorId, cliente: v.cliente, fecha: v.fechaVenta }; })));
   }
 
   useEffect(function() {
