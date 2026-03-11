@@ -855,6 +855,7 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
   var [zohoError,   setZohoError]   = useState("");
   var [cobrando,    setCobrando]    = useState(false);
   var [usarOtraTarjeta, setUsarOtraTarjeta] = useState(false);
+  var [autorizado,      setAutorizado]      = useState(false);
 
   // Cargar SDK Zoho al montar
   useEffect(function() {
@@ -968,7 +969,7 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
             </div>
             <div>
               <div style={S.label}>Método</div>
-              <select style={S.select} value={metodo} onChange={function(e){ setMetodo(e.target.value); setErr(""); setUsarOtraTarjeta(false); }}>
+              <select style={S.select} value={metodo} onChange={function(e){ setMetodo(e.target.value); setErr(""); setUsarOtraTarjeta(false); setAutorizado(false); }}>
                 {METODOS.map(function(m){ return <option key={m} value={m}>{m.charAt(0).toUpperCase()+m.slice(1)}</option>; })}
               </select>
             </div>
@@ -1024,11 +1025,30 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
           {err && <div style={{fontSize:12,color:"#b91c1c",marginBottom:8,fontWeight:600}}>⚠️ {err}</div>}
           {zohoError && metodo==="tarjeta" && <div style={{fontSize:12,color:"#b91c1c",marginBottom:8}}>⚠️ {zohoError}</div>}
 
+          {/* CHECKBOX AUTORIZACIÓN — solo cuando usa tarjeta guardada */}
+          {metodo === "tarjeta" && exp.zohoPaymentMethodId && !usarOtraTarjeta && (
+            <div
+              onClick={function(){ setAutorizado(function(p){ return !p; }); }}
+              style={{display:"flex",alignItems:"flex-start",gap:10,padding:"10px 12px",borderRadius:8,
+                background:autorizado?"rgba(26,127,60,0.06)":"#f9fafb",
+                border:"1px solid "+(autorizado?"#a3d9a5":"#e3e6ea"),
+                marginBottom:10,cursor:"pointer",userSelect:"none"}}>
+              <div style={{width:16,height:16,borderRadius:4,border:"2px solid "+(autorizado?"#1a7f3c":"#9ca3af"),
+                background:autorizado?"#1a7f3c":"#fff",flexShrink:0,marginTop:1,
+                display:"flex",alignItems:"center",justifyContent:"center"}}>
+                {autorizado && <span style={{color:"#fff",fontSize:11,fontWeight:900,lineHeight:1}}>✓</span>}
+              </div>
+              <div style={{fontSize:12,color:autorizado?"#1a7f3c":"#6b7280",lineHeight:1.4}}>
+                <strong>El cliente autorizó el cargo</strong> a la tarjeta {exp.tarjetaBrand||""} **** {exp.tarjetaLast4||"guardada"} por {monto ? fmtUSD(Number(monto)) : "el monto indicado"}
+              </div>
+            </div>
+          )}
+
           {/* BOTÓN — tarjeta usa Zoho, resto manual */}
           {metodo === "tarjeta" ? (
             <button
               style={{...S.btn("success"),width:"100%",justifyContent:"center"}}
-              disabled={!monto||cobrando||!!zohoError}
+              disabled={!monto||cobrando||!!zohoError||(exp.zohoPaymentMethodId&&!usarOtraTarjeta&&!autorizado)}
               onClick={function(){
                 var m = Number(monto);
                 if (!m || m <= 0) { setErr("Ingresa un monto válido"); return; }
