@@ -799,6 +799,152 @@ var EDGE_URL    = "https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/zoho-pa
 var ANON_KEY    = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA";
 var AUTH_HDR    = { "Content-Type": "application/json", "Authorization": "Bearer " + ANON_KEY };
 
+function SectionFirma({ lead, exp, verif, onSendDocs }) {
+  const SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
+  const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA";
+  const HDR = { "Content-Type":"application/json", "Authorization":"Bearer "+SB_KEY, "apikey":SB_KEY };
+
+  const [firmaData,  setFirmaData]  = useState(null);
+  const [loadingFirma, setLoadingFirma] = useState(true);
+  const [showImg,    setShowImg]    = useState(null); // "contrato"|"autorizacion"|"terminos"
+
+  useEffect(function() {
+    if (!lead.id) return;
+    fetch(SB_URL + "/rest/v1/leads?id=eq." + lead.id + "&select=firma_token,firma_enviada_at,firma_firmada_at,firma_contrato,firma_autorizacion,firma_terminos", { headers: HDR })
+      .then(function(r){ return r.json(); })
+      .then(function(data) {
+        setLoadingFirma(false);
+        if (data && data[0]) setFirmaData(data[0]);
+      })
+      .catch(function(){ setLoadingFirma(false); });
+  }, [lead.id]);
+
+  // Cuantos dias hace que se envio sin firmar
+  var diasPendiente = null;
+  if (firmaData && firmaData.firma_enviada_at && !firmaData.firma_firmada_at) {
+    var ms = Date.now() - new Date(firmaData.firma_enviada_at).getTime();
+    diasPendiente = Math.floor(ms / (1000*60*60*24));
+  }
+
+  var firmado    = firmaData && !!firmaData.firma_firmada_at;
+  var enviado    = firmaData && !!firmaData.firma_enviada_at;
+  var docsSent   = verif && verif.docsSent;
+
+  // Generar link de reenvio
+  var firmaLink = null;
+  if (firmaData && firmaData.firma_token) {
+    firmaLink = "https://minivac-crm.vercel.app/firma.html?lead=" + lead.id + "&token=" + firmaData.firma_token;
+  }
+
+  var copyLink = function() {
+    if (firmaLink) navigator.clipboard.writeText(firmaLink).catch(function(){});
+  };
+
+  if (loadingFirma) return (
+    <div style={S.card}>
+      <div style={S.sTitle}>Firma Digital</div>
+      <div style={{ fontSize:"13px", color:"#9ca3af" }}>Cargando...</div>
+    </div>
+  );
+
+  return (
+    <div style={S.card}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"14px" }}>
+        <div style={S.sTitle}>Firma Digital</div>
+        {firmado && <span style={S.badge("#1a7f3c","rgba(74,222,128,0.08)","rgba(74,222,128,0.25)")}>Firmado</span>}
+        {!firmado && enviado && <span style={S.badge("#925c0a","#fffbe0","rgba(251,191,36,0.3)")}>Pendiente firma</span>}
+        {!firmado && !enviado && <span style={S.badge("#6b7280","rgba(148,163,184,0.08)","rgba(148,163,184,0.3)")}>No enviado</span>}
+      </div>
+
+      {/* ALERTA: enviado pero sin firmar y han pasado horas */}
+      {!firmado && enviado && diasPendiente !== null && diasPendiente >= 0 && (
+        <div style={{ padding:"12px 14px", borderRadius:"10px", background: diasPendiente >= 1 ? "rgba(185,28,28,0.07)" : "#fffbe0", border:"1px solid " + (diasPendiente >= 1 ? "#fca5a5" : "rgba(251,191,36,0.35)"), marginBottom:"14px", display:"flex", gap:"12px", alignItems:"flex-start" }}>
+          <div style={{ fontSize:"20px", lineHeight:1 }}>{diasPendiente >= 1 ? "!" : "~"}</div>
+          <div>
+            <div style={{ fontSize:"13px", fontWeight:"700", color: diasPendiente >= 1 ? "#b91c1c" : "#925c0a", marginBottom:"2px" }}>
+              {diasPendiente >= 1 ? "El cliente no ha firmado hace " + diasPendiente + " dia" + (diasPendiente > 1 ? "s" : "") : "Certificado enviado - esperando firma del cliente"}
+            </div>
+            <div style={{ fontSize:"12px", color:"#6b7280" }}>
+              Enviado: {new Date(firmaData.firma_enviada_at).toLocaleString("es-MX", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FIRMADO: mostrar fecha y previews */}
+      {firmado && (
+        <div>
+          <div style={{ padding:"10px 14px", borderRadius:"9px", background:"rgba(74,222,128,0.06)", border:"1px solid rgba(74,222,128,0.2)", marginBottom:"14px" }}>
+            <div style={{ fontSize:"12px", color:"#1a7f3c", fontWeight:"600" }}>
+              Firmado el {new Date(firmaData.firma_firmada_at).toLocaleString("es-MX", { day:"2-digit", month:"long", year:"numeric", hour:"2-digit", minute:"2-digit" })}
+            </div>
+            {firmaData.firma_enviada_at && (
+              <div style={{ fontSize:"11px", color:"#9ca3af", marginTop:"2px" }}>
+                Enviado: {new Date(firmaData.firma_enviada_at).toLocaleString("es-MX", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" })}
+              </div>
+            )}
+          </div>
+
+          {/* Previews de las 3 firmas */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"8px", marginBottom:"4px" }}>
+            {[
+              { key:"firma_contrato",     label:"Contrato"      },
+              { key:"firma_autorizacion", label:"Autorizacion"  },
+              { key:"firma_terminos",     label:"Terminos"      },
+            ].map(function(doc) {
+              var imgSrc = firmaData[doc.key];
+              return (
+                <div key={doc.key} style={{ border:"1px solid #e3e6ea", borderRadius:"8px", overflow:"hidden", cursor: imgSrc ? "pointer" : "default" }}
+                  onClick={function(){ if(imgSrc) setShowImg({ src:imgSrc, label:doc.label }); }}>
+                  <div style={{ fontSize:"10px", fontWeight:"600", color:"#9ca3af", padding:"5px 8px", background:"#f9fafb", borderBottom:"1px solid #e3e6ea", textTransform:"uppercase", letterSpacing:"0.08em" }}>{doc.label}</div>
+                  {imgSrc
+                    ? <img src={imgSrc} alt={doc.label} style={{ width:"100%", height:"70px", objectFit:"contain", background:"#fff", display:"block" }} />
+                    : <div style={{ height:"70px", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"11px", color:"#d1d5db" }}>sin firma</div>
+                  }
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ fontSize:"10px", color:"#d1d5db", textAlign:"center", marginTop:"4px" }}>Haz clic en una firma para ampliar</div>
+        </div>
+      )}
+
+      {/* NO ENVIADO aun: boton para enviar */}
+      {!enviado && !docsSent && verif && verif.paymentStatus === "approved" && (
+        <button style={{ ...S.btn("indigo"), width:"100%", justifyContent:"center" }} onClick={onSendDocs}>
+          Enviar Travel Certificate al cliente
+        </button>
+      )}
+
+      {/* ENVIADO pero no firmado: link + reenviar */}
+      {enviado && !firmado && firmaLink && (
+        <div>
+          <div style={{ display:"flex", gap:"8px", alignItems:"center", background:"#f0f9ff", border:"1px solid #bae6fd", borderRadius:"8px", padding:"8px 12px", marginBottom:"10px" }}>
+            <div style={{ flex:1, fontSize:"11px", color:"#0369a1", wordBreak:"break-all", fontFamily:"monospace" }}>{firmaLink}</div>
+            <button onClick={copyLink} style={{ flexShrink:0, fontSize:"11px", padding:"4px 10px", borderRadius:"5px", border:"1px solid #bae6fd", background:"#fff", color:"#0369a1", cursor:"pointer", fontFamily:"inherit" }}>Copiar</button>
+          </div>
+          <button style={{ ...S.btn("warning"), width:"100%", justifyContent:"center", fontSize:"12px" }} onClick={onSendDocs}>
+            Reenviar por WhatsApp + Email
+          </button>
+        </div>
+      )}
+
+      {/* MODAL imagen firma ampliada */}
+      {showImg && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }}
+          onClick={function(){ setShowImg(null); }}>
+          <div style={{ background:"#fff", borderRadius:"14px", padding:"20px", maxWidth:"480px", width:"90%", textAlign:"center" }}
+            onClick={function(e){ e.stopPropagation(); }}>
+            <div style={{ fontSize:"13px", fontWeight:"700", color:"#1a1f2e", marginBottom:"12px" }}>Firma — {showImg.label}</div>
+            <img src={showImg.src} alt={showImg.label} style={{ width:"100%", border:"1px solid #e3e6ea", borderRadius:"8px" }} />
+            <button style={{ ...S.btn("ghost"), marginTop:"14px", justifyContent:"center", width:"100%" }} onClick={function(){ setShowImg(null); }}>Cerrar</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SectionCobro({ lead, exp, verif, onChargeResult }) {
   console.log("SectionCobro zohoPaymentMethodId:", exp.zohoPaymentMethodId, "zohoCustomerId:", exp.zohoCustomerId);
   var [loading,        setLoading]        = useState(false);
@@ -1113,6 +1259,7 @@ function DetailView({ lead, onBack, onUpdate }) {
           <UpsalePanel exp={exp} onSave={(newExp) => { setExp(newExp); pushUpdate(newExp, verif, null); }} />
         </div>
         <div>
+          <SectionFirma lead={lead} exp={exp} verif={verif} onSendDocs={() => setSendModal(true)} />
           <SectionCobro lead={lead} exp={exp} verif={verif} onChargeResult={handleChargeResult} />
           {!(verif && verif.result) && (
             <div style={S.card}>
@@ -1166,6 +1313,14 @@ function DetailView({ lead, onBack, onUpdate }) {
 function QueueCard({ lead, onOpen }) {
   const exp = lead.exp;
   const vr  = lead.verificacion && lead.verificacion.result ? VERIF_RESULTS[lead.verificacion.result] : null;
+  // Alerta firma pendiente: docsSent pero no firmada
+  var docsSent   = lead.verificacion && lead.verificacion.docsSent;
+  var firmada    = lead.firma_firmada_at;
+  var enviada    = lead.firma_enviada_at;
+  var diasSinFirma = null;
+  if (enviada && !firmada) {
+    diasSinFirma = Math.floor((Date.now() - new Date(enviada).getTime()) / (1000*60*60*24));
+  }
   return (
     <div style={{ ...S.card, cursor:"pointer" }} onClick={() => onOpen(lead)}
       onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)"; }}
@@ -1176,11 +1331,31 @@ function QueueCard({ lead, onOpen }) {
           <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"2px" }}>{lead.phone} - {lead.radioName}</div>
           <div style={{ fontSize:"12px", color:"#9ca3af" }}>{lead.sellerName} - Folio {lead.id}</div>
         </div>
-        {vr
-          ? <span style={S.badge(vr.color,vr.bg,vr.border)}>{vr.label}</span>
-          : <span style={S.badge("#925c0a","#fffbe0","rgba(251,191,36,0.2)")}>Pendiente</span>
-        }
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"4px" }}>
+          {vr
+            ? <span style={S.badge(vr.color,vr.bg,vr.border)}>{vr.label}</span>
+            : <span style={S.badge("#925c0a","#fffbe0","rgba(251,191,36,0.2)")}>Pendiente</span>
+          }
+          {firmada && (
+            <span style={S.badge("#1a7f3c","rgba(74,222,128,0.08)","rgba(74,222,128,0.25)")}>Firmado</span>
+          )}
+          {!firmada && enviada && diasSinFirma !== null && (
+            <span style={S.badge(
+              diasSinFirma >= 1 ? "#b91c1c" : "#925c0a",
+              diasSinFirma >= 1 ? "rgba(185,28,28,0.07)" : "#fffbe0",
+              diasSinFirma >= 1 ? "#fca5a5" : "rgba(251,191,36,0.35)"
+            )}>
+              {diasSinFirma >= 1 ? "Sin firmar " + diasSinFirma + "d" : "Esperando firma"}
+            </span>
+          )}
+        </div>
       </div>
+      {/* Alerta roja si lleva mas de 1 dia sin firmar */}
+      {!firmada && diasSinFirma >= 1 && (
+        <div style={{ padding:"8px 12px", borderRadius:"8px", background:"rgba(185,28,28,0.07)", border:"1px solid #fca5a5", marginBottom:"10px", fontSize:"12px", color:"#b91c1c", fontWeight:"600" }}>
+          Cliente no ha firmado el Travel Certificate ({diasSinFirma} dia{diasSinFirma > 1 ? "s" : ""})
+        </div>
+      )}
       <div style={S.g3}>
         <div>
           <div style={S.label}>Destinos</div>
@@ -1238,6 +1413,8 @@ function dbToVerifLead(r) {
       notas:         (r.notas || []).map(function(n){ return typeof n === "string" ? n : (n.nota || ""); }).join("\n"),
     },
     verificacion: r.verificacion || null,
+    firma_enviada_at:  r.firma_enviada_at  || null,
+    firma_firmada_at:  r.firma_firmada_at  || null,
   };
 }
 
@@ -1252,7 +1429,7 @@ export default function VerificationModule() {
   // Cargar leads en verificacion o con resultado de verificacion de hoy
   function cargarLeads() {
     SB.from("leads")
-      .select("*, vendedor:vendedor_id(nombre)")
+      .select("*, vendedor:vendedor_id(nombre), firma_enviada_at, firma_firmada_at")
       .or("status.eq.verificacion,status.eq.venta,status.eq.no_interesado")
       .order("created_at", { ascending: false })
       .then(function(res) {
