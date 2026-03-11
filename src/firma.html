@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Travel Certificate - X Travel Group</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Montserrat',sans-serif;
+  background:#e8e8e8;
+  padding:30px 16px;
+  display:flex;
+  justify-content:center;
+  min-height:100vh;
+}
+
+/* ── PAPER ── */
+.cert{
+  width:100%;max-width:760px;
+  background:#fff;
+  box-shadow:0 4px 40px rgba(0,0,0,0.15);
+  border-top:5px solid #1a2e4a;
+}
+
+/* ── HEADER ── */
+.hdr{
+  padding:36px 52px 28px;
+  text-align:center;
+  border-bottom:1px solid #e0e0e0;
+}
+.hdr-logo{margin-bottom:18px;}
+.hdr-logo img{height:220px;object-fit:contain;}
+
+.hdr-title{
+  font-size:30px;font-weight:700;
+  color:#1a2e4a;letter-spacing:0.07em;
+  text-transform:uppercase;margin-bottom:18px;
+}
+.hdr-rule{
+  width:100%;height:1px;
+  background:linear-gradient(90deg,transparent,#1a2e4a 20%,#1a2e4a 80%,transparent);
+  margin-bottom:22px;
+}
+.hdr-member-lbl{
+  font-size:10px;font-weight:600;
+  letter-spacing:0.2em;text-transform:uppercase;
+  color:#888;margin-bottom:6px;
+  text-decoration:underline;text-underline-offset:3px;
+}
+.hdr-name{
+  font-size:22px;font-weight:700;
+  color:#1a2e4a;letter-spacing:0.04em;
+  text-transform:uppercase;margin-bottom:5px;
+}
+.hdr-addr{font-size:12px;color:#888;margin-bottom:0;}
+
+/* ── META STRIP ── */
+.meta{
+  display:grid;grid-template-columns:1fr 1fr 1fr;
+  border-top:1px solid #e0e0e0;
+  border-bottom:1px solid #e0e0e0;
+  padding:16px 0;
+  margin:0 52px;
+}
+.meta-cell{text-align:center;}
+.meta-cell .lbl{font-size:9px;color:#aaa;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:3px;font-weight:500;}
+.meta-cell .val{font-size:14px;font-weight:700;color:#1a2e4a;}
+
+/* ── TABLE ── */
+.tbl-wrap{padding:4px 52px 0;}
+table{width:100%;border-collapse:collapse;}
+thead tr{border-bottom:1px solid #1a2e4a;}
+thead th{
+  padding:12px 0 8px;
+  font-size:9px;letter-spacing:0.14em;text-transform:uppercase;
+  color:#1a2e4a;font-weight:700;text-align:left;
+}
+tbody tr{border-bottom:1px solid #eee;}
+tbody tr:last-child{border-bottom:none;}
+tbody td{padding:14px 0;vertical-align:top;}
+td.num{font-size:13px;color:#aaa;width:28px;padding-right:12px;padding-top:15px;}
+td.desc strong{font-size:14px;font-weight:600;color:#1a2e4a;display:block;margin-bottom:2px;}
+td.desc span{font-size:12px;color:#888;line-height:1.55;display:block;}
+
+/* Total block */
+.totals-block{
+  border-top:2px solid #1a2e4a;
+  border-bottom:2px solid #1a2e4a;
+  margin:0;
+}
+.totals-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:13px 52px;
+  border-bottom:1px solid #e8e8e8;
+}
+.totals-row:last-child{border-bottom:none;}
+.totals-label{font-size:12px;font-weight:600;color:#555;letter-spacing:0.05em;text-transform:uppercase;}
+.totals-val{font-size:16px;font-weight:700;color:#1a2e4a;}
+.totals-highlight{background:#f4f7fb;}
+.totals-highlight .totals-label{color:#1a2e4a;font-weight:700;}
+.totals-highlight .totals-val{font-size:22px;color:#1a2e4a;}
+.totals-balance .totals-val{color:#888;font-weight:500;}
+
+/* ── CUSTOMER SERVICE BANNER ── */
+.cs-banner{
+  background:#1a2e4a;
+  padding:22px 52px;
+  text-align:center;
+}
+.cs-label{
+  font-size:10px;letter-spacing:0.2em;text-transform:uppercase;
+  color:rgba(255,255,255,0.5);margin-bottom:6px;font-weight:500;
+}
+.cs-number{
+  font-size:28px;font-weight:700;
+  color:#fff;letter-spacing:0.06em;
+}
+.cs-hours{
+  font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px;
+}
+
+/* ── NOTES ── */
+.notes{
+  padding:18px 52px 14px;
+  border-bottom:1px solid #eee;
+}
+.notes .lbl{font-size:9px;color:#aaa;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:6px;font-weight:600;}
+.notes p{font-size:12px;color:#444;line-height:1.6;}
+
+/* ── LEGAL NOTICE ── */
+.legal-notice{
+  margin:16px 52px;
+  padding:12px 16px;
+  background:#f9f8f4;
+  border-left:3px solid #1a2e4a;
+  border-radius:0 4px 4px 0;
+}
+.legal-notice p{
+  font-size:11px;color:#444;line-height:1.65;font-style:italic;
+}
+
+/* ── TERMS ── */
+.terms{
+  padding:14px 52px 16px;
+  background:#fafafa;
+  border-top:1px solid #eee;
+}
+.terms .lbl{font-size:9px;color:#aaa;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:8px;font-weight:600;}
+.terms ul{list-style:none;padding:0;}
+.terms ul li{
+  font-size:11px;color:#555;line-height:1.75;
+  padding-left:13px;position:relative;
+}
+.terms ul li::before{content:"·";position:absolute;left:0;color:#1a2e4a;font-weight:700;}
+
+/* ── ACKNOWLEDGE BLOCK ── */
+.ack-block{
+  margin:0 52px 20px;
+  border:2px solid #1a2e4a;
+  border-radius:4px;
+  overflow:hidden;
+}
+.ack-header{
+  background:#1a2e4a;
+  padding:10px 18px;
+  font-size:10px;font-weight:700;letter-spacing:0.18em;
+  text-transform:uppercase;color:#fff;
+}
+.ack-list{
+  padding:16px 18px;
+  list-style:none;
+}
+.ack-list li{
+  display:flex;align-items:flex-start;gap:10px;
+  font-size:12px;color:#222;line-height:1.5;
+  padding:5px 0;
+  border-bottom:1px solid #f0f0f0;
+}
+.ack-list li:last-child{border-bottom:none;}
+.ack-check{
+  width:16px;height:16px;flex-shrink:0;
+  border:1.5px solid #1a2e4a;border-radius:2px;
+  margin-top:1px;
+  display:flex;align-items:center;justify-content:center;
+  color:#1a2e4a;font-size:12px;font-weight:700;
+}
+
+/* ── SIGNATURES ── */
+.sigs{
+  padding:22px 52px 28px;
+  border-top:2px solid #1a2e4a;
+}
+.sigs-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:40px;margin-bottom:20px;
+}
+.sig-col .sig-lbl{
+  font-size:9px;letter-spacing:0.15em;text-transform:uppercase;
+  color:#1a2e4a;font-weight:700;margin-bottom:8px;text-align:center;
+}
+.sig-canvas-wrap{
+  border:1px solid #ddd;background:#fdfdfd;
+  position:relative;overflow:hidden;border-radius:2px;
+}
+.sig-canvas-wrap canvas{display:block;width:100%;cursor:crosshair;touch-action:none;}
+.sig-ph{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:none;font-size:12px;color:#ccc;font-style:italic;
+}
+.sig-line{height:1px;background:#ddd;margin:5px 0;}
+.sig-name-lbl{font-size:11px;color:#888;text-align:center;}
+.btn-clear{
+  font-size:10px;color:#aaa;background:none;
+  border:1px solid #ddd;padding:3px 10px;border-radius:3px;
+  cursor:pointer;font-family:'Montserrat',sans-serif;
+  display:block;margin:6px auto 0;
+}
+
+.accept-row{
+  display:flex;align-items:flex-start;gap:10px;
+  background:#f8f8f8;border:1px solid #e0e0e0;
+  border-radius:4px;padding:12px;margin-bottom:16px;
+}
+.accept-row input{width:15px;height:15px;accent-color:#1a2e4a;flex-shrink:0;margin-top:2px;cursor:pointer;}
+.accept-row label{font-size:11px;color:#444;line-height:1.6;cursor:pointer;}
+
+.btn-sign{
+  width:100%;padding:14px;
+  background:#1a2e4a;color:#fff;border:none;
+  font-size:12px;font-weight:700;letter-spacing:0.1em;
+  text-transform:uppercase;font-family:'Montserrat',sans-serif;
+  cursor:pointer;transition:background 0.2s;border-radius:2px;
+}
+.btn-sign:hover{background:#243f65;}
+.sig-err{
+  display:none;background:#fff5f5;border:1px solid #fca5a5;
+  color:#b91c1c;font-size:11px;padding:8px 12px;border-radius:3px;margin-top:10px;
+}
+.sig-err.show{display:block;}
+
+/* ── FOOTER ── */
+.ftr{
+  padding:14px 52px;
+  background:#f4f4f4;
+  border-top:1px solid #e0e0e0;
+  text-align:center;
+}
+.ftr p{font-size:11px;color:#888;letter-spacing:0.03em;}
+
+/* ── SUCCESS ── */
+#screenOk{display:none;padding:60px 52px;text-align:center;}
+#screenOk.show{display:block;}
+.ok-mark{
+  width:64px;height:64px;
+  background:#1a2e4a;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 20px;
+  animation:popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes popIn{from{transform:scale(0);}to{transform:scale(1);}}
+.ok-mark svg{width:30px;height:30px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+.ok-h{font-size:22px;font-weight:700;color:#1a2e4a;margin-bottom:8px;}
+.ok-p{font-size:13px;color:#888;line-height:1.7;max-width:380px;margin:0 auto 16px;}
+.ok-folio{display:inline-block;background:#f4f4f4;border:1px solid #ddd;padding:7px 20px;font-size:13px;font-weight:600;color:#1a2e4a;border-radius:3px;}
+
+/* ── LOADER ── */
+.loader{display:none;position:fixed;inset:0;background:rgba(20,35,60,0.65);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+.loader.show{display:flex;}
+.spin{width:38px;height:38px;border:2px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loader p{color:rgba(255,255,255,0.7);font-size:12px;letter-spacing:0.06em;}
+
+@media(max-width:580px){
+  .hdr,.notes,.terms,.sigs,.ftr{padding-left:20px;padding-right:20px;}
+  .tbl-wrap{padding-left:20px;padding-right:20px;}
+  .total-row,.cs-banner{padding-left:20px;padding-right:20px;}
+  .legal-notice,.ack-block{margin-left:20px;margin-right:20px;}
+  .meta{margin:0 20px;}
+  .hdr-title{font-size:22px;}
+  .sigs-grid{grid-template-columns:1fr;gap:24px;}
+  .cs-number{font-size:22px;}
+  .total-amount{font-size:18px;}
+}
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div class="spin"></div>
+  <p>Saving signature&hellip;</p>
+</div>
+
+<div class="cert">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-logo">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPAAAADwCAYAAAA+VemSAAABCGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8wQAELAYMDLl5JUVB7k4KEZFRCuwPGBiBEAwSk4sLGHADoKpv1yBqL+viUYcLcKakFicD6Q9ArFIEtBxopAiQLZIOYWuA2EkQtg2IXV5SUAJkB4DYRSFBzkB2CpCtkY7ETkJiJxcUgdT3ANk2uTmlyQh3M/Ck5oUGA2kOIJZhKGYIYnBncAL5H6IkfxEDg8VXBgbmCQixpJkMDNtbGRgkbiHEVBYwMPC3MDBsO48QQ4RJQWJRIliIBYiZ0tIYGD4tZ2DgjWRgEL7AwMAVDQsIHG5TALvNnSEfCNMZchhSgSKeDHkMyQx6QJYRgwGDIYMZAKbWPz9HbOBQAAAX7klEQVR4nO3d57Mc15nf8e8J3T3pzk3ARSRABIoXYACDljLXtLTaLVm2t7zl8MJ/qKtc5bJl7Wq52tXukmISwEyAAJFvvhM6nHP8YkBS4FwkkkLi71OFN3d6Okz3c57nnD7dABERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERG5vdmDz6UHvQ9yf9gHvQPy/du1tJ+9yz9REP8AKIAfE0+9+LPU3f9ccovPJl90yPIu80deUBA/5vyD3gH5fuRFh4XFjLX1AatrA/q9PgsLLbwlXfvkLfOg90/+NJSBHwN7jp1KaxtbtDszzC4ucX19E5d3CSaj3Vl40Lsnf0IK4MfAqKyIGAKGVqdLlnfYHJY0yeOyDnuOf3/94f0Hl1WWP0QUwI+BzQtnzNzcHGVVkbDML+7i+soGPuuSTMHc/N7vtP75J55Jx079LB1/7rUUbP497bV8HxTAj4nt7W0wkaZpcFnBrj17GI0rosmJJmPv8T//VpnzxKv/MRW9OYLNcd05Klt837su34EGNx4jR1/5m1RTkGyLsgo4aymcoXCR0cY1NtcusnHxvbs+50+88PNU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g7vvRtwvD90Oybe3/Opfp3GwuKJLwLE1GJLnOYaAjw1b1y+y9ul0edne+0zaffAIKe9RJU9yGSZFQjWi4wL93HDhsw9YPz89B/nw0z9OziY+PXPnyRaHjpxMn392q5H3u7f/yIlknMc6RwyBLz6+99f7HF4+lbx1eAIfnL5z4D+sHtkdl5vtf+EXqejOUiVHHRLOGKyJ5KHBU7K5cokrn9x+EObwj3+Zss4cm6OaJlo6vS7NeETLg2lKNtcus/Lhw5eFfsh0Mh4Du078NPUX9zCsJxNeWkWHwkMsB3RMxcoXZ7l+/s7vg1548rk0u3QQk/eogqVOkGUFloiNDakZEcfbbG+u7HirRe4/vdTuEbdn+bVUtLqEOBkpzX1GU4+oqxFFZllbvXpXwQuwevZds3b1ElQluZs8XVUOthkPR9R1g3E5rd4c/bk9dPbd+rlfuX/0UrtH3Ex/gVGyNE3CZdAuMuoykOoR5WjE1Xt8l9b62bdMaFLqL+4jb3UpipyYDDHUNHXC+oysNcvsLkOWZWnj84fv3ugPiTLwI6z/xAtpXEeKVhfrc0ajEbEaM9PJoB5x/u1ffavg2rrwtlm9dI7h6jUKG2k5Q+Y8KRrqJhHIyDp9+t/iXV3y/VIAP8L6s4uYrEXVTCZJ5N5jU2S0sc76tYt3XsFtjK6eMdc++o05/9H7DDeuU7gvX2dUT+ZFG0er02X/bV6hI396KqEfUbOHXkx5pwd5m61RhbMw027RjLa5ePFzysu3fu3NvRhefccYmmRSImu1yG1GcpYQG4blkNnZWb5bUyHfhQL4EdXtz07eytkEvM9p+USKDaPB+tREje9qcPW0GVw9DcCTp/596rT6XLx8hfWP/95w9O5fRiffPw1APILa+59N+w4eJbicQEFTRzqFIZZbnP3X/6lz+gOiPvAjqNPp4PMcay2xrsg90FQMNneexyuPLwXwI2h2dhZrJ6/xsSZSZFCPt7j24W+VfX9gFMCPmN1HTqU8z2mamlBXFA5sXTJS9v1B0iDWI+baZ28b1+ol3+7TLgpCNWI82OL6Z/f3XUzycFAGfgRdPvMPJtQN3lrWV67yxQd/r+D9gVIAP4La+06kGCPXr15m/Zwy7w+ZAvgRtNDv4NKI1Y81aCUiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIi8jD6/1TUV+V+7f1WAAAAAElFTkSuQmCC" alt="Travel X Group">
+    </div>
+    <div class="hdr-title">Travel Certificate</div>
+    <div class="hdr-rule"></div>
+    <div class="hdr-member-lbl">Member</div>
+    <div class="hdr-name" id="mName">Loading&hellip;</div>
+    <div class="hdr-addr" id="mAddr">&nbsp;</div>
+  </div>
+
+  <!-- META STRIP -->
+  <div class="meta">
+    <div class="meta-cell">
+      <div class="lbl">Certificate #</div>
+      <div class="val" id="mCert">&mdash;</div>
+    </div>
+    <div class="meta-cell">
+      <div class="lbl">Start Date</div>
+      <div class="val" id="mStart">&mdash;</div>
+    </div>
+    <div class="meta-cell">
+      <div class="lbl">Expiry Date</div>
+      <div class="val" id="mExpiry">&mdash;</div>
+    </div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div id="screenOk">
+    <div class="ok-mark"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+    <div class="ok-h">Certificate Signed!</div>
+    <p class="ok-p">Your Travel Certificate has been signed and saved securely. Your membership is now active. You will receive confirmation shortly.</p>
+    <div class="ok-folio" id="okFolio">Certificate # &mdash;</div>
+    <br><br>
+    <p style="font-size:12px;color:#aaa;">Questions? Call us at <strong style="color:#1a2e4a;">1.800.430.4640</strong></p>
+  </div>
+
+  <!-- ITEMS TABLE -->
+  <div class="tbl-wrap" id="tblSection">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Destinations</th>
+        </tr>
+      </thead>
+      <tbody id="tblBody">
+        <tr><td colspan="2" style="color:#ccc;font-size:12px;padding:20px 0;">Loading&hellip;</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TOTALS -->
+  <div class="totals-block" id="totalRow">
+    <div class="totals-row">
+      <div class="totals-label">Total Package</div>
+      <div class="totals-val" id="totalPackage">&mdash;</div>
+    </div>
+    <div class="totals-row totals-highlight">
+      <div class="totals-label">Today's Payment</div>
+      <div class="totals-val" id="totalToday">&mdash;</div>
+    </div>
+    <div class="totals-row totals-balance">
+      <div class="totals-label">Balance</div>
+      <div class="totals-val" id="totalBalance">&mdash;</div>
+    </div>
+  </div>
+
+  <!-- CUSTOMER SERVICE BANNER -->
+  <div class="cs-banner">
+    <div class="cs-label">Customer Service</div>
+    <div class="cs-number">1.800.430.4640</div>
+    <div class="cs-hours">Mon&ndash;Fri 9:00am&ndash;8:00pm &nbsp;|&nbsp; Sat 10:00am&ndash;6:00pm (EST)</div>
+  </div>
+
+  <!-- NOTES -->
+  <div class="notes" id="notesSection">
+    <div class="lbl">Notes</div>
+    <p>You are authorizing X Travel Group Inc to charge your card for the amount indicated on this Travel Certificate above.</p>
+  </div>
+
+  <!-- LEGAL NOTICE -->
+  <div class="legal-notice" id="legalSection">
+    <p>"This contract is for the purchase of a vacation certificate and puts all assignees on notice of the consumer right to cancel under section 559.933, Florida Statutes."</p>
+  </div>
+
+  <!-- TERMS -->
+  <div class="terms" id="termsSection">
+    <div class="lbl">Terms &amp; Conditions</div>
+    <ul>
+      <li>AIR TICKETS ARE NOT INCLUDED</li>
+      <li>Package valid for 18 months from the date of purchase without restriction of date in all destinations.</li>
+      <li>*Reservations are subject to room availability.</li>
+      <li>This package is transferable or exchangeable.</li>
+      <li>You will need to attend a 90-minute presentation at the hotel.</li>
+      <li>Vacation certificates are not cumulative, compensable and cannot be used as an extension to another certificate or reservation.</li>
+      <li>Each family can only participate and purchase one certificate. Vacation certificates are valid only one per family.</li>
+      <li>Packages are valid for up to 4 guests depending on the destination. Additional guest may have to pay an additional fee at the time of the reservation.</li>
+      <li>All international travelers must comply with government laws and carry valid passport, green card, visa or travel permit.</li>
+      <li>X Travel Group Inc will not be responsible for the denial of entry to any country.</li>
+      <li>Once your travel certificate is activated, our travel agents will review the available dates for your reservation and process all the benefits. Transportation and Meals are not included.</li>
+      <li>A reservation fee per package at the time of booking will be charged.</li>
+      <li>A room deposit of $100 will be required at Check-In at the hotel for incidentals and will be refunded at Check-Out.</li>
+      <li>This certificate is non-refundable or exchangeable for cash.</li>
+      <li>These terms and conditions cannot be modified or waived, unless expressly authorized in writing by a corporate official of X Travel Group &mdash; info@xtravelgroup.com.</li>
+      <li>This package can only be sold by X Travel Group Inc.</li>
+      <li>All federal, state and local laws will apply. This program is void where prohibited by law.</li>
+    </ul>
+  </div>
+
+  <!-- ACKNOWLEDGE BLOCK -->
+  <div class="ack-block" id="ackSection">
+    <div class="ack-header">I Acknowledge and Agree That:</div>
+    <ul class="ack-list">
+      <li>
+        <div class="ack-check">&#10003;</div>
+        <span>I am the authorized cardholder.</span>
+      </li>
+      <li>
+        <div class="ack-check">&#10003;</div>
+        <span>I voluntarily purchased this vacation certificate.</span>
+      </li>
+      <li>
+        <div class="ack-check">&#10003;</div>
+        <span>I received this certificate in full.</span>
+      </li>
+      <li>
+        <div class="ack-check">&#10003;</div>
+        <span>I understand this purchase is non-refundable.</span>
+      </li>
+      <li>
+        <div class="ack-check">&#10003;</div>
+        <span>I understand reservations are subject to availability.</span>
+      </li>
+      <li>
+        <div class="ack-check">&#10003;</div>
+        <span>I understand this is a digital product.</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- SIGNATURES -->
+  <div class="sigs" id="sigSection">
+    <div class="sigs-grid">
+
+      <!-- Authorized Signature -->
+      <div class="sig-col">
+        <div class="sig-lbl">Authorized Signature</div>
+        <div class="sig-canvas-wrap">
+          <canvas id="canvAuth" height="90"></canvas>
+          <div class="sig-ph" id="phAuth"></div>
+        </div>
+        <div class="sig-line"></div>
+        <div class="sig-name-lbl">X Travel Group Inc</div>
+      </div>
+
+      <!-- Customer Signature -->
+      <div class="sig-col">
+        <div class="sig-lbl">Customer Signature</div>
+        <div class="sig-canvas-wrap">
+          <canvas id="canvCust" height="90"></canvas>
+          <div class="sig-ph" id="phCust">Sign here&hellip;</div>
+        </div>
+        <div class="sig-line"></div>
+        <div class="sig-name-lbl" id="custNameLbl">&mdash;</div>
+        <button class="btn-clear" onclick="clearSig()">Clear</button>
+      </div>
+
+    </div>
+
+    <!-- Accept checkbox -->
+    <div class="accept-row">
+      <input type="checkbox" id="chk">
+      <label for="chk">I have read and agree to all Terms &amp; Conditions above. I acknowledge all items listed in the "I Acknowledge and Agree That" section. I authorize X Travel Group Inc to charge my card for the total amount shown on this certificate. I understand my digital signature has the same legal validity as a handwritten signature.</label>
+    </div>
+
+    <button class="btn-sign" id="btnSign" onclick="submitSig()">Sign &amp; Activate Certificate</button>
+    <div class="sig-err" id="sigErr"></div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="ftr">
+    <p>www.xtravelgroup.com &nbsp;&nbsp;|&nbsp;&nbsp; members@xtravelgroup.com &nbsp;&nbsp;|&nbsp;&nbsp; 1.800.430.4640</p>
+  </div>
+
+</div>
+
+<script>
+var SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
+var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA";
+var EDGE   = "https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1";
+var HDR    = {"Content-Type":"application/json","Authorization":"Bearer "+SB_KEY,"apikey":SB_KEY};
+
+var QS    = new URLSearchParams(window.location.search);
+var LEAD  = QS.get("lead") || "";
+var TOKEN = QS.get("token") || "";
+var lead  = null;
+var sigEmpty = true;
+var canvCust, ctx, drawing = false;
+
+var DEST = {
+  "D01":"Orlando, FL","D02":"Las Vegas, NV","D03":"Cancun, MX",
+  "D04":"Punta Cana, DR","D05":"Miami, FL","D06":"New York, NY",
+  "D07":"Los Angeles, CA","D08":"Chicago, IL","D09":"Bahamas","D10":"Jamaica"
+};
+
+function destDesc(d) {
+  var name   = DEST[d.destId] || d.destId || "Vacation Package";
+  var noches = d.noches || 3;
+  var dias   = noches + 1;
+  var guests = d.guests || 4;
+  var desc   = dias + " Days and " + noches + " Nights for " + guests + " guests.";
+  if (d.all_inclusive) desc += " All-Inclusive (Food and Beverage).";
+  if (d.transporte)    desc += " Transportation One-Way (Airport - Hotel).";
+  return { name: name, desc: desc };
+}
+
+function fmtUSD(n) {
+  var v = Number(n || 0).toFixed(2);
+  var p = v.split(".");
+  p[0] = p[0].replace(/(\d)(?=(\d{3})+$)/g, "$1,");
+  return "$" + p.join(".");
+}
+
+var MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function fmtDate(s) {
+  var d = new Date(s + "T12:00:00");
+  return d.getDate() + " " + MO[d.getMonth()] + " " + d.getFullYear();
+}
+function addDays(s, days) {
+  var d = new Date(s + "T12:00:00");
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split("T")[0];
+}
+
+function loadLead() {
+  if (!LEAD) { document.getElementById("mName").textContent = "Invalid link. Contact your advisor."; return; }
+  fetch(SB_URL + "/rest/v1/leads?id=eq." + LEAD + "&select=*", { headers: HDR })
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (!data || !data[0]) { document.getElementById("mName").textContent = "Certificate not found."; return; }
+      lead = data[0];
+      render();
+    })
+    .catch(function(){ document.getElementById("mName").textContent = "Error loading. Please try again."; });
+}
+
+function render() {
+  var l      = lead;
+  var nombre = ((l.nombre||"")+" "+(l.apellido||"")).trim().toUpperCase();
+  var addr   = [l.direccion, l.ciudad, l.estado_us, l.zip].filter(Boolean).join(", ");
+  var folio  = l.folio || ("QT-" + l.id.slice(0,6).toUpperCase());
+  var startRaw  = (l.created_at || new Date().toISOString()).split("T")[0];
+  var expiryRaw = addDays(startRaw, 548);
+
+
+  document.getElementById("mName").textContent   = nombre;
+  document.getElementById("mAddr").textContent   = addr;
+  document.getElementById("mCert").textContent   = folio;
+  document.getElementById("mStart").textContent  = fmtDate(startRaw);
+  document.getElementById("mExpiry").textContent = fmtDate(expiryRaw);
+  var salePrice = Number(l.sale_price || 0);
+  var pagoHoy   = Number(l.pago_inicial || 0);
+  var balance   = salePrice - pagoHoy;
+
+  document.getElementById("custNameLbl").textContent  = nombre;
+  document.getElementById("okFolio").textContent      = "Certificate # " + folio;
+  document.getElementById("totalPackage").textContent = fmtUSD(salePrice);
+  document.getElementById("totalToday").textContent   = fmtUSD(pagoHoy);
+  document.getElementById("totalBalance").textContent = fmtUSD(balance > 0 ? balance : 0);
+
+  // Build rows
+  var destinos = Array.isArray(l.destinos) ? l.destinos : [];
+  var rows = "";
+  var n = 1;
+
+  if (destinos.length === 0) {
+    rows = "<tr><td class='num'>1</td><td class='desc'><strong>Vacation Package</strong></td></tr>";
+  } else {
+    for (var i = 0; i < destinos.length; i++) {
+      var d    = destinos[i];
+      var info = destDesc(d);
+      rows += "<tr><td class='num'>" + n + "</td><td class='desc'><strong>" + info.name + "</strong><span>" + info.desc + "</span></td></tr>";
+      n++;
+      // Gift inline
+      if (d.regalo && d.regalo.label) {
+        rows += "<tr><td class='num'>" + n + "</td><td class='desc'><strong>" + d.regalo.label + "</strong><span>Complimentary gift included with your package.</span></td></tr>";
+        n++;
+      }
+    }
+  }
+
+  document.getElementById("tblBody").innerHTML = rows;
+  setTimeout(function(){ setupAuthCanvas(); setupCustCanvas(); }, 150);
+}
+
+// Auth canvas — pre-signed look
+function setupAuthCanvas() {
+  var c  = document.getElementById("canvAuth");
+  c.width = c.parentElement.offsetWidth || 280;
+  var cx = c.getContext("2d");
+  cx.font = "italic 15px Georgia, serif";
+  cx.fillStyle = "#1a2e4a";
+  cx.globalAlpha = 0.8;
+  cx.fillText("X Travel Group Inc", 14, 54);
+  document.getElementById("phAuth").style.display = "none";
+}
+
+// Customer canvas
+function setupCustCanvas() {
+  canvCust = document.getElementById("canvCust");
+  canvCust.width = canvCust.parentElement.offsetWidth || 280;
+  ctx = canvCust.getContext("2d");
+  ctx.strokeStyle = "#1a2e4a";
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  function pos(e) {
+    var r  = canvCust.getBoundingClientRect();
+    var sx = canvCust.width / r.width;
+    var sy = canvCust.height / r.height;
+    if (e.touches) return { x:(e.touches[0].clientX-r.left)*sx, y:(e.touches[0].clientY-r.top)*sy };
+    return { x:(e.clientX-r.left)*sx, y:(e.clientY-r.top)*sy };
+  }
+  canvCust.addEventListener("mousedown",  function(e){ drawing=true; var p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
+  canvCust.addEventListener("mousemove",  function(e){ if(!drawing)return; var p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); showSigned(); });
+  canvCust.addEventListener("mouseup",    function(){ drawing=false; });
+  canvCust.addEventListener("mouseleave", function(){ drawing=false; });
+  canvCust.addEventListener("touchstart", function(e){ e.preventDefault(); drawing=true; var p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); },{passive:false});
+  canvCust.addEventListener("touchmove",  function(e){ e.preventDefault(); if(!drawing)return; var p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); showSigned(); },{passive:false});
+  canvCust.addEventListener("touchend",   function(){ drawing=false; });
+}
+
+function showSigned() {
+  document.getElementById("phCust").style.display = "none";
+  sigEmpty = false;
+}
+
+function clearSig() {
+  if (!canvCust) return;
+  ctx.clearRect(0, 0, canvCust.width, canvCust.height);
+  sigEmpty = true;
+  document.getElementById("phCust").style.display = "flex";
+}
+
+function submitSig() {
+  var err = document.getElementById("sigErr");
+  if (sigEmpty) { err.textContent = "Please sign the certificate before continuing."; err.classList.add("show"); return; }
+  if (!document.getElementById("chk").checked) { err.textContent = "Please accept the Terms & Conditions and acknowledgments to continue."; err.classList.add("show"); return; }
+  err.classList.remove("show");
+
+  document.getElementById("loader").classList.add("show");
+  var img = canvCust.toDataURL("image/png");
+
+  fetch(EDGE + "/zoho-payments/guardar-firma", {
+    method:"POST", headers:HDR,
+    body: JSON.stringify({
+      lead_id: LEAD, token: TOKEN,
+      firma_contrato: img, firma_autorizacion: img, firma_terminos: img,
+      firmado_en: new Date().toISOString()
+    })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(){
+    document.getElementById("loader").classList.remove("show");
+    showOk();
+  })
+  .catch(function(e){
+    console.error(e);
+    document.getElementById("loader").classList.remove("show");
+    showOk();
+  });
+}
+
+function showOk() {
+  ["tblSection","totalRow","notesSection","legalSection","termsSection","ackSection","sigSection"].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
+  document.getElementById("screenOk").classList.add("show");
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+window.addEventListener("load", loadLead);
+</script>
+</body>
+</html>
