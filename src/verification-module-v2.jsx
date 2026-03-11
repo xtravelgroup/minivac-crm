@@ -854,6 +854,7 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
   var [zohoLoaded,  setZohoLoaded]  = useState(false);
   var [zohoError,   setZohoError]   = useState("");
   var [cobrando,    setCobrando]    = useState(false);
+  var [usarOtraTarjeta, setUsarOtraTarjeta] = useState(false);
 
   // Cargar SDK Zoho al montar
   useEffect(function() {
@@ -967,7 +968,7 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
             </div>
             <div>
               <div style={S.label}>Método</div>
-              <select style={S.select} value={metodo} onChange={function(e){ setMetodo(e.target.value); setErr(""); }}>
+              <select style={S.select} value={metodo} onChange={function(e){ setMetodo(e.target.value); setErr(""); setUsarOtraTarjeta(false); }}>
                 {METODOS.map(function(m){ return <option key={m} value={m}>{m.charAt(0).toUpperCase()+m.slice(1)}</option>; })}
               </select>
             </div>
@@ -986,20 +987,37 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
           </div>
 
           {/* INFO TARJETA GUARDADA */}
-          {metodo === "tarjeta" && exp.zohoPaymentMethodId && (
-            <div style={{padding:"10px 12px",borderRadius:8,background:"#e8f0fe",border:"1px solid #aac4f0",marginBottom:10,display:"flex",gap:10,alignItems:"center"}}>
-              <div style={{fontSize:20}}>💳</div>
-              <div>
-                <div style={{fontSize:12,fontWeight:700,color:"#1565c0"}}>{exp.tarjetaBrand||"Tarjeta"} **** {exp.tarjetaLast4||"guardada"}</div>
-                <div style={{fontSize:11,color:"#6b7280"}}>Tarjeta guardada en Zoho Payments · {exp.tFirstName} {exp.tLastName}</div>
+          {metodo === "tarjeta" && exp.zohoPaymentMethodId && !usarOtraTarjeta && (
+            <div style={{padding:"10px 12px",borderRadius:8,background:"#e8f0fe",border:"1px solid #aac4f0",marginBottom:10,display:"flex",gap:10,alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                <div style={{fontSize:20}}>💳</div>
+                <div>
+                  <div style={{fontSize:12,fontWeight:700,color:"#1565c0"}}>{exp.tarjetaBrand||"Tarjeta"} **** {exp.tarjetaLast4||"guardada"}</div>
+                  <div style={{fontSize:11,color:"#6b7280"}}>Tarjeta guardada · {exp.tFirstName} {exp.tLastName}</div>
+                </div>
               </div>
+              <button style={{fontSize:11,color:"#6b7280",background:"none",border:"1px solid #e3e6ea",borderRadius:6,padding:"3px 8px",cursor:"pointer"}}
+                onClick={function(){ setUsarOtraTarjeta(true); }}>
+                Usar otra
+              </button>
+            </div>
+          )}
+
+          {/* USAR OTRA TARJETA */}
+          {metodo === "tarjeta" && exp.zohoPaymentMethodId && usarOtraTarjeta && (
+            <div style={{padding:"10px 12px",borderRadius:8,background:"#fef9e7",border:"1px solid #f0d080",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:12,color:"#925c0a"}}>⚠️ Se abrirá el widget de Zoho para nueva tarjeta</div>
+              <button style={{fontSize:11,color:"#1565c0",background:"none",border:"1px solid #aac4f0",borderRadius:6,padding:"3px 8px",cursor:"pointer"}}
+                onClick={function(){ setUsarOtraTarjeta(false); }}>
+                ← Usar guardada
+              </button>
             </div>
           )}
 
           {/* SIN TARJETA GUARDADA */}
           {metodo === "tarjeta" && !exp.zohoPaymentMethodId && (
             <div style={{padding:"10px 12px",borderRadius:8,background:"#fef9e7",border:"1px solid #f0d080",marginBottom:10,fontSize:12,color:"#925c0a"}}>
-              ⚠️ Este cliente no tiene tarjeta guardada en Zoho. Se abrirá el widget de captura de tarjeta.
+              ⚠️ Este cliente no tiene tarjeta guardada. Se abrirá el widget de Zoho.
             </div>
           )}
 
@@ -1017,8 +1035,8 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
                 if (m > saldo + 0.01) { setErr("El abono supera el saldo de " + fmtUSD(saldo)); return; }
                 setErr(""); setCobrando(true);
 
-                // Si tiene tarjeta guardada → charge-saved-card
-                if (exp.zohoPaymentMethodId && exp.zohoCustomerId) {
+                // Si tiene tarjeta guardada y no quiere usar otra → charge-saved-card
+                if (exp.zohoPaymentMethodId && exp.zohoCustomerId && !usarOtraTarjeta) {
                   fetch(EDGE_URL + "/charge-saved-card", {
                     method:"POST", headers:AUTH_HDR,
                     body: JSON.stringify({
