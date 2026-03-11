@@ -946,8 +946,14 @@ function EditContactoModal(props) {
     }).eq("id", c.id)
     .then(function(res) {
       setSaving(false);
-      if (res.error) { setErr("Error al guardar: " + res.error.message); return; }
+      console.log("EditContacto result:", JSON.stringify(res));
+      if (res && res.error) { setErr("Error: " + res.error.message); return; }
       props.onSave(d);
+    })
+    .catch(function(e) {
+      setSaving(false);
+      setErr("Error: " + e.message);
+      console.error("EditContacto catch:", e);
     });
   }
 
