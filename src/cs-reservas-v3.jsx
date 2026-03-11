@@ -706,12 +706,12 @@ function EditNombreModal(props) {
   function handleSave() {
     if (!firstName.trim()) { setErr("El nombre es requerido"); return; }
     setSaving(true); setErr("");
-    SB.from("leads").select("expediente").eq("id", c.id).single()
+    SB.from("leads").select("verificacion").eq("id", c.id).single()
     .then(function(res2) {
-      var expActual = (res2.data && res2.data.expediente) ? Object.assign({}, res2.data.expediente) : {};
-      var expNuevo = Object.assign({}, expActual, { tFirstName: firstName.trim(), tLastName: lastName.trim() });
+      var verif = (res2.data && res2.data.verificacion) ? Object.assign({}, res2.data.verificacion) : {};
+      var verifNuevo = Object.assign({}, verif, { tFirstName: firstName.trim(), tLastName: lastName.trim() });
       var nombreCompleto = (firstName.trim() + " " + lastName.trim()).trim();
-      return SB.from("leads").update({ nombre: nombreCompleto, expediente: expNuevo }).eq("id", c.id);
+      return SB.from("leads").update({ nombre: nombreCompleto, verificacion: verifNuevo }).eq("id", c.id);
     })
     .then(function(res) {
       setSaving(false);
@@ -789,10 +789,10 @@ function TransferirModal(props) {
   function handleConfirmar() {
     setSaving(true); setErr("");
     var nombreNuevo = (firstName.trim() + " " + lastName.trim()).trim();
-    SB.from("leads").select("expediente").eq("id", c.id).single()
+    SB.from("leads").select("verificacion").eq("id", c.id).single()
     .then(function(res2) {
-      var expActual = (res2.data && res2.data.expediente) ? Object.assign({}, res2.data.expediente) : {};
-      var expNuevo = Object.assign({}, expActual, {
+      var verif = (res2.data && res2.data.verificacion) ? Object.assign({}, res2.data.verificacion) : {};
+      var verifNuevo = Object.assign({}, verif, {
         tFirstName: firstName.trim(), tLastName: lastName.trim(),
         tPhone: tel, tEmail: email, edad: edadN,
         hasPartner: conPareja,
@@ -803,11 +803,11 @@ function TransferirModal(props) {
       });
       var destFiltrados = (c.destinos || []).filter(function(_, i){ return resultados[i].ok; });
       return SB.from("leads").update({
-        nombre:     nombreNuevo,
-        whatsapp:   tel,
-        email:      email,
-        expediente: expNuevo,
-        destinos:   destFiltrados.map(function(d){ return { destId: d.leadDestId || d.nombre, noches: d.noches, tipo: d.tipo, regalo: d.regalo || null }; }),
+        nombre:      nombreNuevo,
+        whatsapp:    tel,
+        email:       email,
+        verificacion: verifNuevo,
+        destinos:    destFiltrados.map(function(d){ return { destId: d.leadDestId || d.nombre, noches: d.noches, tipo: d.tipo, regalo: d.regalo || null }; }),
       }).eq("id", c.id);
     })
     .then(function(res) {
@@ -970,10 +970,10 @@ function EditContactoModal(props) {
   function handleSave() {
     setSaving(true); setErr("");
     // Leer expediente actual para no perder otros campos
-    SB.from("leads").select("expediente").eq("id", c.id).single()
+    SB.from("leads").select("verificacion").eq("id", c.id).single()
     .then(function(res2) {
-      var expActual = (res2.data && res2.data.expediente) ? Object.assign({}, res2.data.expediente) : {};
-      var expNuevo = Object.assign({}, expActual, {
+      var verif = (res2.data && res2.data.verificacion) ? Object.assign({}, res2.data.verificacion) : {};
+      var verifNuevo = Object.assign({}, verif, {
         tPhone: d.tel,
         tEmail: d.email,
         address: d.direccion,
@@ -985,7 +985,7 @@ function EditContactoModal(props) {
         whatsapp:      d.whatsapp,
         email:         d.email,
         estado_civil:  d.estadoCivil,
-        expediente:    expNuevo,
+        verificacion:  verifNuevo,
       }).eq("id", c.id);
     })
     .then(function(res) {
