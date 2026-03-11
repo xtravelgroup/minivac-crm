@@ -110,43 +110,6 @@ var DESTINOS = ["Cancun","Los Cabos","Riviera Maya","Puerto Vallarta","Huatulco"
 var REGIMENES = ["Solo habitacion","Desayuno incluido","Media pension","Todo incluido"];
 var AGENTES = ["Jorge P.","Maria R.","Carlos V.","Ana L."];
 
-function sbHotelesToMap(rows){
-  // Convierte array de hoteles de Supabase a mapa por destino
-  var map = {};
-  (rows||[]).forEach(function(h){
-    var dest = h.destino || "";
-    if(!map[dest]) map[dest] = [];
-    var regs = (h.plan) ? [h.plan] : ["Solo habitacion","Desayuno incluido","Todo incluido"];
-    var habs = (h.habitaciones||[]).map(function(hab){
-      return {
-        id:   hab.id || hab.nombre,
-        nombre: hab.nombre,
-        base: (hab.upgrade||0)===0,
-        up:   hab.upgrade||0,
-      };
-    });
-    if(habs.length===0) habs = [{id:"std",nombre:"Estandar",base:true,up:0}];
-    map[dest].push({
-      id:          h.id,
-      nombre:      h.nombre,
-      cat:         (h.categoria||"").replace(" estrellas",""),
-      fee:         h.fee||0,
-      precioNoche: h.precio_noche||90,
-      ageMin:      (h.restricciones||{}).edadMin||0,
-      ageMax:      (h.restricciones||{}).edadMax||99,
-      marital:     (h.restricciones||{}).estadoCivil||[],
-      tipos:       ["qc","nq"],
-      habs:        habs,
-      regs:        regs,
-      temps:       (h.temporadas||[]).map(function(t){
-        return {id:t.id,nombre:t.nombre,inicio:t.inicio,fin:t.fin,surcharge:t.surcharge||0};
-      }),
-    });
-  });
-  return map;
-}
-
-
 var INDIGO="#6366f1",TEAL="#0ea5a0",VIOLET="#5b21b6",RED="#b91c1c",GREEN="#1a7f3c",AMBER="#f59e0b",CORAL="#f97316",BLUE="#1565c0";
 
 var STATUS = {
@@ -288,7 +251,14 @@ function FormModal(props){
   var [hotelesDB,setHotelesDB]=useState(props.hotelesMap||{});
   useEffect(function(){
     SB.from("hoteles").select("*").eq("activo",true).then(function(r){
-      if(!r.error) setHotelesDB(sbHotelesToMap(r.data));
+      if(!r.error){
+        console.log("Hoteles Supabase:", r.data);
+        var mapped = sbHotelesToMap(r.data);
+        console.log("Hoteles mapeados:", mapped);
+        setHotelesDB(mapped);
+      } else {
+        console.error("Error hoteles:", r.error);
+      }
     });
   },[]);
 
