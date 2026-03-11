@@ -689,24 +689,62 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
   var yaPagado = verif && verif.paymentStatus === "approved";
 
   // Cargar script de Zoho Payments una vez
-  useState(function() {
+  useEffect(function() {
     if (window.ZPayments) { setZohoReady(true); return; }
     var script = document.createElement("script");
     script.src = "https://payments.zoho.com/sdk/zpayments.js";
     script.onload = function() { setZohoReady(true); };
     script.onerror = function() { setError("No se pudo cargar el SDK de Zoho Payments"); };
     document.head.appendChild(script);
-  });
+  }, []);
 
   var handleCobrar = function() {
-    if (!zohoReady || !window.ZPayments) {
-      setError("SDK de Zoho Payments no disponible");
-      return;
-    }
     setLoading(true);
     setError(null);
 
-    // 1. Crear Payment Session via Edge Function
+    var pmId   = exp.zohoPaymentMethodId || lead.zohoPaymentMethodId || "";
+    var custId = exp.zohoCustomerId      || lead.zohoCustomerId      || "";
+
+    // Si tiene tarjeta guardada via Zoho, cobrar directo
+    if (pmId && custId) {
+      fetch(EDGE_URL + "/charge-saved-card", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lead_id:           lead.id,
+          customer_id:       custId,
+          payment_method_id: pmId,
+          amount:            exp.pagoInicial,
+          folio:             lead.id,
+          nombre:            exp.tFirstName + " " + exp.tLastName,
+        }),
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        setLoading(false);
+        if (data.error) throw new Error(data.error);
+        if (data.status === "succeeded" || data.status === "success") {
+          onChargeResult("approved", data.payment_id || "");
+        } else {
+          setError("Estado inesperado: " + data.status);
+          onChargeResult("rejected", "");
+        }
+      })
+      .catch(function(err) {
+        setLoading(false);
+        setError("Error cobrando: " + err.message);
+        onChargeResult("rejected", "");
+      });
+      return;
+    }
+
+    // Sin tarjeta guardada - abrir widget de Zoho
+    if (!zohoReady || !window.ZPayments) {
+      setLoading(false);
+      setError("SDK de Zoho Payments no disponible");
+      return;
+    }
+
     fetch(EDGE_URL + "/create-session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -721,19 +759,10 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (data.error) throw new Error(data.error);
-
       var sessionId = data.payments_session_id;
-
-      // 2. Inicializar widget de Zoho Payments
-      var config = {
-        account_id: ZOHO_ACCOUNT_ID,
-        domain:     "US",
-        otherOptions: { api_key: ZOHO_API_KEY },
-      };
-      var instance = new window.ZPayments(config);
-
-      // 3. Abrir widget para cobrar
-      var options = {
+      var config    = { account_id: ZOHO_ACCOUNT_ID, domain: "US", otherOptions: { api_key: ZOHO_API_KEY } };
+      var instance  = new window.ZPayments(config);
+      var options   = {
         amount:              String(exp.pagoInicial),
         currency_code:       "USD",
         payments_session_id: sessionId,
@@ -742,34 +771,24 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
         description:         "Enganche - " + exp.tFirstName + " " + exp.tLastName,
         invoice_number:      lead.id,
         reference_number:    lead.id,
-        address: {
-          name:  exp.tFirstName + " " + exp.tLastName,
-          email: exp.tEmail || "",
-          phone: exp.tPhone || "",
-        },
+        address: { name: exp.tFirstName + " " + exp.tLastName, email: exp.tEmail || "", phone: exp.tPhone || "" },
       };
-
       instance.requestPaymentMethod(options)
         .then(function(result) {
           setLoading(false);
           instance.close();
-          // Pago completado
           onChargeResult("approved", result.payment_id || "");
         })
         .catch(function(err) {
           setLoading(false);
           instance.close();
-          if (err.code === "widget_closed") {
-            setError("Pago cancelado");
-          } else {
-            setError("Error: " + (err.message || JSON.stringify(err)));
-            onChargeResult("rejected", "");
-          }
+          if (err.code === "widget_closed") { setError("Pago cancelado"); }
+          else { setError("Error: " + (err.message || JSON.stringify(err))); onChargeResult("rejected", ""); }
         });
     })
     .catch(function(err) {
       setLoading(false);
-      setError("Error creando sesion de pago: " + err.message);
+      setError("Error creando sesion: " + err.message);
     });
   };
 
@@ -821,13 +840,30 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
         </div>
       )}
 
+      {/* Tarjeta guardada */}
+      {!yaPagado && (exp.zohoPaymentMethodId || lead.zohoPaymentMethodId) && (
+        <div style={{ padding:"10px 14px", borderRadius:"8px", background:"#edf7ee", border:"1px solid #a3d9a5", marginBottom:"10px", display:"flex", alignItems:"center", gap:"10px" }}>
+          <div style={{ fontSize:"18px" }}>CC</div>
+          <div>
+            <div style={{ fontSize:"12px", fontWeight:"700", color:"#1a7f3c" }}>Tarjeta guardada</div>
+            <div style={{ fontSize:"11px", color:"#374151" }}>
+              {(exp.tarjetaBrand || lead.tarjetaBrand || "Tarjeta") + " **** " + (exp.tarjetaLast4 || lead.tarjetaLast4 || "----")}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Boton cobrar */}
       {!yaPagado && (
         <button
-          style={{ ...S.btn("success"), width:"100%", justifyContent:"center", opacity:loading||!zohoReady?0.6:1, cursor:loading||!zohoReady?"not-allowed":"pointer" }}
-          disabled={loading || !zohoReady}
+          style={{ ...S.btn("success"), width:"100%", justifyContent:"center", opacity:loading?0.6:1, cursor:loading?"not-allowed":"pointer" }}
+          disabled={loading}
           onClick={handleCobrar}>
-          {loading ? "Abriendo Zoho Payments..." : !zohoReady ? "Cargando SDK..." : "Cobrar " + fmtUSD(exp.pagoInicial) + " con Zoho Payments"}
+          {loading ? "Procesando pago..." :
+            (exp.zohoPaymentMethodId || lead.zohoPaymentMethodId)
+              ? "Cobrar " + fmtUSD(exp.pagoInicial) + " con tarjeta guardada"
+              : "Cobrar " + fmtUSD(exp.pagoInicial) + " con Zoho Payments"
+          }
         </button>
       )}
 
@@ -839,6 +875,7 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
 }
 
 function DetailView({ lead, onBack, onUpdate }) {
+  console.log("DetailView lead:", JSON.stringify({ zohoPaymentMethodId: lead.zohoPaymentMethodId, expZoho: lead.exp && lead.exp.zohoPaymentMethodId, tarjetaLast4: lead.exp && lead.exp.tarjetaLast4 }));
   const [exp,         setExp]         = useState({ ...lead.exp });
   const [verif,       setVerif]       = useState(lead.verificacion||null);
   const [editModal,   setEditModal]   = useState(false);
@@ -1046,6 +1083,10 @@ function dbToVerifLead(r) {
       tarjetaCVV:    r.tarjeta_cvv     || "",
       tarjetaTipo:   r.tarjeta_tipo    || (r.metodo_pago === "tarjeta_credito" ? "credito" : r.metodo_pago === "tarjeta_debito" ? "debito" : ""),
       tarjetaCapturaTs: r.tarjeta_captura_ts || null,
+      zohoPaymentMethodId: r.zoho_payment_method_id || "",
+      zohoCustomerId:      r.zoho_customer_id       || "",
+      tarjetaLast4:        r.tarjeta_last4           || "",
+      tarjetaBrand:        r.tarjeta_brand           || "",
       notas:         (r.notas || []).map(function(n){ return typeof n === "string" ? n : (n.nota || ""); }).join("\n"),
     },
     verificacion: r.verificacion || null,
