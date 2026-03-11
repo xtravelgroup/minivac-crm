@@ -61,13 +61,13 @@ function useGoogleMaps() {
       }, 200);
       return function () { clearInterval(check); };
     }
+    window.__gmapsCallback = function() { setReady(true); };
     var script = document.createElement("script");
     script.id = "gmaps-script";
-    script.src = "https://maps.googleapis.com/maps/api/js?key=" + GKEY + "&libraries=places&language=es";
+    script.src = "https://maps.googleapis.com/maps/api/js?key=" + GKEY + "&libraries=places&language=es&callback=__gmapsCallback";
     script.async = true;
     script.defer = true;
-    script.onload = function () { setReady(true); };
-    script.onerror = function () { setError("No se pudo cargar Google Maps. Verifica la API key."); };
+    script.onerror = function () { setError("Error al cargar Google Maps. Abre la consola del navegador (F12) y revisa el error exacto."); };
     document.head.appendChild(script);
   }, []);
 
