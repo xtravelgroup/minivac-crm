@@ -845,8 +845,7 @@ export default function CommissionsModule({ currentUser: shellUser }) {
         if (res.data && res.data.length > 0) {
           var mapped = res.data.map(function(u) {
             return {
-              id:       u.auth_id || u.id,
-              db_id:    u.id,
+              id:       u.id,
               auth_id:  u.auth_id,
               name:     u.nombre || "",
               nombre:   u.nombre || "",
@@ -899,11 +898,11 @@ export default function CommissionsModule({ currentUser: shellUser }) {
   // No usar datos de otro vendedor del seed - mostrar sus propios numeros (cero hasta conectar Supabase)
   var myVendCard = null;
   if (isVend && shellUser) {
-    // Buscar por nombre exacto primero
     var found = users.find(function(u){
+      return u.auth_id === (shellUser.auth_id || shellUser.id);
+    }) || users.find(function(u){
       return u.name && shellUser.nombre && u.name.toLowerCase() === shellUser.nombre.toLowerCase();
     });
-    // Si no encontro, crear una card limpia con su nombre real
     myVendCard = found || {
       id: shellUser.auth_id || "me",
       name: shellUser.nombre || "Mi cuenta",
