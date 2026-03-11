@@ -54,71 +54,119 @@ var DESTINOS = ["Cancun","Los Cabos","Riviera Maya","Puerto Vallarta","Huatulco"
 var REGIMENES = ["Solo habitacion","Desayuno incluido","Media pension","Todo incluido"];
 var AGENTES = ["Jorge P.","Maria R.","Carlos V.","Ana L."];
 
-var HOTELES = {
-  "Cancun":[
-    {id:"H101",nombre:"Krystal Grand Cancun Resort",cat:"5",fee:75,precioNoche:120,ageMin:25,ageMax:65,marital:["Casado","Union libre","Soltero hombre","Soltera mujer"],tipos:["qc"],
-     habs:[{id:"a",nombre:"Superior",base:true,up:0},{id:"b",nombre:"Deluxe",base:false,up:40},{id:"c",nombre:"Deluxe Oceano King",base:false,up:75},{id:"d",nombre:"Suite Junior",base:false,up:130}],
-     regs:["Solo habitacion","Desayuno incluido","Todo incluido"],
-     temps:[{id:"t1",nombre:"Semana Santa",inicio:"2026-03-28",fin:"2026-04-05",surcharge:60},{id:"t2",nombre:"Navidad",inicio:"2025-12-20",fin:"2026-01-05",surcharge:90}]},
-    {id:"H102",nombre:"Hotel Emporio Cancun",cat:"4",fee:50,precioNoche:90,ageMin:25,ageMax:99,marital:["Casado","Union libre","Soltero hombre","Soltera mujer"],tipos:["qc","nq"],
-     habs:[{id:"a",nombre:"Estandar",base:true,up:0},{id:"b",nombre:"Superior",base:false,up:30},{id:"c",nombre:"Deluxe",base:false,up:55}],
-     regs:["Solo habitacion","Desayuno incluido","Todo incluido"],
-     temps:[{id:"t1",nombre:"Semana Santa",inicio:"2026-03-28",fin:"2026-04-05",surcharge:45}]},
-    {id:"H103",nombre:"Live Aqua Beach Resort",cat:"5",fee:100,precioNoche:180,ageMin:30,ageMax:60,marital:["Casado","Union libre"],tipos:["qc"],
-     habs:[{id:"a",nombre:"Aqua Room",base:true,up:0},{id:"b",nombre:"Aqua Suite",base:false,up:150}],
-     regs:["Todo incluido"],
-     temps:[{id:"t1",nombre:"Semana Santa",inicio:"2026-03-28",fin:"2026-04-05",surcharge:90}]},
-  ],
-  "Los Cabos":[
-    {id:"H201",nombre:"Riu Palace Cabo San Lucas",cat:"5",fee:80,precioNoche:140,ageMin:36,ageMax:99,marital:["Casado","Union libre"],tipos:["qc"],
-     habs:[{id:"a",nombre:"Deluxe",base:true,up:0},{id:"b",nombre:"Junior Suite",base:false,up:100},{id:"c",nombre:"Suite Premium",base:false,up:200}],
-     regs:["Todo incluido"],
-     temps:[{id:"t1",nombre:"Navidad",inicio:"2025-12-20",fin:"2026-01-05",surcharge:100},{id:"t2",nombre:"Semana Santa",inicio:"2026-03-28",fin:"2026-04-05",surcharge:80}]},
-    {id:"H202",nombre:"Melia Cabo Real Beach Golf",cat:"5",fee:65,precioNoche:110,ageMin:25,ageMax:99,marital:["Casado","Union libre"],tipos:["qc","nq"],
-     habs:[{id:"a",nombre:"Superior Garden View",base:true,up:0},{id:"b",nombre:"Deluxe Sea View",base:false,up:60}],
-     regs:["Solo habitacion","Desayuno incluido","Todo incluido"],
-     temps:[{id:"t1",nombre:"Navidad",inicio:"2025-12-20",fin:"2026-01-05",surcharge:80}]},
-  ],
-  "Riviera Maya":[
-    {id:"H301",nombre:"Iberostar Paraiso Lindo",cat:"5",fee:85,precioNoche:150,ageMin:25,ageMax:60,marital:["Casado","Union libre"],tipos:["qc"],
-     habs:[{id:"a",nombre:"Superior",base:true,up:0},{id:"b",nombre:"Premium",base:false,up:80},{id:"c",nombre:"Suite Oceanfront",base:false,up:180}],
-     regs:["Todo incluido"],
-     temps:[{id:"t1",nombre:"Navidad",inicio:"2025-12-20",fin:"2026-01-05",surcharge:95},{id:"t2",nombre:"Semana Santa",inicio:"2026-03-28",fin:"2026-04-05",surcharge:75}]},
-    {id:"H302",nombre:"Grand Palladium Riviera Resort",cat:"5",fee:70,precioNoche:120,ageMin:25,ageMax:70,marital:["Casado","Union libre","Soltero hombre","Soltera mujer"],tipos:["qc","nq"],
-     habs:[{id:"a",nombre:"Junior Suite",base:true,up:0},{id:"b",nombre:"Suite",base:false,up:90}],
-     regs:["Todo incluido"],
-     temps:[{id:"t1",nombre:"Navidad",inicio:"2025-12-20",fin:"2026-01-05",surcharge:85}]},
-  ],
-  "Puerto Vallarta":[
-    {id:"H401",nombre:"Marriott Puerto Vallarta Resort",cat:"5",fee:70,precioNoche:115,ageMin:25,ageMax:60,marital:["Casado","Union libre","Soltero hombre","Soltera mujer"],tipos:["qc","nq"],
-     habs:[{id:"a",nombre:"Deluxe",base:true,up:0},{id:"b",nombre:"Deluxe Marina View",base:false,up:60},{id:"c",nombre:"Suite Junior",base:false,up:140}],
-     regs:["Solo habitacion","Desayuno incluido","Todo incluido"],
-     temps:[{id:"t1",nombre:"Navidad",inicio:"2025-12-20",fin:"2026-01-05",surcharge:85}]},
-  ],
-  "Huatulco":[
-    {id:"H501",nombre:"Dreams Huatulco Resort Spa",cat:"5",fee:60,precioNoche:100,ageMin:25,ageMax:65,marital:["Casado","Union libre"],tipos:["qc"],
-     habs:[{id:"a",nombre:"Deluxe",base:true,up:0},{id:"b",nombre:"Preferred Club",base:false,up:90}],
-     regs:["Todo incluido"],
-     temps:[{id:"t1",nombre:"Semana Santa",inicio:"2026-03-28",fin:"2026-04-05",surcharge:50}]},
-    {id:"H502",nombre:"Barcelo Huatulco",cat:"4",fee:50,precioNoche:80,ageMin:25,ageMax:99,marital:["Casado","Union libre","Soltero hombre","Soltera mujer"],tipos:["qc","nq"],
-     habs:[{id:"a",nombre:"Estandar",base:true,up:0},{id:"b",nombre:"Superior",base:false,up:40}],
-     regs:["Todo incluido"],
-     temps:[]},
-  ],
-  "Las Vegas":[
-    {id:"H601",nombre:"MGM Grand",cat:"4",fee:60,precioNoche:95,ageMin:21,ageMax:99,marital:["Casado","Union libre","Soltero hombre","Soltera mujer"],tipos:["qc","nq"],
-     habs:[{id:"a",nombre:"Deluxe",base:true,up:0},{id:"b",nombre:"Strip View",base:false,up:50}],
-     regs:["Solo habitacion"],temps:[]},
-    {id:"H602",nombre:"Bellagio Hotel Casino",cat:"5",fee:90,precioNoche:160,ageMin:25,ageMax:70,marital:["Casado","Union libre"],tipos:["qc"],
-     habs:[{id:"a",nombre:"Deluxe",base:true,up:0},{id:"b",nombre:"Fountain View",base:false,up:80}],
-     regs:["Solo habitacion"],temps:[]},
-  ],
-  "Orlando":[
-    {id:"H701",nombre:"Walt Disney World Swan",cat:"4",fee:70,precioNoche:110,ageMin:25,ageMax:99,marital:["Casado","Union libre","Soltero hombre","Soltera mujer"],tipos:["qc","nq"],
-     habs:[{id:"a",nombre:"Standard",base:true,up:0},{id:"b",nombre:"Lake View",base:false,up:50}],
-     regs:["Solo habitacion","Desayuno incluido"],temps:[]},
-  ],
+// Hoteles se cargan desde Supabase en FormModal
+function sbHotelesToMap(rows){
+  // Convierte array de hoteles de Supabase a mapa por destino
+  var map = {};
+  (rows||[]).forEach(function(h){
+    var dest = h.destino || "";
+    if(!map[dest]) map[dest] = [];
+    var regs = (h.plan) ? [h.plan] : ["Solo habitacion","Desayuno incluido","Todo incluido"];
+    var habs = (h.habitaciones||[]).map(function(hab){
+      return {
+        id:   hab.id || hab.nombre,
+        nombre: hab.nombre,
+        base: (hab.upgrade||0)===0,
+        up:   hab.upgrade||0,
+      };
+    });
+    if(habs.length===0) habs = [{id:"std",nombre:"Estandar",base:true,up:0}];
+    map[dest].push({
+      id:          h.id,
+      nombre:      h.nombre,
+      cat:         (h.categoria||"").replace(" estrellas",""),
+      fee:         h.fee||0,
+      precioNoche: h.precio_noche||90,
+      ageMin:      (h.restricciones||{}).edadMin||0,
+      ageMax:      (h.restricciones||{}).edadMax||99,
+      marital:     (h.restricciones||{}).estadoCivil||[],
+      tipos:       ["qc","nq"],
+      habs:        habs,
+      regs:        regs,
+      temps:       (h.temporadas||[]).map(function(t){
+        return {id:t.id,nombre:t.nombre,inicio:t.inicio,fin:t.fin,surcharge:t.surcharge||0};
+      }),
+    });
+  });
+  return map;
+}
+
+
+var INDIGO="#6366f1",TEAL="#0ea5a0",VIOLET="#5b21b6",RED="#b91c1c",GREEN="#1a7f3c",AMBER="#f59e0b",CORAL="#f97316",BLUE="#1565c0";
+
+var STATUS = {
+  solicitud:       {label:"Solicitud",       c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
+  solicitada:      {label:"Solicitud",       c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
+  en_proceso:      {label:"En proceso",      c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
+  vlo_proceso:     {label:"VLO en proceso",  c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
+  rechazado_hotel: {label:"Rechazado hotel", c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
+  rechazada:       {label:"Rechazada",       c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
+  confirmada:      {label:"Confirmada",      c:GREEN,  bg:"#eaf5ec", br:"#a3d9a5"},
+  cancelada:       {label:"Cancelada",       c:RED,    bg:"#fef0f0", br:"#f5b8b8"},
+  completada:      {label:"Completada",      c:"#9ca3af",bg:"rgba(100,116,139,0.1)",br:"rgba(100,116,139,0.3)"},
 };
+
+var DESTINOS = ["Cancun","Los Cabos","Riviera Maya","Puerto Vallarta","Huatulco","Las Vegas","Orlando"];
+var REGIMENES = ["Solo habitacion","Desayuno incluido","Media pension","Todo incluido"];
+var AGENTES = ["Jorge P.","Maria R.","Carlos V.","Ana L."];
+
+function sbHotelesToMap(rows){
+  // Convierte array de hoteles de Supabase a mapa por destino
+  var map = {};
+  (rows||[]).forEach(function(h){
+    var dest = h.destino || "";
+    if(!map[dest]) map[dest] = [];
+    var regs = (h.plan) ? [h.plan] : ["Solo habitacion","Desayuno incluido","Todo incluido"];
+    var habs = (h.habitaciones||[]).map(function(hab){
+      return {
+        id:   hab.id || hab.nombre,
+        nombre: hab.nombre,
+        base: (hab.upgrade||0)===0,
+        up:   hab.upgrade||0,
+      };
+    });
+    if(habs.length===0) habs = [{id:"std",nombre:"Estandar",base:true,up:0}];
+    map[dest].push({
+      id:          h.id,
+      nombre:      h.nombre,
+      cat:         (h.categoria||"").replace(" estrellas",""),
+      fee:         h.fee||0,
+      precioNoche: h.precio_noche||90,
+      ageMin:      (h.restricciones||{}).edadMin||0,
+      ageMax:      (h.restricciones||{}).edadMax||99,
+      marital:     (h.restricciones||{}).estadoCivil||[],
+      tipos:       ["qc","nq"],
+      habs:        habs,
+      regs:        regs,
+      temps:       (h.temporadas||[]).map(function(t){
+        return {id:t.id,nombre:t.nombre,inicio:t.inicio,fin:t.fin,surcharge:t.surcharge||0};
+      }),
+    });
+  });
+  return map;
+}
+
+
+var INDIGO="#6366f1",TEAL="#0ea5a0",VIOLET="#5b21b6",RED="#b91c1c",GREEN="#1a7f3c",AMBER="#f59e0b",CORAL="#f97316",BLUE="#1565c0";
+
+var STATUS = {
+  solicitud:       {label:"Solicitud",       c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
+  solicitada:      {label:"Solicitud",       c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
+  en_proceso:      {label:"En proceso",      c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
+  vlo_proceso:     {label:"VLO en proceso",  c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
+  rechazado_hotel: {label:"Rechazado hotel", c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
+  rechazada:       {label:"Rechazada",       c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
+  confirmada:      {label:"Confirmada",      c:GREEN,  bg:"#eaf5ec", br:"#a3d9a5"},
+  cancelada:       {label:"Cancelada",       c:RED,    bg:"#fef0f0", br:"#f5b8b8"},
+  completada:      {label:"Completada",      c:"#9ca3af",bg:"rgba(100,116,139,0.1)",br:"rgba(100,116,139,0.3)"},
+};
+
+var DESTINOS = ["Cancun","Los Cabos","Riviera Maya","Puerto Vallarta","Huatulco","Las Vegas","Orlando"];
+var REGIMENES = ["Solo habitacion","Desayuno incluido","Media pension","Todo incluido"];
+var AGENTES = ["Jorge P.","Maria R.","Carlos V.","Ana L."];
+
+
+
 
 var SEED = [
   {id:"RES-001",cFolio:"XT-1001",cliente:"Miguel Torres",destino:"Cancun",checkin:daysFromNow(45),checkout:addDays(daysFromNow(45),5),hotel:"Krystal Grand Cancun Resort",hab:"Deluxe Oceano King",reg:"Todo incluido",pax:2,nBase:5,nExtra:0,tipo:"qc",status:"confirmada",conf:"KGC-44821",fee:75,upg:75,temp:0,total:150,agente:"Jorge P.",creado:daysAgo(5),notasAgente:"Cliente pidio piso alto vista al mar.",notasHotel:"",hist:[{f:daysAgo(5),t:"Solicitud creada",a:"Jorge P."},{f:daysAgo(3),t:"VLO completado",a:"VLO"},{f:daysAgo(3),t:"Confirmada. No. KGC-44821",a:"Jorge P."}]},
@@ -237,6 +285,13 @@ function FormModal(props){
 
   var MEMB_COL={Silver:"#6b7280",Gold:"#925c0a",Platinum:"#5b21b6"};
 
+  var [hotelesDB,setHotelesDB]=useState(props.hotelesMap||{});
+  useEffect(function(){
+    SB.from("hoteles").select("*").eq("activo",true).then(function(r){
+      if(!r.error) setHotelesDB(sbHotelesToMap(r.data));
+    });
+  },[]);
+
   var [step,setStep]=useState(ex?2:(preCliente?1:0));
   var [busq,setBusq]=useState("");
   var [clienteSel,setClienteSel]=useState(preCliente||null);
@@ -248,7 +303,7 @@ function FormModal(props){
     return c.nombre.toLowerCase().indexOf(s)>=0||c.folio.toLowerCase().indexOf(s)>=0;
   });
 
-  var hotelesD=HOTELES[(destinoSel?destinoSel.nombre:"Cancun")]||[];
+  var hotelesD=hotelesDB[(destinoSel?destinoSel.nombre:"Cancun")]||[];
   var hiEx=0;
   if(ex){ for(var xi=0;xi<hotelesD.length;xi++){ if(hotelesD[xi].nombre===ex.hotel){hiEx=xi;break;} } }
 
@@ -271,12 +326,12 @@ function FormModal(props){
   var [profCo,    setProfCo]    = useState(ex?ex.profCo||"":"");
 
   var tipoFiltro=tipo;
-  var hoteles=(HOTELES[dest]||[]).filter(function(h){
+  var hoteles=(hotelesDB[dest]||[]).filter(function(h){
     if(h.tipos&&h.tipos.indexOf(tipoFiltro)<0) return false;
     if(clienteSel){ var cal=calificaHotel(h,clienteSel); return cal.ok; }
     return true;
   });
-  var hotelesNoCalif=(HOTELES[dest]||[]).filter(function(h){
+  var hotelesNoCalif=(hotelesDB[dest]||[]).filter(function(h){
     if(h.tipos&&h.tipos.indexOf(tipoFiltro)<0) return true;
     if(clienteSel){ var cal=calificaHotel(h,clienteSel); return !cal.ok; }
     return false;
@@ -297,8 +352,8 @@ function FormModal(props){
   var tempActiva=null;
   if(hotel){ for(var ti=0;ti<hotel.temps.length;ti++){ if(checkin>=hotel.temps[ti].inicio&&checkin<=hotel.temps[ti].fin){tempActiva=hotel.temps[ti];break;} } }
 
-  function onDestChange(v){ setDest(v); setHIdx(0); setHabNom(""); var nh=(HOTELES[v]||[])[0]; if(nh&&nh.regs&&nh.regs.length>0) setReg(nh.regs[0]); }
-  function onHotelChange(v){ var ni=parseInt(v)||0; setHIdx(ni); setHabNom(""); var nh=hoteles[ni]||hoteles[0]; if(nh&&nh.regs&&nh.regs.length>0) setReg(nh.regs[0]); }
+  function onDestChange(v){ setDest(v); setHIdx(0); setHabNom(""); var nh=(hotelesDB[v]||[])[0]; if(nh&&nh.regs&&nh.regs.length>0) setReg(nh.regs[0]); }
+  function onHotelChange(v){ var ni=parseInt(v)||0; setHIdx(ni); setHabNom(""); var nh=(hotelesDB[dest]||[])[ni]||(hotelesDB[dest]||[])[0]; if(nh&&nh.regs&&nh.regs.length>0) setReg(nh.regs[0]); }
 
   function selCliente(c){
     setClienteSel(c);
@@ -413,7 +468,7 @@ function FormModal(props){
           )}
           <div style={S.stit}>Selecciona el destino a reservar</div>
           {clienteSel.destinos.map(function(d){
-            var hotsDest=HOTELES[d.nombre]||[];
+            var hotsDest=hotelesDB[d.nombre]||[];
             return (
               <div key={d.nombre} onClick={function(){selDestino(d);}}
                 style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",borderRadius:"12px",background:"rgba(255,255,255,0.025)",border:"1px solid #dde0e5",marginBottom:"6px",cursor:"pointer"}}>
@@ -652,24 +707,28 @@ function ResCard(props){
 
 function CatalogoView(){
   var [dest,setDest]=useState("Cancun");
-  var [cat,setCat]=useState(HOTELES);
+  var [cat,setCat]=useState({});
+  var [destinos,setDestinos]=useState([]);
   var [open,setOpen]=useState(null);
 
-  function updHotel(hid,field,val){
-    setCat(function(prev){
-      var next=Object.assign({},prev);
-      next[dest]=prev[dest].map(function(h){ return h.id===hid?Object.assign({},h,{[field]:val}):h; });
-      return next;
+  useEffect(function(){
+    SB.from("hoteles").select("*").eq("activo",true).then(function(r){
+      if(!r.error){
+        var map=sbHotelesToMap(r.data);
+        setCat(map);
+        setDestinos(Object.keys(map));
+      }
     });
-  }
-  function updHab(hid,habs){ updHotel(hid,"habs",habs); }
-  function updTemps(hid,temps){ updHotel(hid,"temps",temps); }
+    SB.from("destinos_catalog").select("nombre").eq("activo",true).then(function(r){
+      if(!r.error) setDestinos((r.data||[]).map(function(d){return d.nombre;}));
+    });
+  },[]);
 
   var hoteles=cat[dest]||[];
   return (
     <div style={{padding:"16px 24px"}}>
       <div style={{display:"flex",gap:"5px",marginBottom:"16px",flexWrap:"wrap"}}>
-        {DESTINOS.map(function(d){ return <button key={d} style={tabS(d===dest,TEAL)} onClick={function(){setDest(d);}}>{d}</button>; })}
+        {destinos.map(function(d){ return <button key={d} style={tabS(d===dest,TEAL)} onClick={function(){setDest(d);}}>{d}</button>; })}
       </div>
       {hoteles.map(function(h){
         var isOpen=open===h.id;
