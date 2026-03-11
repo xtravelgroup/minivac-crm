@@ -803,6 +803,7 @@ function TablaVentas({ ventas, users, week }) {
 
 // --- ROOT ---
 export default function CommissionsModule({ currentUser: shellUser }) {
+  console.log("CommissionsModule montado, shellUser:", shellUser && shellUser.nombre);
   const [users,       setUsers]       = useState(SEED_USERS);
   const [ventas,      setVentas]      = useState([]);
   const [numeros,     setNumeros]     = useState(SEED_NUMEROS);
@@ -864,8 +865,9 @@ export default function CommissionsModule({ currentUser: shellUser }) {
   }
 
   useEffect(function() {
-    cargarVentas();
-    cargarUsers();
+    console.log("CommissionsModule useEffect ejecutando");
+    try { cargarVentas(); } catch(e) { console.error("cargarVentas error:", e); }
+    try { cargarUsers(); } catch(e) { console.error("cargarUsers error:", e); }
     var interval = setInterval(cargarVentas, 30000);
     return function() { clearInterval(interval); };
   }, []);
