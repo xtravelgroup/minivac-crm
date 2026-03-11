@@ -680,6 +680,109 @@ function PagoAbonoCS(props) {
 }
 
 
+
+// ─────────────────────────────────────────────────────────────
+// MODAL EDITAR CONTACTO — CS
+// ─────────────────────────────────────────────────────────────
+function EditContactoModal(props) {
+  var c = props.cliente;
+  var [d, setD] = useState({
+    tel:        c.tel        || "",
+    whatsapp:   c.whatsapp   || "",
+    email:      c.email      || "",
+    direccion:  c.direccion  || "",
+    coProp:     c.coProp     || "",
+    coPropTel:  c.coPropTel  || "",
+  });
+  var [saving, setSaving] = useState(false);
+  var [err,    setErr]    = useState("");
+
+  function set(k, v) { setD(function(p){ return Object.assign({}, p, {[k]: v}); }); }
+
+  function handleSave() {
+    setSaving(true); setErr("");
+    // Leer expediente actual para no perder otros campos
+    SB.from("leads").select("expediente").eq("id", c.id).single()
+    .then(function(res2) {
+      var expActual = (res2.data && res2.data.expediente) ? Object.assign({}, res2.data.expediente) : {};
+      var expNuevo = Object.assign({}, expActual, {
+        tPhone: d.tel,
+        tEmail: d.email,
+        address: d.direccion,
+        pPhone: d.coPropTel,
+      });
+      return SB.from("leads").update({
+        whatsapp:  d.whatsapp,
+        email:     d.email,
+        expediente: expNuevo,
+      }).eq("id", c.id);
+    })
+    .then(function(res) {
+      setSaving(false);
+      if (res.error) { setErr("Error al guardar: " + res.error.message); return; }
+      props.onSave(d);
+    });
+  }
+
+  return (
+    <div style={S.modal} onClick={props.onClose}>
+      <div style={Object.assign({}, S.mbox, {maxWidth: 520})} onClick={function(e){ e.stopPropagation(); }}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <div style={{fontSize:16,fontWeight:700,color:"#1a1f2e"}}>Editar contacto</div>
+          <button onClick={props.onClose} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#9ca3af"}}>✕</button>
+        </div>
+        <div style={{fontSize:12,color:"#9ca3af",marginBottom:4}}>{c.nombre} · {c.folio}</div>
+        <div style={{height:3,borderRadius:2,background:BLUE,marginBottom:20}}/>
+
+        <div style={{marginBottom:16}}>
+          <div style={S.stit}>Datos de contacto</div>
+          <div style={S.g2}>
+            <div>
+              <label style={S.label}>📞 Teléfono</label>
+              <input style={S.input} value={d.tel} onChange={function(e){ set("tel", e.target.value); }} placeholder="+1 (555) 000-0000"/>
+            </div>
+            <div>
+              <label style={S.label}>💬 WhatsApp</label>
+              <input style={S.input} value={d.whatsapp} onChange={function(e){ set("whatsapp", e.target.value); }} placeholder="+1 (555) 000-0000"/>
+            </div>
+            <div style={{gridColumn:"1/-1"}}>
+              <label style={S.label}>✉️ Email</label>
+              <input style={S.input} type="email" value={d.email} onChange={function(e){ set("email", e.target.value); }} placeholder="correo@ejemplo.com"/>
+            </div>
+            <div style={{gridColumn:"1/-1"}}>
+              <label style={S.label}>📍 Dirección</label>
+              <input style={S.input} value={d.direccion} onChange={function(e){ set("direccion", e.target.value); }} placeholder="Calle, ciudad, estado..."/>
+            </div>
+          </div>
+        </div>
+
+        <div style={{marginBottom:16}}>
+          <div style={S.stit}>Co-propietario</div>
+          <div style={S.g2}>
+            <div>
+              <label style={S.label}>👥 Nombre</label>
+              <input style={S.input} value={d.coProp} onChange={function(e){ set("coProp", e.target.value); }} placeholder="Nombre completo"/>
+            </div>
+            <div>
+              <label style={S.label}>📞 Teléfono</label>
+              <input style={S.input} value={d.coPropTel} onChange={function(e){ set("coPropTel", e.target.value); }} placeholder="+1 (555) 000-0000"/>
+            </div>
+          </div>
+        </div>
+
+        {err && <div style={{fontSize:12,color:RED,marginBottom:10}}>⚠️ {err}</div>}
+
+        <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+          <button style={S.btn("ghost")} onClick={props.onClose}>Cancelar</button>
+          <button style={S.btn("primary")} onClick={handleSave} disabled={saving}>
+            {saving ? "Guardando..." : "Guardar contacto"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // MODAL EDITAR DESTINOS — CS
 // ─────────────────────────────────────────────────────────────
@@ -867,7 +970,8 @@ function FichaMiembro(props) {
   var historialCS=interacciones.filter(function(x){return x.clienteFolio===c.folio;}).sort(function(a,b){return new Date(b.fecha)-new Date(a.fecha);});
 
   var MEMBCOLOR={Silver:"#6b7280",Gold:AMBER,Platinum:VIOLET};
-  var [editDestinos, setEditDestinos] = useState(false);
+  var [editDestinos,  setEditDestinos]  = useState(false);
+  var [editContacto,  setEditContacto]  = useState(false);
 
   var TABS=[
     {id:"contacto",  label:"📞 Contacto",                         show:perms.verContacto},
@@ -986,7 +1090,10 @@ function FichaMiembro(props) {
         {/* ── CONTACTO ── */}
         {tab==="contacto"&&(
           <div style={S.card}>
-            <div style={S.stit}>Datos de contacto</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={S.stit}>Datos de contacto</div>
+                <button style={Object.assign({},S.btn("ghost"),{padding:"4px 10px",fontSize:11})} onClick={function(){ setEditContacto(true); }}>✏️ Editar</button>
+              </div>
             <div style={S.g2}>
               {[["📞 Teléfono","tel"],["💬 WhatsApp","whatsapp"],["✉️ Email","email"],["📍 Dirección","direccion"]].map(function(f){
                 return <div key={f[0]}>
@@ -1124,6 +1231,7 @@ function FichaMiembro(props) {
         )}
 
       </div>
+    {editContacto && <EditContactoModal cliente={c} onClose={function(){ setEditContacto(false); }} onSave={function(nuevos){ setEditContacto(false); if(props.onContactoGuardado) props.onContactoGuardado(nuevos); }}/>}
     {editDestinos && <EditDestinosModal cliente={c} catalog={props.destCatalogMap||{}} onClose={function(){ setEditDestinos(false); }} onSave={function(){ setEditDestinos(false); if(props.onDestinosGuardados) props.onDestinosGuardados(); }}/>}
     </div>
   );
@@ -1363,6 +1471,7 @@ export default function CsReservasV3() {
       cargarMiembros();
     },
     onDestinosGuardados:function(){ cargarMiembros(); },
+    onContactoGuardado:function(){ cargarMiembros(); },
     destCatalogMap:destCatalogMap,
     onUpdatePagos:handleUpdatePagos,
   };
