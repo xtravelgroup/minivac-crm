@@ -803,38 +803,70 @@ export default function CommPanel(props){
 export function CommPanelTrigger(props){
   var c = props.cliente;
   var onOpen = props.onOpen||function(){};
+  var [open, setOpen] = useState(false);
+  var ref = useRef(null);
 
-  var btns = [
-    { canal:"phone", color:BLUE,      bg:"#e5eefe",   br:"#aac4f0",   label:"Llamar",   icon:"phone"  },
-    { canal:"sms",   color:GREEN,     bg:"#eaf5ec",   br:"#a3d9a5",   label:"SMS",      icon:"sms"    },
-    { canal:"wa",    color:"#25D366", bg:"rgba(37,211,102,0.12)",   br:"rgba(37,211,102,0.3)",   label:"WhatsApp", icon:"wa"     },
-    { canal:"email", color:VIOLET,    bg:"#ebe6fd",  br:"#c4b5fd",  label:"Email",    icon:"email"  },
+  useEffect(function(){
+    function handler(e){ if(ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener("mousedown", handler);
+    return function(){ document.removeEventListener("mousedown", handler); };
+  }, []);
+
+  var opciones = [
+    { canal:"phone", color:BLUE,      icon:"phone",  label:"Llamar",   href:function(){ return "tel:"+c.tel; } },
+    { canal:"sms",   color:GREEN,     icon:"sms",    label:"SMS",      href:function(){ return "sms:"+c.tel; } },
+    { canal:"wa",    color:"#25D366", icon:"wa",     label:"WhatsApp", href:function(){ return "https://wa.me/"+(c.whatsapp||c.tel||"").replace(/\D/g,""); } },
+    { canal:"email", color:VIOLET,    icon:"email",  label:"Email",    href:function(){ return "mailto:"+(c.email||""); } },
   ];
 
   return (
-    <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
-      {btns.map(function(b){
-        return (
-          <button
-            key={b.canal}
-            onClick={function(){ onOpen(c); }}
-            title={b.label+" a "+c.nombre}
-            style={{
-              display:"flex",alignItems:"center",gap:"4px",
-              padding:"5px 10px",borderRadius:"7px",
-              fontSize:"11px",fontWeight:"600",
-              cursor:"pointer",
-              background:b.bg,color:b.color,
-              border:"1px solid "+b.br,
-              transition:"all 0.12s",
-              fontFamily:"'DM Sans','Segoe UI',-apple-system,sans-serif",
-            }}
-          >
-            <Icon name={b.icon} fill={b.color} size={12}/>
-            {b.label}
-          </button>
-        );
-      })}
+    <div ref={ref} style={{position:"relative"}}>
+      <button
+        onClick={function(){ setOpen(function(v){ return !v; }); }}
+        style={{
+          display:"flex",alignItems:"center",gap:5,
+          padding:"5px 12px",borderRadius:7,
+          fontSize:11,fontWeight:600,cursor:"pointer",
+          background:"#e8f0fe",color:BLUE,
+          border:"1px solid #aac4f0",
+          fontFamily:"'DM Sans','Segoe UI',-apple-system,sans-serif",
+        }}
+      >
+        <Icon name="phone" fill={BLUE} size={12}/>
+        Comunicar
+        <span style={{fontSize:9,marginLeft:2}}>{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <div style={{
+          position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:999,
+          background:"#ffffff",border:"1px solid #e3e6ea",
+          borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,0.12)",
+          minWidth:160,overflow:"hidden",
+        }}>
+          {opciones.map(function(op){
+            return (
+              <a
+                key={op.canal}
+                href={op.href()}
+                target={op.canal==="wa" ? "_blank" : undefined}
+                rel="noreferrer"
+                onClick={function(){ setOpen(false); onOpen(c, op.canal); }}
+                style={{
+                  display:"flex",alignItems:"center",gap:10,
+                  padding:"9px 14px",textDecoration:"none",
+                  color:op.color,fontSize:12,fontWeight:600,
+                  borderBottom:"1px solid #f0f1f4",
+                  fontFamily:"'DM Sans','Segoe UI',-apple-system,sans-serif",
+                  cursor:"pointer",
+                }}
+              >
+                <Icon name={op.icon} fill={op.color} size={14}/>
+                {op.label}
+              </a>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
