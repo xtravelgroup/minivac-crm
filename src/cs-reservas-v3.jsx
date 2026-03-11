@@ -1583,31 +1583,59 @@ export default function CsReservasV3() {
       .eq("status","venta")
       .order("created_at",{ascending:false})
       .then(function(res){
-        setLoading(false);
-        if(res.error){ setError(res.error.message); return; }
+        if(res.error){ setLoading(false); setError(res.error.message); return; }
         var m=(res.data||[]).map(leadToMiembro);
-        // Cargar todas las reservas de los miembros
-        var todasReservas = [];
-        m.forEach(function(mb){
-          (mb.reservasData||[]).forEach(function(rv){
-            todasReservas.push(Object.assign({}, rv, { clienteFolio: mb.folio }));
+        var leadIds = m.map(function(mb){ return mb.id; });
+        // Cargar reservas desde tabla reservaciones usando lead_id
+        SB.from("reservaciones")
+          .select("*")
+          .in("lead_id", leadIds)
+          .order("created_at",{ascending:false})
+          .then(function(resRv){
+            setLoading(false);
+            var todasReservas = [];
+            if (!resRv.error) {
+              (resRv.data||[]).forEach(function(rv){
+                var mb = m.find(function(x){ return x.id === rv.lead_id; });
+                if (!mb) return;
+                todasReservas.push({
+                  id:           rv.id,
+                  folio:        rv.folio,
+                  clienteFolio: mb.folio,
+                  destino:      rv.destino_nombre || rv.destino_id || "",
+                  checkin:      rv.checkin || "",
+                  checkout:     rv.checkout || "",
+                  adultos:      rv.adultos || rv.pax || 2,
+                  ninos:        rv.ninos || 0,
+                  hotel:        rv.hotel || "",
+                  habitacion:   rv.habitacion || "",
+                  regimen:      rv.regimen || "",
+                  tipo:         rv.tipo || "qc",
+                  status:       rv.status || "solicitud",
+                  confirmacion: rv.num_confirmacion || "",
+                  notasInternas:rv.notas_agente || "",
+                  agente:       rv.agente_nombre || "CS",
+                  nochesIncluidas: rv.noches_base || 0,
+                  nochesExtra:  rv.noches_extra || 0,
+                  creadoEn:     rv.created_at ? rv.created_at.split("T")[0] : TODAY,
+                  historial:    rv.historial || [{fecha:rv.created_at?rv.created_at.split("T")[0]:TODAY, texto:"Reserva creada", autor:rv.agente_nombre||"CS"}],
+                });
+              });
+            }
+            setReservas(todasReservas);
+            setMiembros(function(prev){
+              if(prev.length>0 && m.length>prev.length){
+                var nuevos=m.filter(function(nm){ return !prev.find(function(pm){return pm.id===nm.id;}); });
+                if(nuevos.length>0) showToast("Nueva venta: "+nuevos[0].nombre+" 🎉");
+              }
+              return m;
+            });
+            setSelected(function(prev){
+              if(!prev&&m.length>0) return m[0];
+              if(prev){ var upd=m.find(function(x){return x.id===prev.id;}); return upd||prev; }
+              return prev;
+            });
           });
-        });
-        setReservas(todasReservas);
-        setMiembros(function(prev){
-          // Detectar nuevas ventas vs prev
-          if(prev.length>0 && m.length>prev.length){
-            var nuevos=m.filter(function(nm){ return !prev.find(function(pm){return pm.id===nm.id;}); });
-            if(nuevos.length>0) showToast("Nueva venta: "+nuevos[0].nombre+" 🎉");
-          }
-          return m;
-        });
-        // Mantener selected actualizado
-        setSelected(function(prev){
-          if(!prev&&m.length>0) return m[0];
-          if(prev){ var upd=m.find(function(x){return x.id===prev.id;}); return upd||prev; }
-          return prev;
-        });
       });
   }
 
@@ -1653,35 +1681,52 @@ export default function CsReservasV3() {
   }
 
   function saveReserva(clienteFolio, datos, esEdit, resId) {
-    var folio = esEdit ? resId : ("RES-" + uid().toUpperCase().slice(0,6));
-    var obj = Object.assign({}, datos, {
-      id: folio, folio: folio, clienteFolio: clienteFolio,
-      status: "solicitud", confirmacion: "", agente: datos.agente || rolCfg.label,
-      creadoEn: TODAY,
-      historial: [{fecha: TODAY, texto: esEdit ? "Reserva modificada" : "Reserva creada", autor: datos.agente || rolCfg.label}]
-    });
-    // Actualizar estado local
-    if (esEdit) { setReservas(function(p){ return p.map(function(r){ return r.id===resId ? obj : r; }); }); }
-    else { setReservas(function(p){ return [obj, ...p]; }); }
-
-    // Persistir en Supabase — guardar en reservas_historial del lead
     var miembro = miembros.find(function(m){ return m.folio === clienteFolio; });
-    if (miembro) {
-      SB.from("leads").select("reservas_historial").eq("id", miembro.id).single()
+    if (!miembro) { showToast("Error: miembro no encontrado"); return; }
+
+    var dbData = {
+      lead_id:       miembro.id,
+      destino_id:    datos.destino || "",
+      destino_nombre:datos.destino || "",
+      checkin:       datos.checkin || null,
+      checkout:      datos.checkout || null,
+      adultos:       datos.adultos || 2,
+      ninos:         datos.ninos || 0,
+      tipo:          datos.tipo || "qc",
+      noches_base:   datos.nochesIncluidas || 0,
+      noches_extra:  datos.nochesExtra || 0,
+      notas_agente:  datos.notasInternas || "",
+      agente_nombre: datos.agente || rolCfg.label,
+      status:        "solicitud",
+    };
+
+    if (esEdit) {
+      SB.from("reservaciones").update(dbData).eq("id", resId)
       .then(function(res2) {
-        var existing = (res2.data && res2.data.reservas_historial) ? res2.data.reservas_historial : [];
-        var updated = esEdit
-          ? existing.map(function(r){ return r.id === resId ? obj : r; })
-          : [obj].concat(existing);
-        return SB.from("leads").update({ reservas_historial: updated }).eq("id", miembro.id);
-      })
+        if (res2.error) { showToast("Error al actualizar: " + res2.error.message); return; }
+        showToast("Reserva actualizada");
+        cargarMiembros();
+      });
+    } else {
+      var folioNew = "RES-" + uid().toUpperCase().slice(0,6);
+      SB.from("reservaciones").insert(Object.assign({}, dbData, { folio: folioNew }))
       .then(function(res2) {
-        if (res2 && res2.error) { showToast("Error al guardar reserva: " + res2.error.message); }
-        else { showToast(esEdit ? "Reserva actualizada" : "Reserva creada: " + folio); }
+        if (res2.error) { showToast("Error al crear reserva: " + res2.error.message); return; }
+        showToast("Reserva creada: " + folioNew);
+        cargarMiembros();
       });
     }
+    // Actualizar estado local optimista
+    var obj = Object.assign({}, datos, {
+      id: esEdit ? resId : ("RES-"+uid().slice(0,6)), folio: esEdit ? resId : ("RES-"+uid().slice(0,6)),
+      clienteFolio: clienteFolio, status: "solicitud", confirmacion: "",
+      agente: datos.agente || rolCfg.label, creadoEn: TODAY,
+      historial: [{fecha:TODAY, texto: esEdit?"Reserva modificada":"Reserva creada", autor:datos.agente||rolCfg.label}]
+    });
+    if (esEdit) { setReservas(function(p){ return p.map(function(r){ return r.id===resId ? obj : r; }); }); }
+    else { setReservas(function(p){ return [obj, ...p]; }); }
     addEvento(clienteFolio, "reserva_" + (esEdit ? "modificada" : "creada"), "sistema",
-      (esEdit ? "Reserva " + resId + " modificada" : "Reserva " + folio + " creada: " + datos.destino), datos.agente || rolCfg.label);
+      (esEdit ? "Reserva modificada: " + datos.destino : "Reserva creada: " + datos.destino), datos.agente || rolCfg.label);
   }
 
   function confirmarReserva(resId,numConf){
