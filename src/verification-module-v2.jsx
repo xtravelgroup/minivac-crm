@@ -680,9 +680,12 @@ function SectionPaquete({ exp, onEdit }) {
 var ZOHO_ACCOUNT_ID = "874101637";
 var ZOHO_API_KEY    = "1003.afb484f19b10b5674c7e6f7c0c0ee5f5.89f010a430837bed480829a015a88641";
 // URL de tu Supabase Edge Function
-var EDGE_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/zoho-payments";
+var EDGE_URL    = "https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/zoho-payments";
+var ANON_KEY    = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA";
+var AUTH_HDR    = { "Content-Type": "application/json", "Authorization": "Bearer " + ANON_KEY };
 
 function SectionCobro({ lead, exp, verif, onChargeResult }) {
+  console.log("SectionCobro zohoPaymentMethodId:", exp.zohoPaymentMethodId, "zohoCustomerId:", exp.zohoCustomerId);
   var [loading,  setLoading]  = useState(false);
   var [error,    setError]    = useState(null);
   var [zohoReady, setZohoReady] = useState(false);
@@ -692,7 +695,7 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
   useEffect(function() {
     if (window.ZPayments) { setZohoReady(true); return; }
     var script = document.createElement("script");
-    script.src = "https://payments.zoho.com/sdk/zpayments.js";
+    script.src = "https://static.zohocdn.com/zpay/zpay-js/v1/zpayments.js";
     script.onload = function() { setZohoReady(true); };
     script.onerror = function() { setError("No se pudo cargar el SDK de Zoho Payments"); };
     document.head.appendChild(script);
@@ -709,7 +712,7 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
     if (pmId && custId) {
       fetch(EDGE_URL + "/charge-saved-card", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: AUTH_HDR,
         body: JSON.stringify({
           lead_id:           lead.id,
           customer_id:       custId,
@@ -747,7 +750,7 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
 
     fetch(EDGE_URL + "/create-session", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: AUTH_HDR,
       body: JSON.stringify({
         lead_id:  lead.id,
         amount:   exp.pagoInicial,
