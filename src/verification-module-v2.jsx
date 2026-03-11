@@ -1174,7 +1174,9 @@ export default function VerificationModule() {
       verificacion: u.verificacion,
       status: newStatus,
     };
+    console.log("updateLead guardando:", JSON.stringify(dbUpdate));
     SB.from("leads").update(dbUpdate).eq("id", u.id).then(function(res) {
+      console.log("updateLead resultado:", JSON.stringify(res.error || "ok"), "status:", newStatus);
       if (res.error) {
         notify("Error al guardar: " + res.error.message, false);
       } else {
