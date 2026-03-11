@@ -39,13 +39,25 @@ function dbToDestinoVerif(r) {
   return {
     id:      r.id,
     nombre:  r.nombre,
-    icon:    r.icon || "",
+    icon:    r.icon || "🏖️",
     region:  r.region || "internacional",
-    qc: { noches: qc.nights || qc.noches || 4, ageMin: qc.ageMin || 18, ageMax: qc.ageMax || 99 },
-    nq: { enabled: nq.enabled || false, noches: nq.nights || nq.noches || 3 },
-    regalos: ((qc.gifts && qc.gifts.items) || [])
+    activo:  r.activo !== false,
+    qc: {
+      noches:  qc.nights  || qc.noches  || 4,
+      ageMin:  qc.ageMin  || 18,
+      ageMax:  qc.ageMax  || 99,
+      adultos: qc.adultos || 2,
+      ninos:   qc.ninos   || 0,
+      marital: qc.marital || [],
+    },
+    nq: {
+      enabled: nq.enabled || false,
+      noches:  nq.nights  || nq.noches  || 3,
+      label:   nq.label   || "",
+    },
+    regalosDisponibles: ((qc.gifts && qc.gifts.items) || [])
       .filter(function(g){ return g.active !== false; })
-      .map(function(g){ return { id: g.id, label: g.name }; }),
+      .map(function(g){ return { id: g.id || g.label, label: g.name || g.label, icon: g.icon || "🎁" }; }),
   };
 }
 
@@ -163,38 +175,62 @@ const S = {
 };
 
 function EditExpedienteModal({ exp, onClose, onSave }) {
-  const [d, setD] = useState({ ...exp, destinos: exp.destinos.map(x => ({ ...x })) });
-  const set = (k, v) => setD(p => ({ ...p, [k]:v }));
-  const setDest = (i, k, v) => setD(p => ({ ...p, destinos: p.destinos.map((x,j) => j===i ? { ...x, [k]:v } : x) }));
-  const setRegalo = (i, regalo) => setDest(i, "regalo", regalo);
-  const addDest = () => {
-    const used = d.destinos.map(x => x.destId);
-    const free = DESTINOS_CATALOG.find(x => !used.includes(x.id));
-    if (!free) return;
-    setD(p => ({ ...p, destinos:[...p.destinos, { destId:free.id, tipo:"qc", noches:free.qc.noches, regalo:null }] }));
-  };
-  const removeDest = (i) => setD(p => ({ ...p, destinos:p.destinos.filter((_,j) => j!==i) }));
-  const saldo = (d.salePrice||0) - (d.pagoInicial||0);
+  var [d, setD] = useState(Object.assign({}, exp, {
+    destinos: (exp.destinos||[]).map(function(x){ return Object.assign({},x); }),
+  }));
+  function set(k,v){ setD(function(p){ return Object.assign({},p,{[k]:v}); }); }
+  function setRegalo(i, regalo) {
+    setD(function(p){
+      return Object.assign({},p,{destinos:p.destinos.map(function(x,j){ return j===i?Object.assign({},x,{regalo:regalo}):x; })});
+    });
+  }
+  function removeDest(i) {
+    setD(function(p){ return Object.assign({},p,{destinos:p.destinos.filter(function(_,j){ return j!==i; })}); });
+  }
+  function addDest(dest, tipo) {
+    var noches = tipo==="qc" ? (dest.qc.noches||5) : (dest.nq.noches||3);
+    setD(function(p){ return Object.assign({},p,{destinos:p.destinos.concat([{destId:dest.id,tipo:tipo,noches:noches,regalo:null}])}); });
+  }
+
+  var saldo   = (d.salePrice||0) - (d.pagoInicial||0);
+  var selIds  = d.destinos.map(function(x){ return x.destId; });
+  var edad    = Number(d.edad) || (d.tFechaNac ? Math.floor((Date.now()-new Date(d.tFechaNac).getTime())/31557600000) : 0);
+  var ec      = d.estadoCivil || d.tEstadoCivil || "";
+
+  // Calificar destinos con catálogo dinámico
+  var destQC = []; var destNQ = [];
+  DESTINOS_CATALOG.filter(function(dest){ return dest.activo !== false; }).forEach(function(dest) {
+    var qc = dest.qc || {};
+    if (selIds.includes(dest.id)) return; // ya agregado
+    if (edad > 0 && ec) {
+      var califica = edad>=(qc.ageMin||18) && edad<=(qc.ageMax||99) && (qc.marital||[]).includes(ec);
+      if (califica) destQC.push(dest);
+      else if (dest.nq && dest.nq.enabled) destNQ.push(dest);
+    } else {
+      destQC.push(dest); // sin perfil → mostrar todos como QC
+    }
+  });
 
   return (
     <div style={S.modal} onClick={onClose}>
-      <div style={S.modalBox} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize:"18px", fontWeight:"700", color:"#1a1f2e", marginBottom:"4px" }}>Editar Expediente</div>
-        <div style={{ fontSize:"13px", color:"#9ca3af", marginBottom:"20px" }}>Cambios registrados por el verificador</div>
+      <div style={S.modalBox} onClick={function(e){ e.stopPropagation(); }}>
+        <div style={{fontSize:18,fontWeight:700,color:"#1a1f2e",marginBottom:4}}>Editar Expediente</div>
+        <div style={{fontSize:13,color:"#9ca3af",marginBottom:20}}>Cambios registrados por el verificador</div>
 
-        <div style={{ marginBottom:"16px" }}>
+        {/* TITULAR */}
+        <div style={{marginBottom:16}}>
           <div style={S.sTitle}>Titular</div>
           <div style={S.g3}>
-            <div><div style={S.label}>Nombre</div><input style={S.input} value={d.tFirstName} onChange={e => set("tFirstName",e.target.value)} /></div>
-            <div><div style={S.label}>Apellido</div><input style={S.input} value={d.tLastName} onChange={e => set("tLastName",e.target.value)} /></div>
+            <div><div style={S.label}>Nombre</div><input style={S.input} value={d.tFirstName||""} onChange={function(e){ set("tFirstName",e.target.value); }} /></div>
+            <div><div style={S.label}>Apellido</div><input style={S.input} value={d.tLastName||""} onChange={function(e){ set("tLastName",e.target.value); }} /></div>
             <div>
               <div style={S.label}>Fecha de nacimiento</div>
-              <input style={S.input} type="date" value={d.tFechaNac||""} onChange={e => set("tFechaNac",e.target.value)} max={TODAY} />
-              {d.tFechaNac && <div style={{ fontSize:"11px", color:"#1a7f3c", marginTop:"3px", fontWeight:"600" }}>Edad: {edadLabel(d.tFechaNac)}</div>}
+              <input style={S.input} type="date" value={d.tFechaNac||""} onChange={function(e){ set("tFechaNac",e.target.value); }} max={TODAY} />
+              {d.tFechaNac && <div style={{fontSize:11,color:"#1a7f3c",marginTop:3,fontWeight:600}}>Edad: {edadLabel(d.tFechaNac)}</div>}
             </div>
             <div>
               <div style={S.label}>Sexo</div>
-              <select style={S.select} value={d.tSexo||""} onChange={e => set("tSexo",e.target.value)}>
+              <select style={S.select} value={d.tSexo||""} onChange={function(e){ set("tSexo",e.target.value); }}>
                 <option value="">-- Seleccionar --</option>
                 <option value="Hombre">Hombre</option>
                 <option value="Mujer">Mujer</option>
@@ -202,108 +238,112 @@ function EditExpedienteModal({ exp, onClose, onSave }) {
             </div>
             <div>
               <div style={S.label}>Estado civil</div>
-              <select style={S.select} value={d.tEstadoCivil||""} onChange={e => set("tEstadoCivil",e.target.value)}>
+              <select style={S.select} value={d.tEstadoCivil||""} onChange={function(e){ set("tEstadoCivil",e.target.value); }}>
                 <option value="">-- Seleccionar --</option>
-                {ESTADO_CIVIL_OPTIONS.map(o => <option key={o}>{o}</option>)}
+                {ESTADO_CIVIL_OPTIONS.map(function(o){ return <option key={o}>{o}</option>; })}
               </select>
             </div>
-            <div><div style={S.label}>Telefono</div><input style={S.input} value={d.tPhone} onChange={e => set("tPhone",e.target.value)} /></div>
-            <div><div style={S.label}>Email</div><input style={S.input} value={d.tEmail} onChange={e => set("tEmail",e.target.value)} /></div>
+            <div><div style={S.label}>Teléfono</div><input style={S.input} value={d.tPhone||""} onChange={function(e){ set("tPhone",e.target.value); }} /></div>
+            <div style={{gridColumn:"1/-1"}}><div style={S.label}>Email</div><input style={S.input} value={d.tEmail||""} onChange={function(e){ set("tEmail",e.target.value); }} /></div>
           </div>
         </div>
 
-        <div style={{ marginBottom:"16px" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:"10px", marginBottom:"10px" }}>
+        {/* CO-PROPIETARIO */}
+        <div style={{marginBottom:16}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
             <div style={S.sTitle}>Co-propietario</div>
-            <label style={{ display:"flex", alignItems:"center", gap:"6px", cursor:"pointer", marginBottom:"12px" }}>
-              <input type="checkbox" checked={!!d.hasPartner} onChange={e => set("hasPartner",e.target.checked)} />
-              <span style={{ fontSize:"12px", color:"#9ca3af" }}>Incluir</span>
+            <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",marginBottom:12}}>
+              <input type="checkbox" checked={!!d.hasPartner} onChange={function(e){ set("hasPartner",e.target.checked); }} />
+              <span style={{fontSize:12,color:"#9ca3af"}}>Incluir</span>
             </label>
           </div>
           {d.hasPartner && (
             <div style={S.g3}>
-              <div><div style={S.label}>Nombre</div><input style={S.input} value={d.pFirstName} onChange={e => set("pFirstName",e.target.value)} /></div>
-              <div><div style={S.label}>Apellido</div><input style={S.input} value={d.pLastName} onChange={e => set("pLastName",e.target.value)} /></div>
+              <div><div style={S.label}>Nombre</div><input style={S.input} value={d.pFirstName||""} onChange={function(e){ set("pFirstName",e.target.value); }} /></div>
+              <div><div style={S.label}>Apellido</div><input style={S.input} value={d.pLastName||""} onChange={function(e){ set("pLastName",e.target.value); }} /></div>
               <div>
                 <div style={S.label}>Fecha de nacimiento</div>
-                <input style={S.input} type="date" value={d.pFechaNac||""} onChange={e => set("pFechaNac",e.target.value)} max={TODAY} />
-                {d.pFechaNac && <div style={{ fontSize:"11px", color:"#1a7f3c", marginTop:"3px", fontWeight:"600" }}>Edad: {edadLabel(d.pFechaNac)}</div>}
+                <input style={S.input} type="date" value={d.pFechaNac||""} onChange={function(e){ set("pFechaNac",e.target.value); }} max={TODAY} />
+                {d.pFechaNac && <div style={{fontSize:11,color:"#1a7f3c",marginTop:3,fontWeight:600}}>Edad: {edadLabel(d.pFechaNac)}</div>}
               </div>
               <div>
                 <div style={S.label}>Sexo</div>
-                <select style={S.select} value={d.pSexo||""} onChange={e => set("pSexo",e.target.value)}>
+                <select style={S.select} value={d.pSexo||""} onChange={function(e){ set("pSexo",e.target.value); }}>
                   <option value="">-- Seleccionar --</option>
                   <option value="Hombre">Hombre</option>
                   <option value="Mujer">Mujer</option>
                 </select>
               </div>
-              <div><div style={S.label}>Telefono</div><input style={S.input} value={d.pPhone||""} onChange={e => set("pPhone",e.target.value)} /></div>
+              <div><div style={S.label}>Teléfono</div><input style={S.input} value={d.pPhone||""} onChange={function(e){ set("pPhone",e.target.value); }} /></div>
             </div>
           )}
         </div>
 
-        <div style={{ marginBottom:"16px" }}>
-          <div style={S.sTitle}>Direccion</div>
+        {/* DIRECCIÓN */}
+        <div style={{marginBottom:16}}>
+          <div style={S.sTitle}>Dirección</div>
           <div style={S.g2}>
-            <div style={{ gridColumn:"1/-1" }}><div style={S.label}>Calle y numero</div><input style={S.input} value={d.address} onChange={e => set("address",e.target.value)} /></div>
-            <div><div style={S.label}>Ciudad</div><input style={S.input} value={d.city} onChange={e => set("city",e.target.value)} /></div>
-            <div><div style={S.label}>Estado / ZIP</div><input style={S.input} value={d.state + " " + d.zip} onChange={e => set("state",e.target.value)} /></div>
+            <div style={{gridColumn:"1/-1"}}><div style={S.label}>Calle y número</div><input style={S.input} value={d.address||""} onChange={function(e){ set("address",e.target.value); }} /></div>
+            <div><div style={S.label}>Ciudad</div><input style={S.input} value={d.city||""} onChange={function(e){ set("city",e.target.value); }} /></div>
+            <div><div style={S.label}>Estado / ZIP</div><input style={S.input} value={(d.state||"")+" "+(d.zip||"")} onChange={function(e){ set("state",e.target.value); }} /></div>
           </div>
         </div>
 
-        <div style={{ marginBottom:"16px" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"10px" }}>
-            <div style={S.sTitle}>Destinos</div>
-            {d.destinos.length < 4 && (
-              <button style={{ ...S.btn("indigo"), padding:"5px 12px", fontSize:"12px" }} onClick={addDest}>+ Agregar</button>
-            )}
-          </div>
-          {d.destinos.map((dest, i) => {
-            const cat = DEST_MAP[dest.destId];
-            const usedIds = d.destinos.map((x,j) => j!==i ? x.destId : null).filter(Boolean);
+        {/* DESTINOS — mismo UX que vendedor */}
+        <div style={{marginBottom:16}}>
+          <div style={S.sTitle}>Destinos del paquete</div>
+
+          {/* Destinos ya seleccionados */}
+          {d.destinos.map(function(dest, i) {
+            var cat = DEST_MAP[dest.destId];
+            if (!cat) return null;
+            var regalos = cat.regalosDisponibles || [];
             return (
-              <div key={i} style={{ padding:"12px 14px", borderRadius:"10px", background:"rgba(21,101,192,0.05)", border:"1px solid rgba(21,101,192,0.2)", marginBottom:"8px" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"8px" }}>
-                  <div style={{ flex:1, display:"grid", gridTemplateColumns:"1fr 1fr 70px", gap:"8px" }}>
+              <div key={i} style={{padding:"12px 14px",borderRadius:10,marginBottom:8,
+                background:dest.tipo==="qc"?"rgba(165,214,167,0.06)":"rgba(206,147,216,0.06)",
+                border:"2px solid "+(dest.tipo==="qc"?"rgba(165,214,167,0.3)":"rgba(206,147,216,0.3)")}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:regalos.length>0?10:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:20}}>{cat.icon}</span>
                     <div>
-                      <div style={S.label}>Destino</div>
-                      <select style={S.select} value={dest.destId} onChange={e => {
-                        const nd = DEST_MAP[e.target.value];
-                        setD(p => ({ ...p, destinos:p.destinos.map((x,j) => j===i ? { destId:e.target.value, tipo:"qc", noches:nd.qc.noches, regalo:null } : x) }));
-                      }}>
-                        {DESTINOS_CATALOG.filter(dl => !usedIds.includes(dl.id)||dl.id===dest.destId).map(dl => (
-                          <option key={dl.id} value={dl.id}>{dl.nombre}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <div style={S.label}>Tipo</div>
-                      <select style={S.select} value={dest.tipo} onChange={e => {
-                        const t = e.target.value;
-                        setDest(i,"tipo",t);
-                        setDest(i,"noches", t==="qc" ? cat.qc.noches : cat.nq.noches);
-                      }}>
-                        <option value="qc">QC - {cat ? cat.qc.noches : 0}n</option>
-                        {cat && cat.nq.enabled && <option value="nq">NQ - {cat.nq.noches}n</option>}
-                      </select>
-                    </div>
-                    <div>
-                      <div style={S.label}>Noches</div>
-                      <input style={S.input} type="number" min="1" max="14" value={dest.noches} onChange={e => setDest(i,"noches",Number(e.target.value))} />
+                      <div style={{fontSize:13,fontWeight:700,color:"#1a1f2e"}}>{cat.nombre}</div>
+                      <div style={{fontSize:11,color:dest.tipo==="qc"?"#1a7f3c":"#7c3aed"}}>
+                        {dest.tipo==="qc"?"⭐ QC":"🔹 NQ"} · {dest.noches} noches
+                        {dest.tipo==="nq"&&cat.nq&&cat.nq.label?" · "+cat.nq.label:""}
+                      </div>
                     </div>
                   </div>
-                  <button onClick={() => removeDest(i)} style={{ background:"#fef2f2", border:"1px solid rgba(248,113,113,0.2)", color:"#b91c1c", borderRadius:"7px", padding:"4px 8px", cursor:"pointer", fontSize:"14px" }}>x</button>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+                      <div style={{fontSize:9,color:"#9ca3af",marginBottom:2}}>Noches</div>
+                      <input style={{...S.input,width:54,textAlign:"center",padding:"5px 4px",fontSize:13,fontWeight:700}}
+                        type="number" min="1" max="14" value={dest.noches}
+                        onChange={function(e){
+                          setD(function(p){ return Object.assign({},p,{destinos:p.destinos.map(function(x,j){ return j===i?Object.assign({},x,{noches:Number(e.target.value)}):x; })}); });
+                        }} />
+                    </div>
+                    <button onClick={function(){ removeDest(i); }}
+                      style={{background:"#fef2f2",border:"1px solid #f5b8b8",color:"#b91c1c",borderRadius:7,padding:"4px 8px",cursor:"pointer",fontSize:14,fontWeight:700}}>✕</button>
+                  </div>
                 </div>
-                {cat && (
-                  <div style={{ paddingTop:"8px", borderTop:"1px solid #e3e6ea" }}>
-                    <div style={{ fontSize:"10px", color:"#925c0a", fontWeight:"700", marginBottom:"5px" }}>Regalo (elige 1)</div>
-                    <div style={{ display:"flex", gap:"5px", flexWrap:"wrap" }}>
-                      <div onClick={() => setRegalo(i,null)} style={{ padding:"3px 9px", borderRadius:"7px", cursor:"pointer", fontSize:"11px", background:!dest.regalo?"#eceff3":"#f9fafb", border:"1px solid " + (!dest.regalo?"rgba(255,255,255,0.3)":"#e3e6ea"), color:!dest.regalo?"#1a1f2e":"#9ca3af" }}>Sin regalo</div>
-                      {cat.regalos.map(r => {
-                        const sel = dest.regalo && dest.regalo.id === r.id;
+                {regalos.length > 0 && (
+                  <div>
+                    <div style={{fontSize:9,color:"#925c0a",fontWeight:700,textTransform:"uppercase",marginBottom:5}}>🎁 Regalo (elige 1)</div>
+                    <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                      <div onClick={function(){ setRegalo(i,null); }}
+                        style={{padding:"3px 9px",borderRadius:7,cursor:"pointer",fontSize:11,
+                          background:!dest.regalo?"#e8f0fe":"#f9fafb",border:"1px solid "+(!dest.regalo?"#aac4f0":"#e3e6ea"),
+                          color:!dest.regalo?"#1565c0":"#9ca3af",fontWeight:!dest.regalo?700:400}}>
+                        Sin regalo
+                      </div>
+                      {regalos.map(function(r){
+                        var sel = dest.regalo && dest.regalo.id === r.id;
                         return (
-                          <div key={r.id} onClick={() => setRegalo(i,r)} style={{ padding:"3px 9px", borderRadius:"7px", cursor:"pointer", fontSize:"11px", background:sel?"#fef9e7":"#f9fafb", border:"2px solid " + (sel?"rgba(251,191,36,0.5)":"#e3e6ea"), color:sel?"#925c0a":"#9ca3af", fontWeight:sel?"700":"400" }}>
-                            {r.label}
+                          <div key={r.id} onClick={function(){ setRegalo(i,r); }}
+                            style={{padding:"3px 9px",borderRadius:7,cursor:"pointer",fontSize:11,display:"flex",alignItems:"center",gap:4,
+                              background:sel?"#fef9e7":"#f9fafb",border:"2px solid "+(sel?"rgba(251,191,36,0.5)":"#e3e6ea"),
+                              color:sel?"#925c0a":"#9ca3af",fontWeight:sel?700:400}}>
+                            {r.icon&&<span>{r.icon}</span>}{r.label}{sel&&<span>✓</span>}
                           </div>
                         );
                       })}
@@ -313,25 +353,66 @@ function EditExpedienteModal({ exp, onClose, onSave }) {
               </div>
             );
           })}
+
+          {/* Agregar destinos — calificados */}
+          {destQC.length > 0 && (
+            <div style={{marginTop:10,marginBottom:8}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#1a7f3c",textTransform:"uppercase",marginBottom:6}}>⭐ Agregar QC</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                {destQC.map(function(dest){
+                  return (
+                    <button key={dest.id} onClick={function(){ addDest(dest,"qc"); }}
+                      style={{padding:"6px 12px",borderRadius:9,cursor:"pointer",display:"flex",alignItems:"center",gap:6,
+                        background:"rgba(165,214,167,0.07)",border:"2px solid rgba(165,214,167,0.25)",fontSize:12}}>
+                      <span>{dest.icon}</span>
+                      <span style={{fontWeight:600,color:"#1a1f2e"}}>{dest.nombre}</span>
+                      <span style={{fontSize:10,color:"#1a7f3c"}}>{dest.qc.noches}n</span>
+                      <span style={{fontSize:11,color:"#a5d6a7"}}>+</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {destNQ.length > 0 && (
+            <div style={{marginBottom:8}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#7c3aed",textTransform:"uppercase",marginBottom:6}}>🔹 Agregar NQ</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                {destNQ.map(function(dest){
+                  return (
+                    <button key={dest.id} onClick={function(){ addDest(dest,"nq"); }}
+                      style={{padding:"6px 12px",borderRadius:9,cursor:"pointer",display:"flex",alignItems:"center",gap:6,
+                        background:"rgba(206,147,216,0.07)",border:"2px solid rgba(206,147,216,0.25)",fontSize:12}}>
+                      <span>{dest.icon}</span>
+                      <span style={{fontWeight:600,color:"#1a1f2e"}}>{dest.nombre}</span>
+                      <span style={{fontSize:10,color:"#7c3aed"}}>{dest.nq.noches}n · {dest.nq.label}</span>
+                      <span style={{fontSize:11,color:"#ce93d8"}}>+</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
-        <div style={{ marginBottom:"16px" }}>
+        {/* MONTOS */}
+        <div style={{marginBottom:16}}>
           <div style={S.sTitle}>Montos (USD)</div>
           <div style={S.g3}>
-            <div><div style={S.label}>Precio Total</div><input style={S.input} type="number" value={d.salePrice||""} onChange={e => set("salePrice",Number(e.target.value))} /></div>
-            <div><div style={S.label}>Pago hoy</div><input style={{ ...S.input, borderColor:"rgba(129,140,248,0.4)" }} type="number" value={d.pagoInicial||""} onChange={e => set("pagoInicial",Number(e.target.value))} /></div>
-            <div><div style={S.label}>Saldo</div><div style={{ fontSize:"15px", fontWeight:"800", color:"#925c0a", padding:"9px 0" }}>{fmtUSD(saldo)}</div></div>
+            <div><div style={S.label}>Precio Total</div><input style={S.input} type="number" value={d.salePrice||""} onChange={function(e){ set("salePrice",Number(e.target.value)); }} /></div>
+            <div><div style={S.label}>Pago hoy</div><input style={{...S.input,borderColor:"rgba(129,140,248,0.4)"}} type="number" value={d.pagoInicial||""} onChange={function(e){ set("pagoInicial",Number(e.target.value)); }} /></div>
+            <div><div style={S.label}>Saldo</div><div style={{fontSize:15,fontWeight:800,color:"#925c0a",padding:"9px 0"}}>{fmtUSD(saldo)}</div></div>
           </div>
         </div>
 
-        <div style={{ marginBottom:"20px" }}>
+        <div style={{marginBottom:20}}>
           <div style={S.label}>Notas del paquete</div>
-          <textarea style={{ ...S.textarea, marginTop:"5px" }} value={d.notas||""} onChange={e => set("notas",e.target.value)} placeholder="Notas, condiciones especiales..." />
+          <textarea style={{...S.textarea,marginTop:5}} value={d.notas||""} onChange={function(e){ set("notas",e.target.value); }} placeholder="Notas, condiciones especiales..." />
         </div>
 
-        <div style={{ display:"flex", gap:"10px" }}>
-          <button style={{ ...S.btn("ghost"), flex:1 }} onClick={onClose}>Cancelar</button>
-          <button style={{ ...S.btn("success"), flex:2, justifyContent:"center" }} onClick={() => onSave(d)}>Guardar cambios</button>
+        <div style={{display:"flex",gap:10}}>
+          <button style={{...S.btn("ghost"),flex:1}} onClick={onClose}>Cancelar</button>
+          <button style={{...S.btn("success"),flex:2,justifyContent:"center"}} onClick={function(){ onSave(d); }}>Guardar cambios</button>
         </div>
       </div>
     </div>
@@ -758,6 +839,143 @@ function SectionPersonal({ exp }) {
             </div>
             {exp.pPhone && <div><div style={S.label}>Telefono</div><div style={S.value}>{exp.pPhone}</div></div>}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// SECTION PAGOS — aplica abonos al saldo del lead
+// ─────────────────────────────────────────────────────────────
+function SectionPagos({ lead, exp, onAbonoGuardado }) {
+  var totalPagado = (exp.pagoInicial||0) + ((exp.pagosHistorial||[]).reduce(function(s,p){ return s+(p.monto||0); },0));
+  var saldo       = Math.max(0, (exp.salePrice||0) - totalPagado);
+
+  var [monto,   setMonto]   = useState("");
+  var [metodo,  setMetodo]  = useState("tarjeta");
+  var [ref,     setRef]     = useState("");
+  var [concepto,setConcepto]= useState("Abono");
+  var [saving,  setSaving]  = useState(false);
+  var [err,     setErr]     = useState("");
+
+  function aplicarAbono() {
+    var m = Number(monto);
+    if (!m || m <= 0)       { setErr("Ingresa un monto válido"); return; }
+    if (m > saldo + 0.01)   { setErr("El abono supera el saldo pendiente de " + fmtUSD(saldo)); return; }
+    setErr(""); setSaving(true);
+    var nuevo = {
+      id:       "P" + Date.now(),
+      monto:    m,
+      metodo:   metodo,
+      referencia: ref || "—",
+      concepto: concepto || "Abono",
+      fecha:    new Date().toISOString(),
+      por:      "Verificador",
+    };
+    var nuevosAbonos = (exp.pagosHistorial||[]).concat([nuevo]);
+    SB.from("leads")
+      .update({ pagos_historial: nuevosAbonos })
+      .eq("id", lead.id)
+      .then(function(res) {
+        setSaving(false);
+        if (res.error) { setErr("Error al guardar: " + res.error.message); return; }
+        setMonto(""); setRef(""); setConcepto("Abono");
+        if (onAbonoGuardado) onAbonoGuardado(nuevosAbonos);
+      });
+  }
+
+  var METODOS = ["tarjeta","transferencia","efectivo","cheque"];
+
+  return (
+    <div style={S.card}>
+      <div style={S.sTitle}>💰 Balance y Pagos</div>
+
+      {/* Resumen de balance */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:16}}>
+        <div style={{background:"#f4f5f7",borderRadius:10,padding:"10px 14px",textAlign:"center"}}>
+          <div style={{fontSize:9,color:"#9ca3af",textTransform:"uppercase",fontWeight:700,marginBottom:4}}>Precio total</div>
+          <div style={{fontSize:16,fontWeight:800,color:"#1a1f2e"}}>{fmtUSD(exp.salePrice||0)}</div>
+        </div>
+        <div style={{background:"rgba(74,222,128,0.07)",borderRadius:10,padding:"10px 14px",textAlign:"center",border:"1px solid rgba(74,222,128,0.2)"}}>
+          <div style={{fontSize:9,color:"#1a7f3c",textTransform:"uppercase",fontWeight:700,marginBottom:4}}>Total pagado</div>
+          <div style={{fontSize:16,fontWeight:800,color:"#1a7f3c"}}>{fmtUSD(totalPagado)}</div>
+        </div>
+        <div style={{background:saldo<=0?"rgba(74,222,128,0.07)":"rgba(251,191,36,0.07)",borderRadius:10,padding:"10px 14px",textAlign:"center",border:"1px solid "+(saldo<=0?"rgba(74,222,128,0.2)":"rgba(251,191,36,0.3)")}}>
+          <div style={{fontSize:9,color:saldo<=0?"#1a7f3c":"#925c0a",textTransform:"uppercase",fontWeight:700,marginBottom:4}}>Saldo</div>
+          <div style={{fontSize:16,fontWeight:800,color:saldo<=0?"#1a7f3c":"#925c0a"}}>{saldo<=0?"✅ Liquidado":fmtUSD(saldo)}</div>
+        </div>
+      </div>
+
+      {/* Barra de progreso */}
+      <div style={{height:6,background:"#f0f1f4",borderRadius:4,overflow:"hidden",marginBottom:16}}>
+        <div style={{height:"100%",width:Math.min(100,Math.round(totalPagado/((exp.salePrice||1))*100))+"%",background:saldo<=0?"#22c55e":"#1565c0",borderRadius:4,transition:"width 0.4s"}} />
+      </div>
+
+      {/* Historial de pagos */}
+      {((exp.pagosHistorial||[]).length > 0 || exp.pagoInicial > 0) && (
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",marginBottom:8}}>Historial de pagos</div>
+          {exp.pagoInicial > 0 && (
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f0f1f4"}}>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:"#3d4554"}}>Pago inicial (venta)</div>
+                <div style={{fontSize:10,color:"#9ca3af"}}>Vendedor · tarjeta</div>
+              </div>
+              <span style={{fontSize:13,fontWeight:700,color:"#1a7f3c"}}>{fmtUSD(exp.pagoInicial)}</span>
+            </div>
+          )}
+          {(exp.pagosHistorial||[]).map(function(p){
+            return (
+              <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f0f1f4"}}>
+                <div>
+                  <div style={{fontSize:12,fontWeight:600,color:"#3d4554"}}>{p.concepto}</div>
+                  <div style={{fontSize:10,color:"#9ca3af"}}>{p.por} · {p.metodo} · Ref: {p.referencia} · {p.fecha ? new Date(p.fecha).toLocaleDateString("es-MX") : "--"}</div>
+                </div>
+                <span style={{fontSize:13,fontWeight:700,color:"#1a7f3c"}}>{fmtUSD(p.monto)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Formulario de abono — solo si hay saldo */}
+      {saldo > 0 && (
+        <div style={{background:"#f9fafb",borderRadius:10,padding:"14px",border:"1px solid #e3e6ea"}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#1565c0",marginBottom:12}}>➕ Aplicar abono</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div>
+              <div style={S.label}>Monto (USD)</div>
+              <input style={{...S.input,fontWeight:700}} type="number" min="1" max={saldo}
+                placeholder={"Máx "+fmtUSD(saldo)} value={monto}
+                onChange={function(e){ setMonto(e.target.value); setErr(""); }} />
+            </div>
+            <div>
+              <div style={S.label}>Método</div>
+              <select style={S.select} value={metodo} onChange={function(e){ setMetodo(e.target.value); }}>
+                {METODOS.map(function(m){ return <option key={m} value={m}>{m.charAt(0).toUpperCase()+m.slice(1)}</option>; })}
+              </select>
+            </div>
+            <div>
+              <div style={S.label}>Concepto</div>
+              <input style={S.input} value={concepto} onChange={function(e){ setConcepto(e.target.value); }} placeholder="Abono, 2do pago..." />
+            </div>
+            <div>
+              <div style={S.label}>Referencia / No. transacción</div>
+              <input style={S.input} value={ref} onChange={function(e){ setRef(e.target.value); }} placeholder="TXN-12345 / SPEI-..." />
+            </div>
+          </div>
+          {err && <div style={{fontSize:12,color:"#b91c1c",marginBottom:8,fontWeight:600}}>⚠️ {err}</div>}
+          <button style={{...S.btn("success"),width:"100%",justifyContent:"center"}}
+            onClick={aplicarAbono} disabled={saving}>
+            {saving ? "Guardando..." : "Registrar abono de " + (monto ? fmtUSD(Number(monto)) : "—")}
+          </button>
+        </div>
+      )}
+      {saldo <= 0 && (
+        <div style={{padding:"10px 14px",borderRadius:9,background:"rgba(74,222,128,0.07)",border:"1px solid rgba(74,222,128,0.2)",textAlign:"center",fontSize:13,color:"#1a7f3c",fontWeight:600}}>
+          ✅ Saldo liquidado — paquete completamente pagado
         </div>
       )}
     </div>
@@ -1269,6 +1487,12 @@ function DetailView({ lead, onBack, onUpdate }) {
         <div>
           <SectionPersonal exp={exp} />
           <SectionPaquete exp={exp} onEdit={() => setEditModal(true)} />
+          <SectionPagos lead={lead} exp={exp}
+            onAbonoGuardado={function(nuevosAbonos){
+              var newExp = Object.assign({},exp,{pagosHistorial:nuevosAbonos});
+              setExp(newExp);
+              registrarEvento(lead.id,"pago","Abono registrado · "+nuevosAbonos[nuevosAbonos.length-1].concepto+" "+fmtUSD(nuevosAbonos[nuevosAbonos.length-1].monto),null,{nombre:"Verificador"});
+            }} />
           <UpsalePanel exp={exp} onSave={(newExp) => { setExp(newExp); pushUpdate(newExp, verif, null); }} />
         </div>
         <div>
@@ -1430,6 +1654,7 @@ function dbToVerifLead(r) {
       tarjetaLast4:        r.tarjeta_last4           || "",
       tarjetaBrand:        r.tarjeta_brand           || "",
       notas:         (r.notas || []).map(function(n){ return typeof n === "string" ? n : (n.nota || ""); }).join("\n"),
+      pagosHistorial: r.pagos_historial || [],
     },
     verificacion: r.verificacion || null,
     firma_enviada_at:  r.firma_enviada_at  || null,

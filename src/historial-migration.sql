@@ -20,3 +20,10 @@ create index if not exists lead_historial_created_at_idx on public.lead_historia
 alter table public.lead_historial enable row level security;
 create policy "historial_select" on public.lead_historial for select to authenticated using (true);
 create policy "historial_insert" on public.lead_historial for insert to authenticated with check (true);
+
+-- ============================================================
+-- COLUMNA pagos_historial en leads
+-- Guarda abonos aplicados por el verificador
+-- ============================================================
+alter table public.leads
+  add column if not exists pagos_historial jsonb not null default '[]';
