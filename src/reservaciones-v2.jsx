@@ -297,13 +297,19 @@ function FormModal(props){
 
   var tipoFiltro=tipo;
   var hoteles=(hotelesDB[dest]||[]).filter(function(h){
-    if(h.tipos&&h.tipos.indexOf(tipoFiltro)<0) return false;
-    if(clienteSel){ var cal=calificaHotel(h,clienteSel); return cal.ok; }
+    // Si el hotel no tiene tipos definidos, mostrar siempre
+    if(h.tipos&&h.tipos.length>0&&h.tipos.indexOf(tipoFiltro)<0) return false;
+    // Solo aplicar calificacion si hay cliente seleccionado y tiene datos de edad/EC
+    if(clienteSel&&(clienteSel.edad||clienteSel.estadoCivil)){
+      var cal=calificaHotel(h,clienteSel); return cal.ok;
+    }
     return true;
   });
   var hotelesNoCalif=(hotelesDB[dest]||[]).filter(function(h){
-    if(h.tipos&&h.tipos.indexOf(tipoFiltro)<0) return true;
-    if(clienteSel){ var cal=calificaHotel(h,clienteSel); return !cal.ok; }
+    if(h.tipos&&h.tipos.length>0&&h.tipos.indexOf(tipoFiltro)<0) return true;
+    if(clienteSel&&(clienteSel.edad||clienteSel.estadoCivil)){
+      var cal=calificaHotel(h,clienteSel); return !cal.ok;
+    }
     return false;
   });
   var hotel=hoteles[hIdx]||hoteles[0]||null;
