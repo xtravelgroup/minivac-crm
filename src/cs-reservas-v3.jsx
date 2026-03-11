@@ -1,0 +1,1061 @@
+import { useState, useMemo, useEffect, useRef } from "react";
+import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
+import { supabase as SB } from "./supabase.js";
+import { TablaHistorial } from "./useHistorial.js";
+
+// ─────────────────────────────────────────────────────────────
+// TEMA ZOHO CLARO — igual que seller / verificador
+// ─────────────────────────────────────────────────────────────
+var TODAY = new Date().toISOString().split("T")[0];
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function fmtUSD(n){ return "$"+(Number(n)||0).toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function fmtDate(s){ if(!s) return "--"; var d=new Date(s+"T12:00:00"); return ("0"+(d.getMonth()+1)).slice(-2)+"/"+("0"+d.getDate()).slice(-2)+"/"+d.getFullYear(); }
+function daysAgo(n){ var d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().split("T")[0]; }
+function daysFromNow(n){ var d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().split("T")[0]; }
+function addDays(s,n){ var d=new Date((s||TODAY)+"T12:00:00"); d.setDate(d.getDate()+n); return d.toISOString().split("T")[0]; }
+function daysBetween(a,b){ return Math.max(0,Math.round((new Date(b+"T12:00:00")-new Date(a+"T12:00:00"))/(1000*60*60*24))); }
+function daysSince(s){ return Math.floor((Date.now()-new Date((s||TODAY)+"T12:00:00").getTime())/(1000*60*60*24)); }
+
+var GREEN="#1a7f3c"; var AMBER="#925c0a"; var RED="#b91c1c";
+var BLUE="#1565c0"; var TEAL="#0ea5a0"; var VIOLET="#7c3aed"; var INDIGO="#3d5bcd";
+
+var S = {
+  wrap:   { background:"#f4f5f7", minHeight:"100vh", fontFamily:"system-ui,'Segoe UI',sans-serif", color:"#1a1f2e", fontSize:"13px" },
+  topbar: { background:"#ffffff", borderBottom:"1px solid #e3e6ea", padding:"0 20px", height:52, display:"flex", alignItems:"center", gap:12, flexShrink:0 },
+  card:   { background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:10, padding:"14px 16px", marginBottom:10 },
+  input:  { width:"100%", background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:8, padding:"9px 12px", color:"#1a1f2e", fontSize:13, outline:"none", boxSizing:"border-box", fontFamily:"inherit" },
+  sel:    { width:"100%", background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:8, padding:"9px 12px", color:"#1a1f2e", fontSize:13, outline:"none", cursor:"pointer", fontFamily:"inherit", boxSizing:"border-box" },
+  ta:     { width:"100%", background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:8, padding:"9px 12px", color:"#1a1f2e", fontSize:13, outline:"none", resize:"vertical", fontFamily:"inherit", boxSizing:"border-box", minHeight:72 },
+  label:  { fontSize:10, fontWeight:700, color:"#9ca3af", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:3, display:"block" },
+  stit:   { fontSize:10, fontWeight:700, color:"#9ca3af", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:10 },
+  modal:  { position:"fixed", inset:0, background:"rgba(15,20,30,0.45)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:20 },
+  mbox:   { background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:14, padding:28, maxWidth:580, width:"100%", maxHeight:"90vh", overflowY:"auto", boxShadow:"0 8px 32px rgba(0,0,0,0.10)" },
+  g2:     { display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 },
+  g3:     { display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 },
+  bdg:    function(c,bg,br){ return { display:"inline-flex", alignItems:"center", padding:"2px 9px", borderRadius:20, fontSize:10, fontWeight:700, color:c, background:bg, border:"1px solid "+br }; },
+  tab:    function(a){ return { padding:"8px 14px", cursor:"pointer", fontSize:12, fontWeight:a?700:500, color:a?BLUE:"#6b7280", background:"none", border:"none", borderBottom:a?"2px solid "+BLUE:"2px solid transparent", transition:"all 0.15s", whiteSpace:"nowrap" }; },
+  btn:    function(v){
+    var m = {
+      primary: {bg:"#1a385a",   c:"#fff",     br:"transparent"},
+      success: {bg:"#edf7ee",   c:GREEN,      br:"#a3d9a5"},
+      danger:  {bg:"#fef2f2",   c:RED,        br:"#f5b8b8"},
+      warn:    {bg:"#fef9e7",   c:AMBER,      br:"#f0d080"},
+      ghost:   {bg:"#f4f5f7",   c:"#6b7280",  br:"#e3e6ea"},
+      indigo:  {bg:"#e8f0fe",   c:BLUE,       br:"#aac4f0"},
+      teal:    {bg:"rgba(14,165,160,0.08)", c:TEAL, br:"rgba(14,165,160,0.3)"},
+      violet:  {bg:"#f3e8ff",   c:VIOLET,     br:"#c4b5fd"},
+    };
+    var s = m[v]||m.ghost;
+    return { display:"inline-flex", alignItems:"center", gap:6, padding:"7px 14px", borderRadius:8, cursor:"pointer", fontSize:12, fontWeight:600, background:s.bg, color:s.c, border:"1px solid "+s.br, transition:"all 0.15s", whiteSpace:"nowrap" };
+  },
+};
+
+// ─────────────────────────────────────────────────────────────
+// CATÁLOGOS
+// ─────────────────────────────────────────────────────────────
+var ROLES = {
+  cs:        { label:"Customer Service", color:VIOLET,
+    permisos:{ verReservas:true, crearReserva:false, modificarReserva:false, cancelarReserva:false, confirmarReserva:false,
+               verHistorial:true, crearNota:true, crearCaso:true, crearOperacion:true,
+               verFinanciero:true, verContacto:true, iniciarRetencion:true } },
+  reservas:  { label:"Reservas", color:TEAL,
+    permisos:{ verReservas:true, crearReserva:true, modificarReserva:true, cancelarReserva:true, confirmarReserva:true,
+               verHistorial:true, crearNota:true, crearCaso:false, crearOperacion:false,
+               verFinanciero:false, verContacto:true, iniciarRetencion:false } },
+  supervisor:{ label:"Supervisor", color:AMBER,
+    permisos:{ verReservas:true, crearReserva:true, modificarReserva:true, cancelarReserva:true, confirmarReserva:true,
+               verHistorial:true, crearNota:true, crearCaso:true, crearOperacion:true,
+               verFinanciero:true, verContacto:true, iniciarRetencion:true } },
+};
+
+var RES_STATUS = {
+  solicitud:       {label:"Solicitud",       color:AMBER,  bg:"rgba(245,158,11,0.08)", br:"rgba(245,158,11,0.3)"},
+  vlo_proceso:     {label:"VLO en proceso",  color:BLUE,   bg:"#e8f0fe", br:"#aac4f0"},
+  rechazado_hotel: {label:"Rechazado hotel", color:RED,    bg:"#fef2f2", br:"#f5b8b8"},
+  confirmada:      {label:"Confirmada",      color:GREEN,  bg:"#edf7ee", br:"#a3d9a5"},
+  cancelada:       {label:"Cancelada",       color:RED,    bg:"#fef2f2", br:"#f5b8b8"},
+  completada:      {label:"Completada",      color:"#9ca3af", bg:"#f4f5f7", br:"#e3e6ea"},
+};
+var CASO_STATUS = {
+  abierto:    {label:"Abierto",    color:RED,   bg:"#fef2f2", br:"#f5b8b8"},
+  en_proceso: {label:"En proceso", color:AMBER, bg:"#fef9e7", br:"#f0d080"},
+  resuelto:   {label:"Resuelto",   color:GREEN, bg:"#edf7ee", br:"#a3d9a5"},
+};
+var OP_TIPOS = {
+  cancelacion:       {label:"Cancelacion",        color:RED,    bg:"#fef2f2", br:"#f5b8b8"},
+  extension:         {label:"Extension vigencia", color:AMBER,  bg:"#fef9e7", br:"#f0d080"},
+  reembolso:         {label:"Reembolso",          color:GREEN,  bg:"#edf7ee", br:"#a3d9a5"},
+  cambio_destino:    {label:"Cambio de destinos", color:BLUE,   bg:"#e8f0fe", br:"#aac4f0"},
+  descuento_credito: {label:"Descuento/Credito",  color:VIOLET, bg:"#f3e8ff", br:"#c4b5fd"},
+};
+var OP_STATUS = {
+  pendiente: {label:"Pend. aprobacion", color:AMBER, bg:"#fef9e7", br:"#f0d080"},
+  aprobado:  {label:"Aprobado",         color:GREEN, bg:"#edf7ee", br:"#a3d9a5"},
+  rechazado: {label:"Rechazado",        color:RED,   bg:"#fef2f2", br:"#f5b8b8"},
+};
+var CANALES = { llamada:{label:"Llamada"}, whatsapp:{label:"WhatsApp"}, email:{label:"Email"}, sistema:{label:"Sistema"}, presencial:{label:"Presencial"} };
+var CATEGORIAS_CASO = ["Cambio de fecha","Cancelacion","Queja del servicio","Informacion del paquete","Problema con reservacion","Solicitud especial","Cobro / facturacion","Modificacion de paquete","Otro"];
+var REGIMENES = ["Solo habitacion","Desayuno incluido","Media pension","Todo incluido"];
+var OFERTAS_RET = [
+  {id:"ext_vigencia", label:"Extension de membresia sin costo",  color:TEAL,   bg:"rgba(14,165,160,0.08)",  br:"rgba(14,165,160,0.3)"},
+  {id:"precio_menor", label:"Precio de cierre menor (descuento)", color:GREEN,  bg:"#edf7ee", br:"#a3d9a5"},
+  {id:"gift_card",    label:"Gift Card $100 USD",                 color:AMBER,  bg:"#fef9e7", br:"#f0d080"},
+  {id:"otro",         label:"Otro",                               color:"#6b7280", bg:"#f4f5f7", br:"#e3e6ea"},
+];
+
+// ─────────────────────────────────────────────────────────────
+// HOTELES CATALOGO (completo)
+// ─────────────────────────────────────────────────────────────
+var HOTELES_CATALOG = {
+  "Cancun":[
+    {id:"H101",nombre:"Krystal Grand Cancun Resort",cat:"5",fee:75,precioNoche:120,ageMin:25,ageMax:65,marital:["Casado","Union libre","Soltero hombre","Soltera mujer"],tipos:["qc"],habs:[{id:"a",nombre:"Superior",base:true,up:0},{id:"b",nombre:"Deluxe",base:false,up:40},{id:"c",nombre:"Deluxe Oceano King",base:false,up:75},{id:"d",nombre:"Suite Junior",base:false,up:130}],regs:["Solo habitacion","Desayuno incluido","Todo incluido"],temps:[{id:"t1",nombre:"Semana Santa",inicio:"2026-03-28",fin:"2026-04-05",surcharge:60}]},
+    {id:"H102",nombre:"Hotel Emporio Cancun",cat:"4",fee:50,precioNoche:90,ageMin:25,ageMax:99,marital:["Casado","Union libre","Soltero hombre","Soltera mujer"],tipos:["qc","nq"],habs:[{id:"a",nombre:"Estandar",base:true,up:0},{id:"b",nombre:"Superior",base:false,up:30},{id:"c",nombre:"Deluxe",base:false,up:55}],regs:["Solo habitacion","Desayuno incluido","Todo incluido"],temps:[]},
+    {id:"H103",nombre:"Live Aqua Beach Resort",cat:"5",fee:100,precioNoche:180,ageMin:30,ageMax:60,marital:["Casado","Union libre"],tipos:["qc"],habs:[{id:"a",nombre:"Aqua Room",base:true,up:0},{id:"b",nombre:"Aqua Suite",base:false,up:150}],regs:["Todo incluido"],temps:[]},
+  ],
+  "Los Cabos":[
+    {id:"H201",nombre:"Riu Palace Cabo San Lucas",cat:"5",fee:80,precioNoche:140,ageMin:36,ageMax:99,marital:["Casado","Union libre"],tipos:["qc"],habs:[{id:"a",nombre:"Deluxe",base:true,up:0},{id:"b",nombre:"Junior Suite",base:false,up:100},{id:"c",nombre:"Suite Premium",base:false,up:200}],regs:["Todo incluido"],temps:[]},
+    {id:"H202",nombre:"Melia Cabo Real Beach Golf",cat:"5",fee:65,precioNoche:110,ageMin:25,ageMax:99,marital:["Casado","Union libre"],tipos:["qc","nq"],habs:[{id:"a",nombre:"Superior Garden View",base:true,up:0},{id:"b",nombre:"Deluxe Sea View",base:false,up:60}],regs:["Solo habitacion","Desayuno incluido","Todo incluido"],temps:[]},
+  ],
+  "Riviera Maya":[
+    {id:"H301",nombre:"Iberostar Paraiso Lindo",cat:"5",fee:85,precioNoche:150,ageMin:25,ageMax:60,marital:["Casado","Union libre"],tipos:["qc"],habs:[{id:"a",nombre:"Superior",base:true,up:0},{id:"b",nombre:"Premium",base:false,up:80},{id:"c",nombre:"Suite Oceanfront",base:false,up:180}],regs:["Todo incluido"],temps:[]},
+    {id:"H302",nombre:"Grand Palladium Riviera Resort",cat:"5",fee:70,precioNoche:120,ageMin:25,ageMax:70,marital:["Casado","Union libre","Soltero hombre","Soltera mujer"],tipos:["qc","nq"],habs:[{id:"a",nombre:"Junior Suite",base:true,up:0},{id:"b",nombre:"Suite",base:false,up:90}],regs:["Todo incluido"],temps:[]},
+  ],
+  "Puerto Vallarta":[
+    {id:"H401",nombre:"Marriott Puerto Vallarta Resort",cat:"5",fee:70,precioNoche:115,ageMin:25,ageMax:60,marital:["Casado","Union libre","Soltero hombre","Soltera mujer"],tipos:["qc","nq"],habs:[{id:"a",nombre:"Deluxe",base:true,up:0},{id:"b",nombre:"Deluxe Marina View",base:false,up:60},{id:"c",nombre:"Suite Junior",base:false,up:140}],regs:["Solo habitacion","Desayuno incluido","Todo incluido"],temps:[]},
+  ],
+  "Huatulco":[
+    {id:"H501",nombre:"Dreams Huatulco Resort Spa",cat:"5",fee:60,precioNoche:100,ageMin:25,ageMax:65,marital:["Casado","Union libre"],tipos:["qc"],habs:[{id:"a",nombre:"Deluxe",base:true,up:0},{id:"b",nombre:"Preferred Club",base:false,up:90}],regs:["Todo incluido"],temps:[]},
+    {id:"H502",nombre:"Barcelo Huatulco",cat:"4",fee:50,precioNoche:80,ageMin:25,ageMax:99,marital:["Casado","Union libre","Soltero hombre","Soltera mujer"],tipos:["qc","nq"],habs:[{id:"a",nombre:"Estandar",base:true,up:0},{id:"b",nombre:"Superior",base:false,up:40}],regs:["Todo incluido"],temps:[]},
+  ],
+  "Las Vegas":[
+    {id:"H601",nombre:"MGM Grand",cat:"4",fee:60,precioNoche:95,ageMin:21,ageMax:99,marital:["Casado","Union libre","Soltero hombre","Soltera mujer"],tipos:["qc","nq"],habs:[{id:"a",nombre:"Deluxe",base:true,up:0},{id:"b",nombre:"Strip View",base:false,up:50}],regs:["Solo habitacion"],temps:[]},
+    {id:"H602",nombre:"Bellagio Hotel Casino",cat:"5",fee:90,precioNoche:160,ageMin:25,ageMax:70,marital:["Casado","Union libre"],tipos:["qc"],habs:[{id:"a",nombre:"Deluxe",base:true,up:0},{id:"b",nombre:"Fountain View",base:false,up:80}],regs:["Solo habitacion"],temps:[]},
+  ],
+  "Orlando":[
+    {id:"H701",nombre:"Walt Disney World Swan",cat:"4",fee:70,precioNoche:110,ageMin:25,ageMax:99,marital:["Casado","Union libre","Soltero hombre","Soltera mujer"],tipos:["qc","nq"],habs:[{id:"a",nombre:"Standard",base:true,up:0},{id:"b",nombre:"Lake View",base:false,up:50}],regs:["Solo habitacion","Desayuno incluido"],temps:[]},
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────
+function calificaHotel(h,c){
+  var motivos=[];
+  if(c.edad&&(c.edad<h.ageMin||c.edad>h.ageMax)) motivos.push("Edad fuera de rango");
+  if(c.estadoCivil&&h.marital&&!h.marital.includes(c.estadoCivil)) motivos.push("EC no permitido");
+  return {ok:motivos.length===0, motivos:motivos};
+}
+function getPenalidad(dias){ if(dias<=7) return {pct:100}; if(dias<=30) return {pct:80}; if(dias<=90) return {pct:60}; if(dias<=180) return {pct:40}; return {pct:20}; }
+
+// ─────────────────────────────────────────────────────────────
+// MAPEAR LEAD SUPABASE → MIEMBRO CS
+// Un lead con status='venta' se convierte en miembro activo
+// ─────────────────────────────────────────────────────────────
+function leadToMiembro(r) {
+  var exp = r.expediente || {};
+  // Armar nombre completo
+  var nombre = ((exp.tFirstName||"")+" "+(exp.tLastName||"")).trim() || r.nombre || "Sin nombre";
+  var coProp = exp.hasPartner ? (((exp.pFirstName||"")+" "+(exp.pLastName||"")).trim()||null) : null;
+  // Calcular edad desde fecha de nacimiento
+  var edad = 0;
+  if(exp.tFechaNac) { edad = Math.floor((Date.now()-new Date(exp.tFechaNac).getTime())/31557600000); }
+  else if(r.edad) { edad = Number(r.edad); }
+  // Destinos: vienen del campo destinos del lead
+  var destinos = (r.destinos||[]).map(function(d, i) {
+    return {
+      id: "D"+(i+1),
+      leadDestId: d.destId,
+      nombre: d.destId || "Destino",   // se enriquece luego con catálogo
+      noches: d.noches || 5,
+      tipo: d.tipo || "qc",
+      regalo: d.regalo || null,
+    };
+  });
+  // Calcular pagado + saldo
+  var pagosHistorial = r.pagos_historial || [];
+  var totalPagado = (Number(r.pago_inicial)||0) + pagosHistorial.reduce(function(s,p){ return s+(p.monto||0); }, 0);
+  var saldo = Math.max(0, (Number(r.sale_price)||0) - totalPagado);
+  // Pagos para tab financiero
+  var pagos = [];
+  if(r.pago_inicial>0) pagos.push({id:"P0",fecha:r.created_at?r.created_at.split("T")[0]:TODAY,monto:Number(r.pago_inicial),concepto:"Pago inicial (venta)",metodo:r.metodo_pago||"tarjeta",referencia:r.tarjeta_last4?"*"+r.tarjeta_last4:"—"});
+  pagosHistorial.forEach(function(p){ pagos.push({id:p.id||uid(),fecha:p.fecha,monto:p.monto,concepto:p.concepto,metodo:p.metodo,referencia:p.referencia}); });
+
+  return {
+    id:             r.id,
+    folio:          "XT-"+String(r.id).slice(0,6).toUpperCase(),
+    nombre:         nombre,
+    coProp:         coProp,
+    coPropTel:      exp.pPhone || null,
+    estadoCivil:    exp.tEstadoCivil || r.estado_civil || "",
+    edad:           edad,
+    tel:            exp.tPhone || r.whatsapp || "",
+    whatsapp:       r.whatsapp || exp.tPhone || "",
+    email:          exp.tEmail || r.email || "",
+    direccion:      [exp.address,exp.city,exp.state].filter(Boolean).join(", ") || "",
+    membresia:      "Silver",
+    vendedor:       r.vendedor_nombre || "",
+    compra:         r.created_at ? r.created_at.split("T")[0] : TODAY,
+    vigencia:       daysFromNow(730),
+    precioPaquete:  Number(r.sale_price) || 0,
+    pagoInicial:    Number(r.pago_inicial) || 0,
+    totalPagado:    totalPagado,
+    saldoPendiente: saldo,
+    pagos:          pagos,
+    statusCliente:  "activo",
+    motivoRetencion:null,
+    destinos:       destinos,
+    verificacion:   r.verificacion || null,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+// COMPONENTES BASE
+// ─────────────────────────────────────────────────────────────
+function ModalWrap(props) {
+  var accentColor = props.color || "#1a385a";
+  return (
+    <div style={S.modal} onClick={props.onClose}>
+      <div style={Object.assign({},S.mbox,props.wide?{maxWidth:720}:{})} onClick={function(e){e.stopPropagation();}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+          <div>
+            <div style={{fontSize:16,fontWeight:700,color:"#1a1f2e"}}>{props.title}</div>
+            {props.sub&&<div style={{fontSize:12,color:"#9ca3af",marginTop:2}}>{props.sub}</div>}
+          </div>
+          <button onClick={props.onClose} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#9ca3af",padding:"2px 6px",lineHeight:1}}>✕</button>
+        </div>
+        <div style={{height:3,borderRadius:2,background:accentColor,marginBottom:20}} />
+        {props.children}
+      </div>
+    </div>
+  );
+}
+
+function EjecutivoSel(props){
+  var opts=["Ana Lopez (CS)","Carlos M. (CS)","Maria R. (Reservas)","Jorge P. (Reservas)","Marco Silva (Supervisor)"];
+  return <select style={S.sel} value={props.value} onChange={props.onChange}>{opts.map(function(o){return <option key={o} value={o}>{o}</option>;})}</select>;
+}
+
+function EventoDot(props){
+  var col = props.col || "#9ca3af";
+  var ch = (CANALES[props.canal]||{label:props.canal||""}).label;
+  return (
+    <div style={{display:"flex",gap:10,padding:"8px 0",borderBottom:"1px solid #f0f1f4"}}>
+      <div style={{width:7,height:7,borderRadius:"50%",background:col,flexShrink:0,marginTop:4}} />
+      <div style={{flex:1}}>
+        <div style={{fontSize:12,color:"#3d4554",lineHeight:1.4}}>{props.texto}</div>
+        <div style={{fontSize:10,color:"#9ca3af",marginTop:2}}>{fmtDate(props.fecha)}{ch?" · "+ch:""}</div>
+      </div>
+      <div style={{fontSize:10,color:"#9ca3af",flexShrink:0,textAlign:"right"}}>{props.autor}</div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// MODAL — NUEVA / EDITAR RESERVA
+// ─────────────────────────────────────────────────────────────
+function ReservaFormModal(props) {
+  var c = props.cliente; var res = props.reserva; var isEdit = !!res;
+  var preDestino = props.destino || null;
+  var initDest = res ? res.destino : (preDestino ? preDestino.nombre : (c.destinos&&c.destinos[0] ? c.destinos[0].nombre : ""));
+  var [destino,setDestino] = useState(initDest);
+  var [checkin,setCheckin] = useState(res ? res.checkin : daysFromNow(30));
+  var [hotel,setHotel] = useState(res ? res.hotel : "");
+  var [habitacion,setHabitacion] = useState(res ? res.habitacion : "");
+  var [regimen,setRegimen] = useState(res ? res.regimen : "Todo incluido");
+  var [personas,setPersonas] = useState(res ? String(res.personas) : "2");
+  var [nochesExtra,setNochesExtra] = useState(res ? String(res.nochesExtra||0) : "0");
+  var [notas,setNotas] = useState(res ? res.notasInternas : "");
+  var destinoObj = (c.destinos||[]).find(function(d){return d.nombre===destino;});
+  var nBase = destinoObj ? destinoObj.noches : 0;
+  var nExtra = parseInt(nochesExtra)||0;
+  var totalN = nBase+nExtra;
+  var checkout = addDays(checkin,totalN);
+  var tipoDestino = destinoObj ? destinoObj.tipo : "qc";
+  var hotelesOpts = (HOTELES_CATALOG[destino]||[]).filter(function(h){ return (!h.tipos||h.tipos.includes(tipoDestino)) && calificaHotel(h,c).ok; });
+  var hotelesNoCalif = (HOTELES_CATALOG[destino]||[]).filter(function(h){ return !calificaHotel(h,c).ok; });
+  var hotelObj = (HOTELES_CATALOG[destino]||[]).find(function(h){return h.nombre===hotel;})||null;
+  var habObj = hotelObj ? (hotelObj.habs.find(function(h){return h.nombre===habitacion;})||hotelObj.habs[0]||null) : null;
+  var nochePrice = (hotelObj?hotelObj.precioNoche:90) + (habObj&&!habObj.base?habObj.up:0);
+  var costoExtra = nExtra * nochePrice;
+  var ok = destino && hotel && checkin && habitacion;
+  return (
+    <ModalWrap title={isEdit?"Modificar reserva":"Nueva reserva"} sub={c.nombre+" — "+c.folio} color={TEAL} onClose={props.onClose} wide>
+      <div style={Object.assign({},S.g2,{marginBottom:12})}>
+        <div>
+          <label style={S.label}>Destino</label>
+          <select style={S.sel} value={destino} onChange={function(e){setDestino(e.target.value);setHotel("");setHabitacion("");}}>
+            <option value="">-- Seleccionar --</option>
+            {(c.destinos||[]).map(function(d){return <option key={d.id} value={d.nombre}>{d.nombre} · {d.noches}n {(d.tipo||"").toUpperCase()}</option>;})}
+          </select>
+        </div>
+        <div>
+          <label style={S.label}>Check-in</label>
+          <input style={S.input} type="date" value={checkin} min={TODAY} onChange={function(e){setCheckin(e.target.value);}}/>
+        </div>
+      </div>
+      {destino&&(
+        <div style={{padding:"9px 12px",borderRadius:9,background:"rgba(14,165,160,0.05)",border:"1px solid rgba(14,165,160,0.2)",marginBottom:12,display:"flex",gap:18,fontSize:12,flexWrap:"wrap"}}>
+          <span style={{color:"#9ca3af"}}>Noches incl.: <strong style={{color:"#1a1f2e"}}>{nBase}</strong></span>
+          <span style={{color:"#9ca3af"}}>Extra: <strong style={{color:AMBER}}>{nExtra}</strong></span>
+          <span style={{color:"#9ca3af"}}>Total: <strong style={{color:TEAL}}>{totalN}n</strong></span>
+          <span style={{color:"#9ca3af"}}>Checkout: <strong style={{color:"#1a1f2e"}}>{fmtDate(checkout)}</strong></span>
+          {costoExtra>0&&<span style={{color:"#9ca3af"}}>Cargo extra ({fmtUSD(nochePrice)}/n): <strong style={{color:AMBER}}>{fmtUSD(costoExtra)}</strong></span>}
+        </div>
+      )}
+      <div style={Object.assign({},S.g2,{marginBottom:12})}>
+        <div>
+          <label style={S.label}>Hotel</label>
+          <select style={S.sel} value={hotel} onChange={function(e){setHotel(e.target.value);}}>
+            <option value="">-- Seleccionar hotel --</option>
+            {hotelesOpts.map(function(h){return <option key={h.id} value={h.nombre}>{h.nombre} ({h.cat}★ · ${h.precioNoche}/n)</option>;})}
+            {hotelesNoCalif.length>0&&<option disabled>── No califica ──</option>}
+            {hotelesNoCalif.map(function(h){return <option key={h.id} disabled>{h.nombre}</option>;})}
+          </select>
+        </div>
+        <div>
+          <label style={S.label}>Habitacion</label>
+          <select style={S.sel} value={habitacion} onChange={function(e){setHabitacion(e.target.value);}}>
+            <option value="">-- Seleccionar --</option>
+            {(hotelObj?hotelObj.habs:[]).map(function(h){var np=(hotelObj?hotelObj.precioNoche:0)+(h.base?0:h.up); return <option key={h.id} value={h.nombre}>{h.nombre}{h.base?" (incluida)":" (+$"+h.up+" upg)"} — extra ${np}/n</option>;})}
+          </select>
+        </div>
+        <div>
+          <label style={S.label}>Regimen</label>
+          <select style={S.sel} value={regimen} onChange={function(e){setRegimen(e.target.value);}}>
+            {REGIMENES.map(function(r){return <option key={r}>{r}</option>;})}
+          </select>
+        </div>
+        <div>
+          <label style={S.label}>Personas</label>
+          <input style={S.input} type="number" min="1" max="6" value={personas} onChange={function(e){setPersonas(e.target.value);}}/>
+        </div>
+        <div>
+          <label style={S.label}>Noches extra (cargo adicional)</label>
+          <input style={S.input} type="number" min="0" max="30" value={nochesExtra} onChange={function(e){setNochesExtra(e.target.value);}}/>
+        </div>
+      </div>
+      <div style={{marginBottom:20}}>
+        <label style={S.label}>Notas / solicitudes especiales</label>
+        <textarea style={Object.assign({},S.ta,{minHeight:60,marginTop:4})} value={notas} onChange={function(e){setNotas(e.target.value);}} placeholder="Preferencias, celebraciones..."/>
+      </div>
+      <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+        <button style={S.btn("ghost")} onClick={props.onClose}>Cancelar</button>
+        <button style={S.btn("teal")} onClick={function(){props.onSave({destino:destino,checkin:checkin,checkout:checkout,hotel:hotel,habitacion:habitacion,regimen:regimen,personas:parseInt(personas)||2,nochesIncluidas:nBase,nochesExtra:nExtra,totalCobrado:costoExtra,tipo:tipoDestino,notasInternas:notas,agente:props.autor||"Agente"});props.onClose();}} disabled={!ok}>
+          {isEdit?"Guardar cambios":"Crear reserva"}
+        </button>
+      </div>
+    </ModalWrap>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// MODAL — VER RESERVA
+// ─────────────────────────────────────────────────────────────
+function ReservaDetailModal(props) {
+  var res=props.reserva; var perms=props.perms;
+  var sc=RES_STATUS[res.status]||RES_STATUS.solicitud;
+  var pasada=new Date(res.checkin+"T12:00:00")<new Date();
+  var [conf,setConf]=useState(res.confirmacion||"");
+  return (
+    <ModalWrap title={res.folio+" — "+res.destino} sub={res.hotel} color={sc.color} onClose={props.onClose} wide>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+        <span style={S.bdg(sc.color,sc.bg,sc.br)}>{sc.label}</span>
+        <span style={S.bdg(res.tipo==="qc"?BLUE:AMBER,res.tipo==="qc"?"#e8f0fe":"#fef9e7",res.tipo==="qc"?"#aac4f0":"#f0d080")}>{(res.tipo||"").toUpperCase()}</span>
+        {pasada&&res.status!=="cancelada"&&<span style={S.bdg("#9ca3af","#f4f5f7","#e3e6ea")}>Viaje pasado</span>}
+      </div>
+      <div style={Object.assign({},S.g3,{marginBottom:14})}>
+        <div style={S.card}><label style={S.label}>Check-in</label><strong style={{fontSize:13}}>{fmtDate(res.checkin)}</strong></div>
+        <div style={S.card}><label style={S.label}>Check-out</label><strong style={{fontSize:13}}>{fmtDate(res.checkout)}</strong></div>
+        <div style={S.card}><label style={S.label}>Noches</label><strong style={{color:TEAL,fontSize:13}}>{daysBetween(res.checkin,res.checkout)}</strong></div>
+        <div style={S.card}><label style={S.label}>Habitacion</label><span style={{fontSize:12}}>{res.habitacion||"--"}</span></div>
+        <div style={S.card}><label style={S.label}>Regimen</label><span style={{fontSize:12}}>{res.regimen||"--"}</span></div>
+        <div style={S.card}><label style={S.label}>Personas</label><strong style={{fontSize:13}}>{res.personas}</strong></div>
+        {res.totalCobrado>0&&<div style={S.card}><label style={S.label}>Cargo extra</label><strong style={{color:AMBER,fontSize:13}}>{fmtUSD(res.totalCobrado)}</strong></div>}
+        <div style={S.card}><label style={S.label}>Agente</label><span style={{fontSize:12}}>{res.agente}</span></div>
+      </div>
+      {res.confirmacion&&<div style={{padding:"8px 12px",borderRadius:8,background:"#edf7ee",border:"1px solid #a3d9a5",fontSize:12,color:GREEN,marginBottom:12}}>Confirmacion hotel: <strong>{res.confirmacion}</strong></div>}
+      {res.notasInternas&&<div style={Object.assign({},S.card,{borderColor:"rgba(245,158,11,0.25)",marginBottom:12})}><label style={S.label}>Notas internas</label><div style={{fontSize:12,marginTop:3}}>{res.notasInternas}</div></div>}
+      {perms.confirmarReserva&&(res.status==="solicitud"||res.status==="vlo_proceso")&&!pasada&&(
+        <div style={{padding:"12px",borderRadius:10,background:"rgba(14,165,160,0.05)",border:"1px solid rgba(14,165,160,0.2)",marginBottom:14}}>
+          <label style={S.label}>Marcar como confirmada</label>
+          <div style={{display:"flex",gap:8,marginTop:6}}>
+            <input style={S.input} value={conf} onChange={function(e){setConf(e.target.value);}} placeholder="No. confirmacion del hotel (ej: KGC-44821)"/>
+            <button style={Object.assign({},S.btn("teal"),{flexShrink:0})} onClick={function(){props.onConfirmar(res.id,conf);props.onClose();}} disabled={!conf.trim()}>Confirmar</button>
+          </div>
+        </div>
+      )}
+      <div style={S.stit}>Historial de la reserva</div>
+      {(res.historial||[]).map(function(h,i){
+        return <div key={i} style={{display:"flex",gap:10,padding:"5px 0",borderBottom:"1px solid #f0f1f4"}}>
+          <div style={{fontSize:10,color:"#9ca3af",width:80,flexShrink:0}}>{fmtDate(h.fecha)}</div>
+          <div style={{fontSize:12,flex:1}}>{h.texto}</div>
+          <div style={{fontSize:10,color:"#9ca3af"}}>{h.autor}</div>
+        </div>;
+      })}
+      <div style={{display:"flex",gap:8,justifyContent:"space-between",marginTop:16,flexWrap:"wrap"}}>
+        <div style={{display:"flex",gap:8}}>
+          {perms.modificarReserva&&res.status!=="cancelada"&&res.status!=="completada"&&<button style={S.btn("warn")} onClick={function(){props.onEditar(res);props.onClose();}}>Modificar</button>}
+          {perms.cancelarReserva&&res.status!=="cancelada"&&res.status!=="completada"&&<button style={S.btn("danger")} onClick={function(){props.onCancelar(res.id);props.onClose();}}>Cancelar reserva</button>}
+        </div>
+        <button style={S.btn("ghost")} onClick={props.onClose}>Cerrar</button>
+      </div>
+    </ModalWrap>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// MODALES SIMPLES
+// ─────────────────────────────────────────────────────────────
+function NotaModal(props) {
+  var [txt,setTxt]=useState(""); var [canal,setCanal]=useState("llamada"); var [autor,setAutor]=useState("Ana Lopez (CS)");
+  return (
+    <ModalWrap title="Nota rapida" sub={props.cliente.nombre} color={VIOLET} onClose={props.onClose}>
+      <div style={{marginBottom:10}}><label style={S.label}>Canal</label><select style={S.sel} value={canal} onChange={function(e){setCanal(e.target.value);}}>{Object.keys(CANALES).map(function(k){return <option key={k} value={k}>{CANALES[k].label}</option>;})}</select></div>
+      <div style={{marginBottom:10}}><label style={S.label}>Nota</label><textarea style={Object.assign({},S.ta,{minHeight:100,marginTop:4})} value={txt} onChange={function(e){setTxt(e.target.value);}} placeholder="Detalle de la interaccion..."/></div>
+      <div style={{marginBottom:18}}><label style={S.label}>Ejecutivo</label><EjecutivoSel value={autor} onChange={function(e){setAutor(e.target.value);}}/></div>
+      <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+        <button style={S.btn("ghost")} onClick={props.onClose}>Cancelar</button>
+        <button style={S.btn("primary")} onClick={function(){props.onSave(txt,canal,autor);props.onClose();}} disabled={!txt.trim()}>Guardar nota</button>
+      </div>
+    </ModalWrap>
+  );
+}
+
+function CasoModal(props) {
+  var [titulo,setTitulo]=useState(""); var [categoria,setCategoria]=useState(CATEGORIAS_CASO[0]); var [canal,setCanal]=useState("llamada"); var [autor,setAutor]=useState("Ana Lopez (CS)");
+  return (
+    <ModalWrap title="Nuevo caso CS" sub={props.cliente.nombre} color={BLUE} onClose={props.onClose}>
+      <div style={{marginBottom:10}}><label style={S.label}>Titulo del caso</label><input style={S.input} value={titulo} onChange={function(e){setTitulo(e.target.value);}} placeholder="Resumen del caso..."/></div>
+      <div style={Object.assign({},S.g2,{marginBottom:10})}>
+        <div><label style={S.label}>Categoria</label><select style={S.sel} value={categoria} onChange={function(e){setCategoria(e.target.value);}}>{CATEGORIAS_CASO.map(function(c){return <option key={c}>{c}</option>;})}</select></div>
+        <div><label style={S.label}>Canal</label><select style={S.sel} value={canal} onChange={function(e){setCanal(e.target.value);}}>{Object.keys(CANALES).map(function(k){return <option key={k} value={k}>{CANALES[k].label}</option>;})}</select></div>
+      </div>
+      <div style={{marginBottom:18}}><label style={S.label}>Asignado a</label><EjecutivoSel value={autor} onChange={function(e){setAutor(e.target.value);}}/></div>
+      <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+        <button style={S.btn("ghost")} onClick={props.onClose}>Cancelar</button>
+        <button style={S.btn("primary")} onClick={function(){props.onSave({titulo:titulo,categoria:categoria,canal:canal,autor:autor});props.onClose();}} disabled={!titulo.trim()}>Crear caso</button>
+      </div>
+    </ModalWrap>
+  );
+}
+
+function OpModal(props) {
+  var c=props.cliente;
+  var [tipo,setTipo]=useState(""); var [nota,setNota]=useState(""); var [autor,setAutor]=useState("Ana Lopez (CS)");
+  var dias=daysSince(c.compra); var pen=getPenalidad(dias); var reembolso=Math.round((c.precioPaquete||0)*pen.pct/100);
+  return (
+    <ModalWrap title="Nueva operacion" sub={c.nombre+" — "+c.folio} color={AMBER} onClose={props.onClose}>
+      <div style={{marginBottom:10}}><label style={S.label}>Tipo de operacion</label>
+        <select style={S.sel} value={tipo} onChange={function(e){setTipo(e.target.value);}}>
+          <option value="">-- Seleccionar --</option>
+          {Object.entries(OP_TIPOS).map(function(e){return <option key={e[0]} value={e[0]}>{e[1].label}</option>;})}
+        </select>
+      </div>
+      {tipo==="cancelacion"&&(
+        <div style={{padding:"12px",borderRadius:10,background:"#fef2f2",border:"1px solid #f5b8b8",marginBottom:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:RED,marginBottom:8}}>Calculadora de cancelacion</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,fontSize:12}}>
+            <div><label style={S.label}>Dias desde compra</label><strong>{dias}d</strong></div>
+            <div><label style={S.label}>Politica</label><strong style={{color:AMBER}}>{pen.pct}%</strong></div>
+            <div><label style={S.label}>Precio original</label><strong>{fmtUSD(c.precioPaquete)}</strong></div>
+            <div><label style={S.label}>Reembolso est.</label><strong style={{color:GREEN}}>{fmtUSD(reembolso)}</strong></div>
+          </div>
+        </div>
+      )}
+      <div style={{marginBottom:10}}><label style={S.label}>Nota CS</label><textarea style={Object.assign({},S.ta,{minHeight:64,marginTop:4})} value={nota} onChange={function(e){setNota(e.target.value);}} placeholder="Contexto o detalles adicionales..."/></div>
+      <div style={{marginBottom:18}}><label style={S.label}>Ejecutivo CS</label><EjecutivoSel value={autor} onChange={function(e){setAutor(e.target.value);}}/></div>
+      <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+        <button style={S.btn("ghost")} onClick={props.onClose}>Cancelar</button>
+        <button style={S.btn("warn")} onClick={function(){props.onSave({tipo:tipo,notaCS:nota,autor:autor,detalle:{dias:dias,pct:pen.pct,montoOriginal:c.precioPaquete,montoReembolso:reembolso}});props.onClose();}} disabled={!tipo}>Enviar a aprobacion</button>
+      </div>
+    </ModalWrap>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// FICHA DEL MIEMBRO — tabs
+// ─────────────────────────────────────────────────────────────
+function FichaMiembro(props) {
+  var c=props.cliente; var perms=props.perms; var rol=props.rol;
+  var reservas=props.reservas; var interacciones=props.interacciones;
+  var casos=props.casos; var ops=props.ops;
+  var [tab,setTab]=useState("paquete");
+
+  var resCliente=reservas.filter(function(r){return r.clienteFolio===c.folio;});
+  var resActivas=resCliente.filter(function(r){return r.status!=="cancelada"&&r.status!=="completada";});
+  var casosCliente=casos.filter(function(x){return x.clienteFolio===c.folio;});
+  var opsCliente=ops.filter(function(x){return x.clienteFolio===c.folio;});
+  var historialCS=interacciones.filter(function(x){return x.clienteFolio===c.folio;}).sort(function(a,b){return new Date(b.fecha)-new Date(a.fecha);});
+
+  var MEMBCOLOR={Silver:"#6b7280",Gold:AMBER,Platinum:VIOLET};
+
+  var TABS=[
+    {id:"paquete",   label:"📦 Paquete",                          show:true},
+    {id:"contacto",  label:"📞 Contacto",                         show:perms.verContacto},
+    {id:"reservas",  label:"🏨 Reservas"+(resCliente.length?" ("+resCliente.length+")":""), show:true},
+    {id:"historial", label:"🕒 Historial",                        show:perms.verHistorial},
+    {id:"financiero",label:"💰 Financiero",                       show:perms.verFinanciero},
+    {id:"casos",     label:"📋 Casos"+(casosCliente.length?" ("+casosCliente.length+")":""), show:perms.crearCaso||perms.verHistorial},
+    {id:"ops",       label:"⚙️ Ops"+(opsCliente.length?" ("+opsCliente.length+")":""),      show:perms.crearOperacion||perms.verHistorial},
+  ].filter(function(t){return t.show;});
+
+  return (
+    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+
+      {/* HEADER DEL MIEMBRO */}
+      <div style={{background:"#ffffff",borderBottom:"1px solid #e3e6ea",padding:"12px 20px",flexShrink:0}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,"+BLUE+","+TEAL+")",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:"#fff",flexShrink:0}}>
+              {c.nombre.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style={{fontSize:16,fontWeight:700,color:"#1a1f2e"}}>{c.nombre}{c.coProp?" + "+c.coProp:""}</div>
+              <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>
+                {c.folio}
+                {c.estadoCivil?" · "+c.estadoCivil:""}
+                {c.edad?" · "+c.edad+" años":""}
+                {c.vendedor?" · Vend: "+c.vendedor:""}
+              </div>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
+            <span style={S.bdg(GREEN,"#edf7ee","#a3d9a5")}>✅ Miembro activo</span>
+            <span style={S.bdg(MEMBCOLOR[c.membresia]||"#6b7280","#f4f5f7","#e3e6ea")}>{c.membresia}</span>
+            {c.saldoPendiente>0&&<span style={S.bdg(AMBER,"#fef9e7","#f0d080")}>Saldo {fmtUSD(c.saldoPendiente)}</span>}
+            {resActivas.length>0&&<span style={S.bdg(TEAL,"rgba(14,165,160,0.08)","rgba(14,165,160,0.3)")}>{resActivas.length} reserva{resActivas.length>1?"s":""}</span>}
+          </div>
+        </div>
+        {/* RESUMEN RAPIDO */}
+        <div style={{display:"flex",gap:16,fontSize:11,color:"#9ca3af",marginBottom:10,flexWrap:"wrap"}}>
+          <span>Paquete: <strong style={{color:"#1a1f2e"}}>{fmtUSD(c.precioPaquete)}</strong></span>
+          <span>Pagado: <strong style={{color:GREEN}}>{fmtUSD(c.totalPagado)}</strong></span>
+          {c.saldoPendiente>0&&<span>Saldo: <strong style={{color:AMBER}}>{fmtUSD(c.saldoPendiente)}</strong></span>}
+          <span>Vigencia: <strong style={{color:"#1a1f2e"}}>{fmtDate(c.vigencia)}</strong></span>
+          <span>Compra: <strong style={{color:"#1a1f2e"}}>{fmtDate(c.compra)}</strong></span>
+        </div>
+        {/* ACCIONES */}
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+          {perms.crearReserva
+            ? <button style={S.btn("teal")} onClick={function(){props.onNuevaReserva(c);}}>+ Reserva</button>
+            : <button style={Object.assign({},S.btn("ghost"),{opacity:0.45,cursor:"not-allowed"})} disabled>+ Reserva</button>}
+          {perms.crearNota&&<button style={S.btn("ghost")} onClick={function(){props.onNota(c);}}>+ Nota</button>}
+          {perms.crearCaso&&<button style={S.btn("indigo")} onClick={function(){props.onCaso(c);}}>+ Caso</button>}
+          {perms.crearOperacion&&<button style={S.btn("warn")} onClick={function(){props.onOp(c);}}>+ Op.</button>}
+          <CommPanelTrigger cliente={c} onOpen={props.onComm}/>
+          {perms.iniciarRetencion&&c.statusCliente==="activo"&&(
+            <button style={S.btn("danger")} onClick={function(){props.onRetencion(c);}}>Retención</button>
+          )}
+        </div>
+      </div>
+
+      {/* TABS */}
+      <div style={{background:"#ffffff",borderBottom:"1px solid #e3e6ea",padding:"0 20px",display:"flex",gap:0,overflowX:"auto",flexShrink:0}}>
+        {TABS.map(function(t){
+          return <button key={t.id} style={S.tab(tab===t.id)} onClick={function(){setTab(t.id);}}>{t.label}</button>;
+        })}
+      </div>
+
+      {/* CONTENIDO */}
+      <div style={{flex:1,overflowY:"auto",padding:"16px 20px",background:"#f4f5f7"}}>
+
+        {/* ── PAQUETE ── */}
+        {tab==="paquete"&&(
+          <div>
+            <div style={S.card}>
+              <div style={S.stit}>Destinos del paquete</div>
+              {(c.destinos||[]).length===0&&<div style={{fontSize:12,color:"#9ca3af",textAlign:"center",padding:"20px 0"}}>Sin destinos asignados</div>}
+              {(c.destinos||[]).map(function(d,i){
+                var resD=resCliente.filter(function(r){return r.destino===d.nombre;});
+                var resActD=resD.filter(function(r){return r.status!=="cancelada"&&r.status!=="completada";});
+                return (
+                  <div key={i} style={{padding:"10px 12px",borderRadius:9,marginBottom:7,
+                    background:d.tipo==="qc"?"rgba(21,101,192,0.04)":"rgba(146,92,10,0.04)",
+                    border:"1px solid "+(d.tipo==="qc"?"rgba(21,101,192,0.2)":"rgba(146,92,10,0.2)")}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:700,color:"#1a1f2e"}}>{d.nombre}</div>
+                        <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>
+                          {d.noches} noches · {(d.tipo||"").toUpperCase()}
+                          {d.regalo?" · 🎁 "+d.regalo.label:""}
+                        </div>
+                      </div>
+                      <div>
+                        {resActD.length>0
+                          ? <span style={S.bdg(TEAL,"rgba(14,165,160,0.08)","rgba(14,165,160,0.3)")}>Reserva activa</span>
+                          : perms.crearReserva&&<button style={Object.assign({},S.btn("ghost"),{fontSize:11,padding:"4px 10px"})} onClick={function(){props.onNuevaReserva(c,d);}}>+ Reservar</button>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={S.g3}>
+              <div style={S.card}><label style={S.label}>Precio paquete</label><div style={{fontSize:16,fontWeight:800,color:"#1a1f2e"}}>{fmtUSD(c.precioPaquete)}</div></div>
+              <div style={S.card}><label style={S.label}>Total pagado</label><div style={{fontSize:16,fontWeight:800,color:GREEN}}>{fmtUSD(c.totalPagado)}</div></div>
+              <div style={S.card}><label style={S.label}>Saldo</label><div style={{fontSize:16,fontWeight:800,color:c.saldoPendiente>0?AMBER:GREEN}}>{c.saldoPendiente>0?fmtUSD(c.saldoPendiente):"✅ Liq."}</div></div>
+            </div>
+          </div>
+        )}
+
+        {/* ── CONTACTO ── */}
+        {tab==="contacto"&&(
+          <div style={S.card}>
+            <div style={S.stit}>Datos de contacto</div>
+            <div style={S.g2}>
+              {[["📞 Teléfono","tel"],["💬 WhatsApp","whatsapp"],["✉️ Email","email"],["📍 Dirección","direccion"]].map(function(f){
+                return <div key={f[0]}>
+                  <label style={S.label}>{f[0]}</label>
+                  <div style={{fontSize:13,color:"#1a1f2e",padding:"4px 0"}}>{c[f[1]]||"—"}</div>
+                </div>;
+              })}
+              {c.coProp&&(
+                <div>
+                  <label style={S.label}>👥 Co-propietario</label>
+                  <div style={{fontSize:13,color:"#1a1f2e",padding:"4px 0"}}>{c.coProp}{c.coPropTel?" · "+c.coPropTel:""}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── RESERVAS ── */}
+        {tab==="reservas"&&(
+          <div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <div style={S.stit}>Reservas ({resCliente.length})</div>
+              {perms.crearReserva&&<button style={S.btn("teal")} onClick={function(){props.onNuevaReserva(c);}}>+ Nueva reserva</button>}
+            </div>
+            {resCliente.length===0&&<div style={{textAlign:"center",padding:"40px",color:"#9ca3af",fontSize:13}}>Sin reservas registradas</div>}
+            {resCliente.sort(function(a,b){return new Date(b.creadoEn||b.checkin)-new Date(a.creadoEn||a.checkin);}).map(function(r){
+              var sc=RES_STATUS[r.status]||RES_STATUS.solicitud;
+              return (
+                <div key={r.id} onClick={function(){props.onVerReserva(r);}} style={Object.assign({},S.card,{cursor:"pointer",borderColor:sc.br})}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:700,color:"#1a1f2e"}}>{r.destino}</div>
+                      <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{r.hotel}</div>
+                    </div>
+                    <div style={{display:"flex",gap:5}}>
+                      <span style={S.bdg(r.tipo==="qc"?BLUE:AMBER,r.tipo==="qc"?"#e8f0fe":"#fef9e7",r.tipo==="qc"?"#aac4f0":"#f0d080")}>{(r.tipo||"").toUpperCase()}</span>
+                      <span style={S.bdg(sc.color,sc.bg,sc.br)}>{sc.label}</span>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:14,fontSize:11,color:"#6b7280",flexWrap:"wrap"}}>
+                    <span>Check-in: <strong style={{color:"#1a1f2e"}}>{fmtDate(r.checkin)}</strong></span>
+                    <span>Noches: <strong style={{color:TEAL}}>{daysBetween(r.checkin,r.checkout)}</strong></span>
+                    {r.confirmacion&&<span style={{color:GREEN}}>No. {r.confirmacion}</span>}
+                    {r.totalCobrado>0&&<span>Cargo: <strong style={{color:AMBER}}>{fmtUSD(r.totalCobrado)}</strong></span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── HISTORIAL ── */}
+        {tab==="historial"&&(
+          <div>
+            <div style={S.stit}>Historial CRM — Ventas + Verificación</div>
+            <TablaHistorial leadId={c.id} />
+            {historialCS.length>0&&(
+              <div style={{marginTop:16}}>
+                <div style={S.stit}>Interacciones CS</div>
+                {historialCS.map(function(item){
+                  var cols={compra:GREEN,pago:GREEN,reserva_creada:TEAL,reserva_confirmada:GREEN,reserva_cancelada:RED,nota:"#9ca3af",caso:BLUE,operacion:AMBER,retencion:RED,email_enviado:VIOLET,whatsapp:GREEN};
+                  return <EventoDot key={item.id} tipo={item.tipo} canal={item.canal} texto={item.texto} fecha={item.fecha} autor={item.autor} col={cols[item.tipo]||"#9ca3af"}/>;
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── FINANCIERO ── */}
+        {tab==="financiero"&&(
+          perms.verFinanciero ? (
+            <div>
+              <div style={S.card}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:13,color:"#6b7280"}}>Precio del paquete</span><span style={{fontSize:16,fontWeight:700}}>{fmtUSD(c.precioPaquete)}</span></div>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{fontSize:12,color:GREEN}}>Total pagado</span><span style={{fontSize:13,fontWeight:600,color:GREEN}}>{fmtUSD(c.totalPagado)}</span></div>
+                {c.saldoPendiente>0&&<div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:12,color:AMBER}}>Saldo pendiente</span><span style={{fontSize:13,fontWeight:600,color:AMBER}}>{fmtUSD(c.saldoPendiente)}</span></div>}
+                <div style={{height:6,background:"#f0f1f4",borderRadius:4,overflow:"hidden",marginTop:8}}>
+                  <div style={{height:"100%",width:Math.min(100,Math.round(c.totalPagado/(c.precioPaquete||1)*100))+"%",background:c.saldoPendiente>0?AMBER:GREEN,borderRadius:4,transition:"width 0.5s"}}/>
+                </div>
+              </div>
+              <div style={S.stit}>Historial de pagos</div>
+              {(c.pagos||[]).map(function(p){
+                return <div key={p.id} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f0f1f4"}}>
+                  <div><div style={{fontSize:12,color:"#1a1f2e"}}>{p.concepto}</div><div style={{fontSize:10,color:"#9ca3af"}}>{fmtDate(p.fecha)} · {p.metodo} · {p.referencia}</div></div>
+                  <span style={{fontSize:13,fontWeight:600,color:GREEN}}>{fmtUSD(p.monto)}</span>
+                </div>;
+              })}
+            </div>
+          ) : <div style={{textAlign:"center",padding:"40px",color:"#9ca3af"}}>Sin permiso para ver datos financieros</div>
+        )}
+
+        {/* ── CASOS ── */}
+        {tab==="casos"&&(
+          <div>
+            {casosCliente.length===0&&<div style={{textAlign:"center",padding:"40px",color:"#9ca3af"}}>Sin casos registrados</div>}
+            {casosCliente.map(function(x){
+              var st=CASO_STATUS[x.status]||CASO_STATUS.abierto;
+              return <div key={x.id} style={S.card}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><div style={{fontSize:13,fontWeight:600,color:"#1a1f2e"}}>{x.titulo}</div><span style={S.bdg(st.color,st.bg,st.br)}>{st.label}</span></div>
+                <div style={{fontSize:11,color:"#9ca3af"}}>{x.categoria} · {x.folio} · {fmtDate(x.creado)} · {x.autor}</div>
+                {x.resolucion&&<div style={{fontSize:12,color:"#6b7280",marginTop:5}}>{x.resolucion}</div>}
+              </div>;
+            })}
+          </div>
+        )}
+
+        {/* ── OPERACIONES ── */}
+        {tab==="ops"&&(
+          <div>
+            {opsCliente.length===0&&<div style={{textAlign:"center",padding:"40px",color:"#9ca3af"}}>Sin operaciones</div>}
+            {opsCliente.map(function(o){
+              var cfg=OP_TIPOS[o.tipo]; var st=OP_STATUS[o.status];
+              return <div key={o.id} style={S.card}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    {cfg&&<span style={S.bdg(cfg.color,cfg.bg,cfg.br)}>{cfg.label}</span>}
+                    <span style={{fontSize:11,color:"#9ca3af"}}>{o.folio}</span>
+                  </div>
+                  {st&&<span style={S.bdg(st.color,st.bg,st.br)}>{st.label}</span>}
+                </div>
+                <div style={{fontSize:11,color:"#9ca3af"}}>{fmtDate(o.creado)} · {o.autor}</div>
+                {o.notaCS&&<div style={{fontSize:12,color:"#6b7280",marginTop:4}}>{o.notaCS}</div>}
+                {o.detalle&&o.tipo==="cancelacion"&&(
+                  <div style={{marginTop:8,display:"flex",gap:14,fontSize:11,color:"#9ca3af"}}>
+                    <span>Dias: <strong style={{color:"#1a1f2e"}}>{o.detalle.diasDesdeCompra||o.detalle.dias}d</strong></span>
+                    <span>Politica: <strong style={{color:AMBER}}>{o.detalle.pct}%</strong></span>
+                    <span>Reembolso est.: <strong style={{color:GREEN}}>{fmtUSD(o.detalle.montoReembolso)}</strong></span>
+                  </div>
+                )}
+              </div>;
+            })}
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// LISTA DE MIEMBROS (sidebar izquierdo)
+// ─────────────────────────────────────────────────────────────
+function ListaMiembros(props) {
+  var [q,setQ]=useState(""); var [filtro,setFiltro]=useState("todos");
+  var filtrados=useMemo(function(){
+    var r=props.clientes;
+    if(filtro==="saldo") r=r.filter(function(c){return c.saldoPendiente>0;});
+    if(filtro==="retencion") r=r.filter(function(c){return c.statusCliente==="retencion";});
+    if(q.trim()){ var lq=q.toLowerCase(); r=r.filter(function(c){return c.nombre.toLowerCase().includes(lq)||c.folio.toLowerCase().includes(lq)||(c.email||"").toLowerCase().includes(lq)||(c.tel||"").includes(lq);}); }
+    return r;
+  },[props.clientes,filtro,q]);
+
+  return (
+    <div style={{width:268,flexShrink:0,borderRight:"1px solid #e3e6ea",display:"flex",flexDirection:"column",background:"#ffffff"}}>
+      <div style={{padding:"12px 12px 8px",borderBottom:"1px solid #e3e6ea"}}>
+        <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:7}}>
+          Miembros activos ({props.clientes.length})
+        </div>
+        <input style={Object.assign({},S.input,{marginBottom:7})} placeholder="Buscar nombre, folio, email..." value={q} onChange={function(e){setQ(e.target.value);}}/>
+        <div style={{display:"flex",gap:3}}>
+          {[["todos","Todos"],["saldo","Con saldo"],["retencion","Retención"]].map(function(f){
+            return <button key={f[0]} style={Object.assign({},S.tab(filtro===f[0]),{padding:"3px 8px",fontSize:10,borderRadius:6,borderBottom:"none",border:"1px solid "+(filtro===f[0]?"#aac4f0":"#e3e6ea"),background:filtro===f[0]?"#e8f0fe":"#f4f5f7"})} onClick={function(){setFiltro(f[0]);}}>{f[1]}</button>;
+          })}
+        </div>
+      </div>
+      <div style={{flex:1,overflowY:"auto"}}>
+        {filtrados.length===0&&<div style={{fontSize:12,color:"#9ca3af",textAlign:"center",padding:"20px"}}>Sin resultados</div>}
+        {filtrados.map(function(c){
+          var sel=props.selected&&props.selected.folio===c.folio;
+          var MEMBCOLOR={Silver:"#6b7280",Gold:AMBER,Platinum:VIOLET};
+          return (
+            <div key={c.folio} onClick={function(){props.onSelect(c);}}
+              style={{padding:"10px 12px",cursor:"pointer",
+                borderLeft:"3px solid "+(sel?BLUE:"transparent"),
+                background:sel?"rgba(21,101,192,0.04)":"transparent",
+                borderBottom:"1px solid #f0f1f4",transition:"all 0.1s"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:2}}>
+                <div style={{fontSize:13,fontWeight:600,color:"#1a1f2e",lineHeight:1.3}}>{c.nombre}</div>
+                {c.saldoPendiente>0&&<span style={{fontSize:9,color:AMBER,fontWeight:700}}>{fmtUSD(c.saldoPendiente)}</span>}
+              </div>
+              <div style={{fontSize:10,color:"#9ca3af",marginBottom:2}}>{c.folio}</div>
+              <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                <span style={{fontSize:10,fontWeight:600,color:MEMBCOLOR[c.membresia]||"#6b7280"}}>{c.membresia}</span>
+                <span style={{fontSize:10,color:"#9ca3af"}}>{(c.destinos||[]).map(function(d){return d.nombre;}).join(", ")||"Sin destinos"}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// ROOT — CsReservas v3
+// ─────────────────────────────────────────────────────────────
+export default function CsReservasV3() {
+  var currentUser = {nombre:"Ana Lopez (CS)", rol:"cs"};
+  var [rolActual,   setRolActual]  = useState("cs");
+  var [miembros,    setMiembros]   = useState([]);
+  var [loading,     setLoading]    = useState(true);
+  var [error,       setError]      = useState(null);
+  var [selected,    setSelected]   = useState(null);
+  var [reservas,    setReservas]   = useState([]);
+  var [interacciones,setInteracciones] = useState([]);
+  var [casos,       setCasos]      = useState([]);
+  var [operaciones, setOperaciones]= useState([]);
+  var [modal,       setModal]      = useState(null);
+  var [toast,       setToast]      = useState("");
+  var [destCatalogMap, setDestCatalogMap] = useState({});
+
+  var perms   = (ROLES[rolActual]||ROLES.cs).permisos;
+  var rolCfg  = ROLES[rolActual]||ROLES.cs;
+  var comm    = useCommPanel();
+
+  // ── Notificación rápida
+  function showToast(msg){ setToast(msg); setTimeout(function(){ setToast(""); },3000); }
+
+  // ── Cargar catálogo de destinos (para nombres)
+  useEffect(function(){
+    SB.from("destinos_catalog").select("id,nombre,icon").then(function(res){
+      if(res.data){ var m={}; res.data.forEach(function(d){ m[d.id]=d; }); setDestCatalogMap(m); }
+    });
+  },[]);
+
+  // ── Cargar miembros: leads con status='venta'
+  function cargarMiembros(){
+    setLoading(true); setError(null);
+    SB.from("leads")
+      .select("*")
+      .eq("status","venta")
+      .order("created_at",{ascending:false})
+      .then(function(res){
+        setLoading(false);
+        if(res.error){ setError(res.error.message); return; }
+        var m=(res.data||[]).map(leadToMiembro);
+        setMiembros(function(prev){
+          // Detectar nuevas ventas vs prev
+          if(prev.length>0 && m.length>prev.length){
+            var nuevos=m.filter(function(nm){ return !prev.find(function(pm){return pm.id===nm.id;}); });
+            if(nuevos.length>0) showToast("Nueva venta: "+nuevos[0].nombre+" 🎉");
+          }
+          return m;
+        });
+        // Mantener selected actualizado
+        setSelected(function(prev){
+          if(!prev&&m.length>0) return m[0];
+          if(prev){ var upd=m.find(function(x){return x.id===prev.id;}); return upd||prev; }
+          return prev;
+        });
+      });
+  }
+
+  useEffect(function(){ cargarMiembros(); },[]);
+
+  // Polling 30s para detectar nuevas ventas en tiempo real
+  useEffect(function(){
+    var t=setInterval(cargarMiembros, 30000);
+    return function(){ clearInterval(t); };
+  },[]);
+
+  // Enriquecer nombres de destinos con catálogo cuando tengamos ambos
+  var miembrosEnriquecidos = useMemo(function(){
+    if(Object.keys(destCatalogMap).length===0) return miembros;
+    return miembros.map(function(m){
+      return Object.assign({},m,{
+        destinos:(m.destinos||[]).map(function(d){
+          var cat = destCatalogMap[d.leadDestId||d.nombre];
+          return cat ? Object.assign({},d,{nombre:(cat.icon||"")+" "+cat.nombre}) : d;
+        }),
+      });
+    });
+  },[miembros,destCatalogMap]);
+
+  // ── Handlers
+  function closeModal(){ setModal(null); }
+
+  function addEvento(clienteFolio,tipo,canal,texto,autor){
+    setInteracciones(function(prev){return [{id:uid(),clienteFolio:clienteFolio,tipo:tipo,canal:canal,texto:texto,autor:autor,fecha:new Date().toISOString()},...prev];});
+  }
+
+  function handleNuevaReserva(c,d){ if(perms.crearReserva) setModal({tipo:"nueva_res",cliente:c,destino:d||null}); }
+  function handleVerReserva(r){ setModal({tipo:"ver_res",reserva:r}); }
+  function handleNota(c){ setModal({tipo:"nota",cliente:c}); }
+  function handleCaso(c){ setModal({tipo:"caso",cliente:c}); }
+  function handleOp(c){ setModal({tipo:"op",cliente:c}); }
+
+  function handleRetencion(c){
+    setMiembros(function(prev){return prev.map(function(m){return m.folio===c.folio?Object.assign({},m,{statusCliente:"retencion"}):m;});});
+    if(selected&&selected.folio===c.folio) setSelected(function(p){return Object.assign({},p,{statusCliente:"retencion"});});
+    addEvento(c.folio,"retencion","sistema","Proceso de retención iniciado.",rolCfg.label);
+    showToast("Retención iniciada para "+c.nombre);
+  }
+
+  function saveReserva(clienteFolio,datos,esEdit,resId){
+    var folio = esEdit?resId:("RES-"+uid().toUpperCase().slice(0,6));
+    var obj = Object.assign({},datos,{id:folio,folio:folio,clienteFolio:clienteFolio,status:"solicitud",confirmacion:"",agente:datos.agente||rolCfg.label,creadoEn:TODAY,historial:[{fecha:TODAY,texto:esEdit?"Reserva modificada":"Reserva creada",autor:datos.agente||rolCfg.label}]});
+    if(esEdit){ setReservas(function(p){return p.map(function(r){return r.id===resId?obj:r;}); }); }
+    else { setReservas(function(p){return [obj,...p];}); }
+    addEvento(clienteFolio,"reserva_"+(esEdit?"modificada":"creada"),"sistema",(esEdit?"Reserva "+resId+" modificada":"Reserva "+folio+" creada: "+datos.destino+" — "+datos.hotel),datos.agente||rolCfg.label);
+    showToast(esEdit?"Reserva actualizada":"Reserva creada: "+folio);
+  }
+
+  function confirmarReserva(resId,numConf){
+    setReservas(function(p){return p.map(function(r){
+      if(r.id!==resId) return r;
+      return Object.assign({},r,{status:"confirmada",confirmacion:numConf,historial:[...(r.historial||[]),{fecha:TODAY,texto:"Confirmada. No. "+numConf,autor:rolCfg.label}]});
+    });});
+    var res=reservas.find(function(r){return r.id===resId;});
+    if(res) addEvento(res.clienteFolio,"reserva_confirmada","sistema","Reserva "+resId+" confirmada. No. "+numConf,rolCfg.label);
+    showToast("Reserva confirmada ✅");
+  }
+
+  function cancelarReserva(resId){
+    setReservas(function(p){return p.map(function(r){
+      if(r.id!==resId) return r;
+      return Object.assign({},r,{status:"cancelada",historial:[...(r.historial||[]),{fecha:TODAY,texto:"Reserva cancelada.",autor:rolCfg.label}]});
+    });});
+    showToast("Reserva cancelada");
+  }
+
+  function saveNota(txt,canal,autor){ if(selected) addEvento(selected.folio,"nota",canal,txt,autor); showToast("Nota guardada"); }
+
+  function saveCaso(datos){
+    var folio="CASO-"+uid().slice(0,5).toUpperCase();
+    if(selected){
+      setCasos(function(p){return [{id:uid(),clienteFolio:selected.folio,folio:folio,titulo:datos.titulo,categoria:datos.categoria,status:"abierto",canal:datos.canal,autor:datos.autor,creado:new Date().toISOString(),resolucion:""},...p];});
+      addEvento(selected.folio,"caso",datos.canal,folio+": "+datos.titulo+" ("+datos.categoria+")",datos.autor);
+    }
+    showToast("Caso creado: "+folio);
+  }
+
+  function saveOp(datos){
+    var folio="OP-"+uid().slice(0,5).toUpperCase();
+    if(selected){
+      setOperaciones(function(p){return [{id:uid(),clienteFolio:selected.folio,tipo:datos.tipo,folio:folio,status:"pendiente",autor:datos.autor,creado:new Date().toISOString(),notaCS:datos.notaCS,detalle:datos.detalle},...p];});
+      addEvento(selected.folio,"operacion","sistema",folio+" — "+(OP_TIPOS[datos.tipo]||{label:datos.tipo}).label+" pendiente. "+datos.notaCS,datos.autor);
+    }
+    showToast("Operación enviada a aprobación");
+  }
+
+  // ── Selección actualizada después de cambios de estado
+  var selectedActualizado = selected && miembrosEnriquecidos.find(function(m){return m.id===selected.id;}) || selected;
+
+  var fichaProps = {
+    currentUser:currentUser, perms:perms, rol:rolActual,
+    reservas:reservas, interacciones:interacciones, casos:casos, ops:operaciones,
+    onNuevaReserva:handleNuevaReserva, onVerReserva:handleVerReserva,
+    onNota:handleNota, onCaso:handleCaso, onOp:handleOp,
+    onRetencion:handleRetencion, onComm:comm.open,
+  };
+
+  return (
+    <div style={S.wrap}>
+
+      {/* TOPBAR */}
+      <div style={S.topbar}>
+        <div style={{fontSize:11,fontWeight:700,color:"#9ca3af",letterSpacing:"0.1em",textTransform:"uppercase"}}>Mini-Vac CRM</div>
+        <div style={{width:1,height:18,background:"#e3e6ea"}}/>
+        <div style={{fontSize:14,fontWeight:600,color:"#1a385a"}}>Customer Service & Reservas</div>
+        <div style={{flex:1}}/>
+        {/* Selector de rol */}
+        <div style={{display:"flex",gap:4,alignItems:"center"}}>
+          <span style={{fontSize:11,color:"#9ca3af"}}>Vista:</span>
+          {Object.entries(ROLES).map(function(e){
+            var active=rolActual===e[0];
+            return <button key={e[0]} style={Object.assign({},S.btn(active?"primary":"ghost"),{padding:"5px 10px",fontSize:11})} onClick={function(){setRolActual(e[0]);}}>{e[1].label}</button>;
+          })}
+        </div>
+        <button style={Object.assign({},S.btn("ghost"),{padding:"5px 10px",fontSize:11})} onClick={cargarMiembros}>🔄 Actualizar</button>
+        <div style={{fontSize:10,color:"#9ca3af"}}>{fmtDate(TODAY)}</div>
+      </div>
+
+      {/* BODY */}
+      <div style={{height:"calc(100vh - 52px)",display:"flex",overflow:"hidden"}}>
+
+        {loading ? (
+          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12}}>
+            <div style={{width:32,height:32,border:"3px solid #e3e6ea",borderTopColor:BLUE,borderRadius:"50%",animation:"spin 0.8s linear infinite"}} />
+            <div style={{fontSize:13,color:"#9ca3af"}}>Cargando miembros activos...</div>
+          </div>
+        ) : error ? (
+          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12}}>
+            <div style={{fontSize:14,color:RED,fontWeight:600}}>Error al cargar: {error}</div>
+            <button style={S.btn("primary")} onClick={cargarMiembros}>Reintentar</button>
+          </div>
+        ) : miembrosEnriquecidos.length===0 ? (
+          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:10}}>
+            <div style={{fontSize:32}}>🏖️</div>
+            <div style={{fontSize:15,fontWeight:700,color:"#1a1f2e"}}>Sin miembros activos aún</div>
+            <div style={{fontSize:12,color:"#9ca3af",maxWidth:320,textAlign:"center"}}>
+              Cuando un lead cambie a estado <strong>"venta"</strong> en el módulo de verificación, aparecerá aquí automáticamente como miembro activo.
+            </div>
+            <button style={S.btn("indigo")} onClick={cargarMiembros}>🔄 Verificar ahora</button>
+          </div>
+        ) : (
+          <>
+            <ListaMiembros
+              clientes={miembrosEnriquecidos}
+              selected={selectedActualizado}
+              onSelect={setSelected}
+            />
+            {selectedActualizado
+              ? <FichaMiembro key={selectedActualizado.id} cliente={selectedActualizado} {...fichaProps}/>
+              : <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"#9ca3af"}}>Selecciona un miembro</div>
+            }
+          </>
+        )}
+
+      </div>
+
+      {/* MODALES */}
+      {modal&&modal.tipo==="nueva_res"&&(
+        <ReservaFormModal cliente={modal.cliente} destino={modal.destino} autor={rolCfg.label} onClose={closeModal}
+          onSave={function(d){saveReserva(modal.cliente.folio,d,false,null);}}/>
+      )}
+      {modal&&modal.tipo==="editar_res"&&(
+        <ReservaFormModal cliente={modal.cliente} reserva={modal.reserva} autor={rolCfg.label} onClose={closeModal}
+          onSave={function(d){saveReserva(modal.cliente.folio,d,true,modal.reserva.id);}}/>
+      )}
+      {modal&&modal.tipo==="ver_res"&&(
+        <ReservaDetailModal reserva={modal.reserva} perms={perms} onClose={closeModal}
+          onConfirmar={confirmarReserva}
+          onEditar={function(r){setModal({tipo:"editar_res",reserva:r,cliente:selectedActualizado});}}
+          onCancelar={cancelarReserva}/>
+      )}
+      {modal&&modal.tipo==="nota"&&<NotaModal cliente={modal.cliente} onClose={closeModal} onSave={saveNota}/>}
+      {modal&&modal.tipo==="caso"&&<CasoModal cliente={modal.cliente} onClose={closeModal} onSave={saveCaso}/>}
+      {modal&&modal.tipo==="op"&&<OpModal cliente={modal.cliente} onClose={closeModal} onSave={saveOp}/>}
+
+      <CommPanel
+        visible={comm.visible}
+        cliente={comm.cliente}
+        logs={comm.logs}
+        currentUser={currentUser}
+        onClose={comm.close}
+        onLog={function(entry){
+          comm.addLog(entry);
+          if(entry.clienteFolio) addEvento(entry.clienteFolio,entry.tipo||"nota",entry.canal||"sistema",entry.texto,entry.autor);
+        }}
+      />
+
+      {/* TOAST */}
+      {toast&&(
+        <div style={{position:"fixed",bottom:20,right:20,background:"#1a385a",color:"#fff",padding:"10px 18px",borderRadius:10,fontSize:13,fontWeight:600,boxShadow:"0 4px 16px rgba(0,0,0,0.18)",zIndex:300,animation:"fadeIn 0.2s"}}>
+          {toast}
+        </div>
+      )}
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+      `}</style>
+    </div>
+  );
+}

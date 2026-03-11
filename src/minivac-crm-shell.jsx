@@ -9,11 +9,11 @@ var SB = createClient(
 import SellerCRM            from "./seller-crm-v3.jsx";
 import VerificationModule   from "./verification-module-v2.jsx";
 import Reservaciones        from "./reservaciones-v2.jsx";
-import CSReservas           from "./cs-reservas-v2.jsx";
+import CSReservas           from "./cs-reservas-v3.jsx";
 import ExecutiveSuite       from "./executive-suite.jsx";
 import CommissionsModule    from "./commissions-module.jsx";
 import PackagesModule       from "./packages-module.jsx";
-import DestinationsModule   from "./destinations-v6.jsx";
+import DestinationsModule   from "./destinations-v5.jsx";
 import VonageModule         from "./vonage-module.jsx";
 import AutomationsModule    from "./automations-module.jsx";
 import RolesPermissions     from "./roles-permissions.jsx";
@@ -770,4 +770,3 @@ export default function MinivacShell() {
     </div>
   );
 }
-// updated
