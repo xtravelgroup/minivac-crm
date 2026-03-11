@@ -6,7 +6,7 @@ var GREEN  = "#22c55e";
 var AMBER  = "#f59e0b";
 var RED    = "#ef4444";
 
-var GKEY = "AIzaSyDybVxw5BcM_zge6jq3IZ4IPies1uZWV88";
+var GKEY = "AIzaSyDN9uTQzbowwNhP8dKGe0xzPAMcJ35ESkw";
 
 // Mapeo de tipos Google Places a amenidades del CRM
 var AMENITY_MAP = {
