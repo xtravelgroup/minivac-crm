@@ -271,7 +271,7 @@ function ModModal({ pkg, pagado, onClose, onSave }) {
         <div style={{display:"flex",gap:"8px"}}>
           <button style={{...S.btn("ghost"),flex:1}} onClick={onClose}>Cancelar</button>
           {tipo==="forfeit"&&!confirm
-            ? <button style={{...S.btn("danger"),flex:2,justifyContent:"center"}} onClick={()=>setConfirm(true)}>Entiendo, continuar -></button>
+            ? <button style={{...S.btn("danger"),flex:2,justifyContent:"center"}} onClick={()=>setConfirm(true)}>Entiendo, continuar &rarr;</button>
             : <button style={{...S.btn(tipo==="forfeit"?"danger":"warning"),flex:2,justifyContent:"center"}} onClick={handleSave}>{tc.icon} Confirmar {tc.label}</button>
           }
         </div>

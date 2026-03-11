@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
 import { supabase as SB } from "./supabase.js";
 import { TablaHistorial } from "./useHistorial.jsx";
-import { PanelPagos } from "./usePagos.jsx";
 
 // ─────────────────────────────────────────────────────────────
 // TEMA ZOHO CLARO — igual que seller / verificador
@@ -679,17 +678,22 @@ function FichaMiembro(props) {
         {/* ── FINANCIERO ── */}
         {tab==="financiero"&&(
           perms.verFinanciero ? (
-            <div style={S.card}>
-              <PanelPagos
-                leadId={c.id}
-                salePrice={c.precioPaquete}
-                pagoInicial={c.pagoInicial}
-                pagosHistorial={c.pagosHistorial}
-                por="CS"
-                onGuardado={function(nuevos){
-                  props.onUpdatePagos && props.onUpdatePagos(c.folio, nuevos);
-                }}
-              />
+            <div>
+              <div style={S.card}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:13,color:"#6b7280"}}>Precio del paquete</span><span style={{fontSize:16,fontWeight:700}}>{fmtUSD(c.precioPaquete)}</span></div>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{fontSize:12,color:GREEN}}>Total pagado</span><span style={{fontSize:13,fontWeight:600,color:GREEN}}>{fmtUSD(c.totalPagado)}</span></div>
+                {c.saldoPendiente>0&&<div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:12,color:AMBER}}>Saldo pendiente</span><span style={{fontSize:13,fontWeight:600,color:AMBER}}>{fmtUSD(c.saldoPendiente)}</span></div>}
+                <div style={{height:6,background:"#f0f1f4",borderRadius:4,overflow:"hidden",marginTop:8}}>
+                  <div style={{height:"100%",width:Math.min(100,Math.round(c.totalPagado/(c.precioPaquete||1)*100))+"%",background:c.saldoPendiente>0?AMBER:GREEN,borderRadius:4,transition:"width 0.5s"}}/>
+                </div>
+              </div>
+              <div style={S.stit}>Historial de pagos</div>
+              {(c.pagos||[]).map(function(p){
+                return <div key={p.id} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f0f1f4"}}>
+                  <div><div style={{fontSize:12,color:"#1a1f2e"}}>{p.concepto}</div><div style={{fontSize:10,color:"#9ca3af"}}>{fmtDate(p.fecha)} · {p.metodo} · {p.referencia}</div></div>
+                  <span style={{fontSize:13,fontWeight:600,color:GREEN}}>{fmtUSD(p.monto)}</span>
+                </div>;
+              })}
             </div>
           ) : <div style={{textAlign:"center",padding:"40px",color:"#9ca3af"}}>Sin permiso para ver datos financieros</div>
         )}
