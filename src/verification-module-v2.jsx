@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase as SB } from "./supabase.js";
+import { PanelPagos } from "./usePagos.jsx";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
 import { registrarEvento, TablaHistorial } from "./useHistorial.jsx";
 
@@ -850,6 +851,20 @@ function SectionPersonal({ exp }) {
 // SECTION PAGOS — aplica abonos al saldo del lead
 // ─────────────────────────────────────────────────────────────
 function SectionPagos({ lead, exp, onAbonoGuardado }) {
+  var zohoReady     = typeof window !== "undefined" && !!window.ZPayments;
+  var [zohoLoaded,  setZohoLoaded]  = useState(false);
+  var [zohoError,   setZohoError]   = useState("");
+  var [cobrando,    setCobrando]    = useState(false);
+
+  // Cargar SDK Zoho al montar
+  useEffect(function() {
+    if (window.ZPayments) { setZohoLoaded(true); return; }
+    var s = document.createElement("script");
+    s.src = "https://static.zohocdn.com/zpay/zpay-js/v1/zpayments.js";
+    s.onload = function() { setZohoLoaded(true); };
+    s.onerror = function() { setZohoError("No se pudo cargar SDK de Zoho"); };
+    document.head.appendChild(s);
+  }, []);
   var totalPagado = (exp.pagoInicial||0) + ((exp.pagosHistorial||[]).reduce(function(s,p){ return s+(p.monto||0); },0));
   var saldo       = Math.max(0, (exp.salePrice||0) - totalPagado);
 
@@ -953,24 +968,135 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
             </div>
             <div>
               <div style={S.label}>Método</div>
-              <select style={S.select} value={metodo} onChange={function(e){ setMetodo(e.target.value); }}>
+              <select style={S.select} value={metodo} onChange={function(e){ setMetodo(e.target.value); setErr(""); }}>
                 {METODOS.map(function(m){ return <option key={m} value={m}>{m.charAt(0).toUpperCase()+m.slice(1)}</option>; })}
               </select>
             </div>
-            <div>
-              <div style={S.label}>Concepto</div>
-              <input style={S.input} value={concepto} onChange={function(e){ setConcepto(e.target.value); }} placeholder="Abono, 2do pago..." />
-            </div>
-            <div>
-              <div style={S.label}>Referencia / No. transacción</div>
-              <input style={S.input} value={ref} onChange={function(e){ setRef(e.target.value); }} placeholder="TXN-12345 / SPEI-..." />
-            </div>
+            {metodo !== "tarjeta" && (
+              <div>
+                <div style={S.label}>Concepto</div>
+                <input style={S.input} value={concepto} onChange={function(e){ setConcepto(e.target.value); }} placeholder="Abono, 2do pago..." />
+              </div>
+            )}
+            {metodo !== "tarjeta" && (
+              <div>
+                <div style={S.label}>Referencia / No. transacción</div>
+                <input style={S.input} value={ref} onChange={function(e){ setRef(e.target.value); }} placeholder="TXN-12345 / SPEI-..." />
+              </div>
+            )}
           </div>
+
+          {/* INFO TARJETA GUARDADA */}
+          {metodo === "tarjeta" && exp.zohoPaymentMethodId && (
+            <div style={{padding:"10px 12px",borderRadius:8,background:"#e8f0fe",border:"1px solid #aac4f0",marginBottom:10,display:"flex",gap:10,alignItems:"center"}}>
+              <div style={{fontSize:20}}>💳</div>
+              <div>
+                <div style={{fontSize:12,fontWeight:700,color:"#1565c0"}}>{exp.tarjetaBrand||"Tarjeta"} **** {exp.tarjetaLast4||"guardada"}</div>
+                <div style={{fontSize:11,color:"#6b7280"}}>Tarjeta guardada en Zoho Payments · {exp.tFirstName} {exp.tLastName}</div>
+              </div>
+            </div>
+          )}
+
+          {/* SIN TARJETA GUARDADA */}
+          {metodo === "tarjeta" && !exp.zohoPaymentMethodId && (
+            <div style={{padding:"10px 12px",borderRadius:8,background:"#fef9e7",border:"1px solid #f0d080",marginBottom:10,fontSize:12,color:"#925c0a"}}>
+              ⚠️ Este cliente no tiene tarjeta guardada en Zoho. Se abrirá el widget de captura de tarjeta.
+            </div>
+          )}
+
           {err && <div style={{fontSize:12,color:"#b91c1c",marginBottom:8,fontWeight:600}}>⚠️ {err}</div>}
-          <button style={{...S.btn("success"),width:"100%",justifyContent:"center"}}
-            onClick={aplicarAbono} disabled={saving}>
-            {saving ? "Guardando..." : "Registrar abono de " + (monto ? fmtUSD(Number(monto)) : "—")}
-          </button>
+          {zohoError && metodo==="tarjeta" && <div style={{fontSize:12,color:"#b91c1c",marginBottom:8}}>⚠️ {zohoError}</div>}
+
+          {/* BOTÓN — tarjeta usa Zoho, resto manual */}
+          {metodo === "tarjeta" ? (
+            <button
+              style={{...S.btn("success"),width:"100%",justifyContent:"center"}}
+              disabled={!monto||cobrando||!!zohoError}
+              onClick={function(){
+                var m = Number(monto);
+                if (!m || m <= 0) { setErr("Ingresa un monto válido"); return; }
+                if (m > saldo + 0.01) { setErr("El abono supera el saldo de " + fmtUSD(saldo)); return; }
+                setErr(""); setCobrando(true);
+
+                // Si tiene tarjeta guardada → charge-saved-card
+                if (exp.zohoPaymentMethodId && exp.zohoCustomerId) {
+                  fetch(EDGE_URL + "/charge-saved-card", {
+                    method:"POST", headers:AUTH_HDR,
+                    body: JSON.stringify({
+                      lead_id:           lead.id,
+                      customer_id:       exp.zohoCustomerId,
+                      payment_method_id: exp.zohoPaymentMethodId,
+                      amount:            m,
+                      folio:             lead.id,
+                      nombre:            exp.tFirstName + " " + exp.tLastName,
+                    }),
+                  })
+                  .then(function(r){ return r.json(); })
+                  .then(function(data){
+                    setCobrando(false);
+                    if (data.error) { setErr("Error Zoho: " + data.error); return; }
+                    if (data.status==="succeeded"||data.status==="success") {
+                      var nuevo = { id:"P"+Date.now(), monto:m, metodo:"tarjeta",
+                        referencia: data.payment_id||"Zoho-OK", concepto:concepto||"Abono tarjeta",
+                        fecha:new Date().toISOString(), por:"Verificador" };
+                      var nuevosAbonos = (exp.pagosHistorial||[]).concat([nuevo]);
+                      SB.from("leads").update({pagos_historial:nuevosAbonos}).eq("id",lead.id)
+                        .then(function(res2){
+                          if (res2.error) { setErr("Cobrado pero error al guardar: "+res2.error.message); return; }
+                          setMonto(""); setConcepto("Abono");
+                          if (onAbonoGuardado) onAbonoGuardado(nuevosAbonos);
+                        });
+                    } else {
+                      setErr("Cargo rechazado: " + (data.status||"error"));
+                    }
+                  })
+                  .catch(function(e){ setCobrando(false); setErr("Error de red: "+e.message); });
+                  return;
+                }
+
+                // Sin tarjeta guardada → widget Zoho
+                if (!window.ZPayments) { setCobrando(false); setErr("SDK Zoho no disponible"); return; }
+                fetch(EDGE_URL + "/create-session", {
+                  method:"POST", headers:AUTH_HDR,
+                  body: JSON.stringify({
+                    amount:  m,
+                    folio:   lead.id,
+                    nombre:  exp.tFirstName + " " + exp.tLastName,
+                    email:   exp.tEmail || "",
+                  }),
+                })
+                .then(function(r){ return r.json(); })
+                .then(function(sess){
+                  if (sess.error) { setCobrando(false); setErr("Error sesión: "+sess.error); return; }
+                  var zp = new window.ZPayments(ZOHO_API_KEY);
+                  zp.pay({
+                    hostedpage_id: sess.hostedpage_id || sess.id,
+                    success: function(data){
+                      setCobrando(false);
+                      var nuevo = { id:"P"+Date.now(), monto:m, metodo:"tarjeta",
+                        referencia:data.payment_id||"Zoho-OK", concepto:concepto||"Abono tarjeta",
+                        fecha:new Date().toISOString(), por:"Verificador" };
+                      var nuevosAbonos = (exp.pagosHistorial||[]).concat([nuevo]);
+                      SB.from("leads").update({pagos_historial:nuevosAbonos}).eq("id",lead.id)
+                        .then(function(res2){
+                          if (!res2.error){ setMonto(""); setConcepto("Abono"); if(onAbonoGuardado) onAbonoGuardado(nuevosAbonos); }
+                          else setErr("Cobrado pero error al guardar: "+res2.error.message);
+                        });
+                    },
+                    failure: function(err){ setCobrando(false); setErr("Pago rechazado: "+(err.message||err)); },
+                    cancel:  function(){ setCobrando(false); },
+                  });
+                })
+                .catch(function(e){ setCobrando(false); setErr("Error sesión Zoho: "+e.message); });
+              }}>
+              {cobrando ? "Procesando..." : "💳 Cobrar " + (monto ? fmtUSD(Number(monto)) : "—") + " con tarjeta"}
+            </button>
+          ) : (
+            <button style={{...S.btn("success"),width:"100%",justifyContent:"center"}}
+              onClick={aplicarAbono} disabled={saving}>
+              {saving ? "Guardando..." : "Registrar abono de " + (monto ? fmtUSD(Number(monto)) : "—")}
+            </button>
+          )}
         </div>
       )}
       {saldo <= 0 && (
