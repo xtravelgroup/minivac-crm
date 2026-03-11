@@ -126,18 +126,18 @@ var SEED = [
 ];
 
 var S = {
-  wrap:  {minHeight:"100vh",background:"#07090f",color:"#3d4554",fontFamily:"'DM Sans','Segoe UI',-apple-system,sans-serif",fontSize:"13px"},
-  inp:   {width:"100%",background:"#f8f9fb",border:"1px solid #d8dbe0",borderRadius:"8px",padding:"8px 12px",color:"#3d4554",fontSize:"13px",outline:"none",boxSizing:"border-box",fontFamily:"inherit"},
-  sel:   {width:"100%",background:"rgba(12,15,25,0.98)",border:"1px solid #d8dbe0",borderRadius:"8px",padding:"8px 12px",color:"#3d4554",fontSize:"13px",outline:"none",cursor:"pointer",fontFamily:"inherit",boxSizing:"border-box"},
-  ta:    {width:"100%",background:"#f9fafb",border:"1px solid #d8dbe0",borderRadius:"8px",padding:"8px 12px",color:"#3d4554",fontSize:"13px",outline:"none",resize:"vertical",fontFamily:"inherit",boxSizing:"border-box"},
-  lbl:   {fontSize:"11px",color:"#9ca3af",marginBottom:"4px",fontWeight:"500",display:"block"},
+  wrap:  {minHeight:"100vh",background:"#f4f5f7",color:"#1a1f2e",fontFamily:"'DM Sans','Segoe UI',-apple-system,sans-serif",fontSize:"13px"},
+  inp:   {width:"100%",background:"#ffffff",border:"1px solid #d8dbe0",borderRadius:"8px",padding:"8px 12px",color:"#1a1f2e",fontSize:"13px",outline:"none",boxSizing:"border-box",fontFamily:"inherit"},
+  sel:   {width:"100%",background:"#ffffff",border:"1px solid #d8dbe0",borderRadius:"8px",padding:"8px 12px",color:"#1a1f2e",fontSize:"13px",outline:"none",cursor:"pointer",fontFamily:"inherit",boxSizing:"border-box"},
+  ta:    {width:"100%",background:"#ffffff",border:"1px solid #d8dbe0",borderRadius:"8px",padding:"8px 12px",color:"#1a1f2e",fontSize:"13px",outline:"none",resize:"vertical",fontFamily:"inherit",boxSizing:"border-box"},
+  lbl:   {fontSize:"11px",color:"#6b7280",marginBottom:"4px",fontWeight:"600",letterSpacing:"0.06em",textTransform:"uppercase",display:"block"},
   stit:  {fontSize:"10px",fontWeight:"700",color:"#9ca3af",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"8px"},
-  card:  {background:"rgba(255,255,255,0.025)",border:"1px solid #e3e6ea",borderRadius:"12px",padding:"14px 16px",marginBottom:"8px"},
+  card:  {background:"#ffffff",border:"1px solid #e3e6ea",borderRadius:"10px",padding:"14px 16px",marginBottom:"8px"},
   g2:    {display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"},
   g3:    {display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"10px"},
-  modal: {position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(6px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"},
+  modal: {position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(4px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"},
 };
-function mbox(wide){ return {background:"#0c0f1a",border:"1px solid #dde0e5",borderRadius:"18px",padding:"24px 28px",width:"100%",maxWidth:wide?"860px":"580px",maxHeight:"92vh",overflowY:"auto"}; }
+function mbox(wide){ return {background:"#ffffff",border:"1px solid #e3e6ea",borderRadius:"14px",padding:"24px 28px",width:"100%",maxWidth:wide?"860px":"580px",maxHeight:"92vh",overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.12)"}; }
 function btn(v){
   var m={primary:{bg:INDIGO,c:"#fff",br:INDIGO},teal:{bg:"rgba(14,165,160,0.15)",c:TEAL,br:"rgba(14,165,160,0.3)"},violet:{bg:"rgba(167,139,250,0.15)",c:VIOLET,br:"#c4b5fd"},success:{bg:"#e5f3e8",c:GREEN,br:"#a3d9a5"},danger:{bg:"#fdeaea",c:RED,br:"#f5b8b8"},warn:{bg:"rgba(245,158,11,0.15)",c:AMBER,br:"rgba(245,158,11,0.3)"},ghost:{bg:"#f6f7f9",c:"#6b7280",br:"#f0f1f4"},indigo:{bg:"#e5eafd",c:INDIGO,br:"#aab4f5"},coral:{bg:"rgba(249,115,22,0.15)",c:CORAL,br:"rgba(249,115,22,0.3)"},amber:{bg:"rgba(245,158,11,0.15)",c:AMBER,br:"rgba(245,158,11,0.3)"}};
   var s=m[v]||m.ghost;
