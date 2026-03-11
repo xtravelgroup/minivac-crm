@@ -27,16 +27,28 @@ function calcEdad(fechaNac) {
 }
 function edadLabel(f) { const e = calcEdad(f); return e !== null ? e + " anos" : "--"; }
 
-const DESTINOS_CATALOG = [
-  { id:"D01", nombre:"Cancun",          icon:"[CUN]", qc:{ noches:5, ageMin:25, ageMax:65 }, nq:{ enabled:true,  noches:4 }, regalos:[{id:"G001",label:"Tour Chichen Itza"},{id:"G002",label:"Snorkel Isla Mujeres"},{id:"G004",label:"Gift Card $75"}] },
-  { id:"D02", nombre:"Los Cabos",       icon:"[CAB]", qc:{ noches:4, ageMin:36, ageMax:99 }, nq:{ enabled:false, noches:3 }, regalos:[{id:"G006",label:"Cena en la playa"},{id:"G007",label:"Tour Arco"},{id:"G008",label:"Gift Card $75"}] },
-  { id:"D03", nombre:"Riviera Maya",    icon:"[RMY]", qc:{ noches:6, ageMin:25, ageMax:60 }, nq:{ enabled:true,  noches:4 }, regalos:[{id:"G009",label:"Tour Tulum + Cenote"},{id:"G010",label:"Snorkel arrecife"},{id:"G011",label:"Gift Card $75"}] },
-  { id:"D04", nombre:"Las Vegas",       icon:"[LVG]", qc:{ noches:3, ageMin:21, ageMax:99 }, nq:{ enabled:false, noches:3 }, regalos:[{id:"G012",label:"$50 credito casino"},{id:"G013",label:"Show ticket"}] },
-  { id:"D05", nombre:"Orlando",         icon:"[ORL]", qc:{ noches:4, ageMin:25, ageMax:99 }, nq:{ enabled:false, noches:3 }, regalos:[{id:"G014",label:"Gift Card $100"},{id:"G015",label:"2 entradas parque agua"}] },
-  { id:"D06", nombre:"Puerto Vallarta", icon:"[PVR]", qc:{ noches:4, ageMin:25, ageMax:60 }, nq:{ enabled:true,  noches:3 }, regalos:[{id:"G016",label:"Tour bahia"},{id:"G017",label:"Canopy Sierra Madre"}] },
-  { id:"D07", nombre:"Huatulco",        icon:"[HUX]", qc:{ noches:5, ageMin:25, ageMax:65 }, nq:{ enabled:true,  noches:3 }, regalos:[{id:"G018",label:"Tour lanchas bahias"},{id:"G019",label:"Gift Card $50"}] },
-];
-const DEST_MAP = Object.fromEntries(DESTINOS_CATALOG.map(d => [d.id, d]));
+// DESTINOS_CATALOG cargado desde Supabase — se rellena en VerificationModule
+var DESTINOS_CATALOG = [];
+var DEST_MAP = {};
+
+// Convierte fila DB → formato interno verificador
+function dbToDestinoVerif(r) {
+  var qc = r.qc || {};
+  var nq = r.nq || {};
+  return {
+    id:      r.id,
+    nombre:  r.nombre,
+    icon:    r.icon || "",
+    region:  r.region || "internacional",
+    qc: { noches: qc.nights || qc.noches || 4, ageMin: qc.ageMin || 18, ageMax: qc.ageMax || 99 },
+    nq: { enabled: nq.enabled || false, noches: nq.nights || nq.noches || 3 },
+    regalos: ((qc.gifts && qc.gifts.items) || [])
+      .filter(function(g){ return g.active !== false; })
+      .map(function(g){ return { id: g.id, label: g.name }; }),
+  };
+}
+
+
 
 const ESTADO_CIVIL_OPTIONS = ["Casado","Union libre","Soltero hombre","Soltera mujer"];
 
@@ -1426,6 +1438,21 @@ export default function VerificationModule() {
 
   const notify = function(msg, ok) { setToast({ msg, ok:ok!==false }); setTimeout(function(){ setToast(null); }, 3200); };
 
+  // Cargar catalogo de destinos desde Supabase
+  function cargarDestinos() {
+    SB.from("destinos_catalog")
+      .select("*")
+      .eq("activo", true)
+      .order("id", { ascending: true })
+      .then(function(res) {
+        if (res.data) {
+          var mapped = res.data.map(dbToDestinoVerif);
+          DESTINOS_CATALOG = mapped;
+          DEST_MAP = Object.fromEntries(mapped.map(function(d){ return [d.id, d]; }));
+        }
+      });
+  }
+
   // Cargar leads en verificacion o con resultado de verificacion de hoy
   function cargarLeads() {
     SB.from("leads")
@@ -1451,6 +1478,7 @@ export default function VerificationModule() {
   }
 
   useEffect(function() {
+    cargarDestinos();
     cargarLeads();
     var interval = setInterval(function() { cargarLeads(); }, 30000);
     return function() { clearInterval(interval); };

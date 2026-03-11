@@ -56,74 +56,38 @@ const EMISORAS = ["Radio Hits","Banda 107","Stereo 94","Exitos 102","Mix 88","La
 const ESTADO_CIVIL_OPTIONS = ["Casado","Union libre","Soltero hombre","Soltera mujer"];
 
 //  Catalogo de destinos con reglas de calificacion 
-const DESTINOS_CATALOG = [
-  {
-    id:"D01", nombre:"Cancun", icon:"", region:"internacional",
-    qc:{ noches:5, ageMin:25, ageMax:65, marital:["Casado","Union libre","Soltero hombre","Soltera mujer"] },
-    nq:{ enabled:true, noches:4, label:"Cancun Esencial" },
-    regalosDisponibles:[
-      { id:"G001", icon:"", label:"Tour Chichen Itza" },
-      { id:"G002", icon:"", label:"Snorkel Isla Mujeres" },
-      { id:"G004", icon:"", label:"Gift Card $75 USD" },
-    ],
-  },
-  {
-    id:"D02", nombre:"Los Cabos", icon:"", region:"internacional",
-    qc:{ noches:4, ageMin:36, ageMax:99, marital:["Casado","Union libre"] },
-    nq:{ enabled:false, noches:3, label:"" },
-    regalosDisponibles:[
-      { id:"G006", icon:"", label:"Cena romantica en la playa" },
-      { id:"G007", icon:"", label:"Tour en lancha al Arco" },
-      { id:"G008", icon:"", label:"Gift Card $75 USD" },
-    ],
-  },
-  {
-    id:"D03", nombre:"Riviera Maya", icon:"", region:"internacional",
-    qc:{ noches:6, ageMin:25, ageMax:60, marital:["Casado","Union libre"] },
-    nq:{ enabled:true, noches:4, label:"Riviera Maya Basico" },
-    regalosDisponibles:[
-      { id:"G009", icon:"", label:"Tour Tulum + Cenote" },
-      { id:"G010", icon:"", label:"Snorkel en arrecife" },
-      { id:"G011", icon:"", label:"Gift Card $75 USD" },
-    ],
-  },
-  {
-    id:"D04", nombre:"Las Vegas", icon:"", region:"nacional",
-    qc:{ noches:3, ageMin:21, ageMax:99, marital:["Casado","Union libre","Soltero hombre","Soltera mujer"] },
-    nq:{ enabled:false, noches:3, label:"" },
-    regalosDisponibles:[
-      { id:"G012", icon:"", label:"$50 credito casino" },
-      { id:"G013", icon:"", label:"Show ticket" },
-    ],
-  },
-  {
-    id:"D05", nombre:"Orlando", icon:"", region:"nacional",
-    qc:{ noches:4, ageMin:25, ageMax:99, marital:["Casado","Union libre","Soltero hombre","Soltera mujer"] },
-    nq:{ enabled:false, noches:3, label:"" },
-    regalosDisponibles:[
-      { id:"G014", icon:"", label:"Gift Card $100" },
-      { id:"G015", icon:"", label:"2 entradas parque de agua" },
-    ],
-  },
-  {
-    id:"D06", nombre:"Puerto Vallarta", icon:"", region:"internacional",
-    qc:{ noches:4, ageMin:25, ageMax:60, marital:["Casado","Union libre","Soltero hombre","Soltera mujer"] },
-    nq:{ enabled:true, noches:3, label:"Vallarta Basico" },
-    regalosDisponibles:[
-      { id:"G016", icon:"", label:"Tour en barco bahia" },
-      { id:"G017", icon:"", label:"Canopy Sierra Madre" },
-    ],
-  },
-  {
-    id:"D07", nombre:"Huatulco", icon:"", region:"internacional",
-    qc:{ noches:5, ageMin:25, ageMax:65, marital:["Casado","Union libre"] },
-    nq:{ enabled:true, noches:3, label:"Huatulco Basico" },
-    regalosDisponibles:[
-      { id:"G018", icon:"", label:"Tour en lancha bahias" },
-      { id:"G019", icon:"", label:"Gift Card $50 USD" },
-    ],
-  },
-];
+// DESTINOS_CATALOG ahora viene de Supabase — ver SellerCRMv3 donde se carga
+// Esta variable se rellena dinamicamente; se define aqui como fallback vacio
+var DESTINOS_CATALOG = [];
+
+// Convierte fila DB → formato interno seller
+function dbToDestinoSeller(r) {
+  var qc = r.qc || {};
+  var nq = r.nq || {};
+  return {
+    id:      r.id,
+    nombre:  r.nombre,
+    icon:    r.icon || "",
+    region:  r.region || "internacional",
+    activo:  r.activo !== false,
+    qc: {
+      noches:  qc.nights  || qc.noches || 4,
+      ageMin:  qc.ageMin  || 18,
+      ageMax:  qc.ageMax  || 99,
+      marital: qc.marital || [],
+    },
+    nq: {
+      enabled: nq.enabled || false,
+      noches:  nq.nights  || nq.noches || 3,
+      label:   nq.label   || "",
+    },
+    regalosDisponibles: ((qc.gifts && qc.gifts.items) || [])
+      .filter(function(g){ return g.active !== false; })
+      .map(function(g){ return { id: g.id, icon: g.icon || "", label: g.name }; }),
+  };
+}
+
+
 
 // Funcion de calificacion - igual que destinations-v5
 function calificarDestinos(edad, estadoCivil) {
@@ -1721,6 +1685,7 @@ export default function SellerCRMv3({ currentUser: shellUser }) {
   const [toast,        setToast]      = useState(null);
   const [showNuevo,    setShowNuevo]  = useState(false);
   const [vistaUserId,  setVistaUserId]= useState(null);
+  const [destCatalog,  setDestCatalog]= useState([]);
 
   var rolShell  = (shellUser && shellUser.rol) ? shellUser.rol : "vendedor";
   var SUP_ROLES = ["admin", "director", "supervisor"];
@@ -1777,9 +1742,26 @@ export default function SellerCRMv3({ currentUser: shellUser }) {
       });
   }
 
+  // Cargar catalogo de destinos desde Supabase
+  function cargarDestinos() {
+    SB.from("destinos_catalog")
+      .select("*")
+      .eq("activo", true)
+      .order("id", { ascending: true })
+      .then(function(res) {
+        if (res.data) {
+          var mapped = res.data.map(dbToDestinoSeller);
+          setDestCatalog(mapped);
+          // Actualizar la variable global para compatibilidad con funciones que la usan directamente
+          DESTINOS_CATALOG = mapped;
+        }
+      });
+  }
+
   // Cargar al montar y polling cada 30 segundos
   useEffect(function() {
     cargarLeads();
+    cargarDestinos();
     if (isSup) cargarUsuarios();
     var interval = setInterval(function() { cargarLeads(); }, 30000);
     return function() { clearInterval(interval); };
