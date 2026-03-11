@@ -196,7 +196,10 @@ function leadToMiembro(r) {
     tel:            r.tel          || exp.tPhone || r.whatsapp || "",
     whatsapp:       r.whatsapp     || exp.tPhone || "",
     email:          r.email        || exp.tEmail || "",
-    direccion:      r.direccion    || [exp.address,exp.city,exp.state].filter(Boolean).join(", ") || "",
+    direccion:      r.direccion    || exp.address  || "",
+    ciudad:         r.ciudad       || exp.city     || "",
+    estado:         r.estado       || exp.state    || "",
+    zip:            r.zip          || exp.zip      || "",
     membresia:      "Silver",
     vendedor:       r.vendedor_nombre || "",
     compra:         r.created_at ? r.created_at.split("T")[0] : TODAY,
@@ -924,6 +927,9 @@ function EditContactoModal(props) {
     whatsapp:    c.whatsapp    || "",
     email:       c.email       || "",
     direccion:   c.direccion   || "",
+    ciudad:      c.ciudad      || "",
+    estado:      c.estado      || "",
+    zip:         c.zip         || "",
     estadoCivil: c.estadoCivil || "",
     coProp:      c.coProp      || "",
     coPropTel:   c.coPropTel   || "",
@@ -940,6 +946,9 @@ function EditContactoModal(props) {
       whatsapp:     d.whatsapp,
       email:        d.email,
       direccion:    d.direccion,
+      ciudad:       d.ciudad,
+      estado:       d.estado,
+      zip:          d.zip,
       estado_civil: d.estadoCivil,
       co_prop:      d.coProp,
       co_prop_tel:  d.coPropTel,
@@ -983,8 +992,20 @@ function EditContactoModal(props) {
               <input style={S.input} type="email" value={d.email} onChange={function(e){ set("email", e.target.value); }} placeholder="correo@ejemplo.com"/>
             </div>
             <div style={{gridColumn:"1/-1"}}>
-              <label style={S.label}>📍 Dirección</label>
-              <input style={S.input} value={d.direccion} onChange={function(e){ set("direccion", e.target.value); }} placeholder="Calle, ciudad, estado..."/>
+              <label style={S.label}>📍 Calle y número</label>
+              <input style={S.input} value={d.direccion} onChange={function(e){ set("direccion", e.target.value); }} placeholder="Ej: 123 Main St"/>
+            </div>
+            <div>
+              <label style={S.label}>🏙️ Ciudad</label>
+              <input style={S.input} value={d.ciudad} onChange={function(e){ set("ciudad", e.target.value); }} placeholder="Ciudad"/>
+            </div>
+            <div>
+              <label style={S.label}>Estado</label>
+              <input style={S.input} value={d.estado} onChange={function(e){ set("estado", e.target.value); }} placeholder="Estado / Provincia"/>
+            </div>
+            <div>
+              <label style={S.label}>Código postal</label>
+              <input style={S.input} value={d.zip} onChange={function(e){ set("zip", e.target.value); }} placeholder="ZIP / CP"/>
             </div>
             <div>
               <label style={S.label}>💍 Estado civil</label>
@@ -1345,7 +1366,7 @@ function FichaMiembro(props) {
                 <button style={Object.assign({},S.btn("ghost"),{padding:"4px 10px",fontSize:11})} onClick={function(){ setEditContacto(true); }}>✏️ Editar</button>
               </div>
             <div style={S.g2}>
-              {[["📞 Teléfono","tel"],["💬 WhatsApp","whatsapp"],["✉️ Email","email"],["📍 Dirección","direccion"]].map(function(f){
+              {[["📞 Teléfono","tel"],["💬 WhatsApp","whatsapp"],["✉️ Email","email"],["📍 Calle","direccion"],["🏙️ Ciudad","ciudad"],["Estado","estado"],["ZIP / CP","zip"]].map(function(f){
                 return <div key={f[0]}>
                   <label style={S.label}>{f[0]}</label>
                   <div style={{fontSize:13,color:"#1a1f2e",padding:"4px 0"}}>{c[f[1]]||"—"}</div>
