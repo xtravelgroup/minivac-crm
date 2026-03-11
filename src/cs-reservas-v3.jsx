@@ -1732,7 +1732,11 @@ export default function CsReservasV3() {
       var folioNew = "RES-" + uid().toUpperCase().slice(0,6);
       SB.from("reservaciones").insert(Object.assign({}, dbData, { folio: folioNew }))
       .then(function(res2) {
-        if (res2.error) { showToast("Error al crear reserva: " + res2.error.message); return; }
+        if (res2.error) {
+          console.error("Error reserva:", JSON.stringify(res2.error));
+          showToast("Error: " + res2.error.message + " | " + (res2.error.details||res2.error.hint||""));
+          return;
+        }
         showToast("Reserva creada: " + folioNew);
         cargarMiembros();
       });
