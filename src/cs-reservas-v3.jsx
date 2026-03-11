@@ -19,6 +19,11 @@ function daysSince(s){ return Math.floor((Date.now()-new Date((s||TODAY)+"T12:00
 var GREEN="#1a7f3c"; var AMBER="#925c0a"; var RED="#b91c1c";
 var BLUE="#1565c0"; var TEAL="#0ea5a0"; var VIOLET="#7c3aed"; var INDIGO="#3d5bcd";
 
+var EDGE_URL  = "https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/zoho-payments";
+var ANON_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA";
+var AUTH_HDR  = { "Content-Type": "application/json", "Authorization": "Bearer " + ANON_KEY };
+var ZOHO_API_KEY = "1003.afb484f19b10b5674c7e6f7c0c0ee5f5.89f010a430837bed480829a015a88641";
+
 var S = {
   wrap:   { background:"#f4f5f7", minHeight:"100vh", fontFamily:"system-ui,'Segoe UI',sans-serif", color:"#1a1f2e", fontSize:"13px" },
   topbar: { background:"#ffffff", borderBottom:"1px solid #e3e6ea", padding:"0 20px", height:52, display:"flex", alignItems:"center", gap:12, flexShrink:0 },
@@ -475,6 +480,201 @@ function OpModal(props) {
   );
 }
 
+
+// ─────────────────────────────────────────────────────────────
+// FORMULARIO DE ABONO CS — con Zoho para tarjeta
+// ─────────────────────────────────────────────────────────────
+function PagoAbonoCS(props) {
+  var c = props.cliente;
+  var saldo = c.saldoPendiente || 0;
+  var [monto,          setMonto]          = useState("");
+  var [metodo,         setMetodo]         = useState("tarjeta");
+  var [concepto,       setConcepto]       = useState("Abono");
+  var [ref,            setRef]            = useState("");
+  var [autorizado,     setAutorizado]     = useState(false);
+  var [usarOtra,       setUsarOtra]       = useState(false);
+  var [saving,         setSaving]         = useState(false);
+  var [err,            setErr]            = useState("");
+  var [zohoError,      setZohoError]      = useState("");
+
+  var tieneGuardada = !usarOtra && c.verificacion && c.verificacion.zoho_payment_method_id;
+  var last4  = (c.verificacion && c.verificacion.tarjeta_last4)  || "";
+  var brand  = (c.verificacion && c.verificacion.tarjeta_brand)  || "Tarjeta";
+  var custId = (c.verificacion && c.verificacion.zoho_customer_id) || "";
+  var pmId   = (c.verificacion && c.verificacion.zoho_payment_method_id) || "";
+
+  useEffect(function() {
+    if (window.ZPayments) return;
+    var s = document.createElement("script");
+    s.src = "https://static.zohocdn.com/zpay/zpay-js/v1/zpayments.js";
+    s.onerror = function() { setZohoError("No se pudo cargar SDK de Zoho"); };
+    document.head.appendChild(s);
+  }, []);
+
+  function guardarAbono(nuevo) {
+    var nuevosAbonos = (c.pagos || []).filter(function(p){ return p.concepto !== "Pago inicial (venta)"; }).concat([nuevo]);
+    SB.from("leads").update({ pagos_historial: nuevosAbonos }).eq("id", c.id)
+      .then(function(res) {
+        setSaving(false);
+        if (res.error) { setErr("Cobrado pero error al guardar: " + res.error.message); return; }
+        setMonto(""); setConcepto("Abono"); setRef(""); setAutorizado(false);
+        if (props.onAbono) props.onAbono(nuevosAbonos);
+      });
+  }
+
+  function handleManual() {
+    var m = Number(monto);
+    if (!m || m <= 0) { setErr("Ingresa un monto válido"); return; }
+    if (m > saldo + 0.01) { setErr("El abono supera el saldo de " + fmtUSD(saldo)); return; }
+    setErr(""); setSaving(true);
+    guardarAbono({ id: "P" + Date.now(), monto: m, metodo: metodo, referencia: ref || "—", concepto: concepto || "Abono", fecha: new Date().toISOString(), por: "CS" });
+  }
+
+  function handleZoho() {
+    var m = Number(monto);
+    if (!m || m <= 0) { setErr("Ingresa un monto válido"); return; }
+    if (m > saldo + 0.01) { setErr("El abono supera el saldo de " + fmtUSD(saldo)); return; }
+    setErr(""); setSaving(true);
+
+    if (pmId && custId && !usarOtra) {
+      fetch(EDGE_URL + "/charge-saved-card", {
+        method: "POST", headers: AUTH_HDR,
+        body: JSON.stringify({ lead_id: c.id, customer_id: custId, payment_method_id: pmId, amount: m, folio: c.id, nombre: c.nombre }),
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        setSaving(false);
+        if (data.error) { setErr("Error Zoho: " + data.error); return; }
+        if (data.status === "succeeded" || data.status === "success") {
+          guardarAbono({ id: "P" + Date.now(), monto: m, metodo: "tarjeta", referencia: data.payment_id || "Zoho-OK", concepto: concepto || "Abono tarjeta", fecha: new Date().toISOString(), por: "CS" });
+        } else { setErr("Cargo rechazado: " + (data.status || "error")); }
+      })
+      .catch(function(e) { setSaving(false); setErr("Error de red: " + e.message); });
+      return;
+    }
+
+    if (!window.ZPayments) { setSaving(false); setErr("SDK Zoho no disponible"); return; }
+    fetch(EDGE_URL + "/create-session", {
+      method: "POST", headers: AUTH_HDR,
+      body: JSON.stringify({ amount: m, folio: c.id, nombre: c.nombre, email: c.email || "" }),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(sess) {
+      if (sess.error) { setSaving(false); setErr("Error sesión: " + sess.error); return; }
+      var zp = new window.ZPayments(ZOHO_API_KEY);
+      zp.pay({
+        hostedpage_id: sess.hostedpage_id || sess.id,
+        success: function(data) {
+          setSaving(false);
+          guardarAbono({ id: "P" + Date.now(), monto: m, metodo: "tarjeta", referencia: data.payment_id || "Zoho-OK", concepto: concepto || "Abono tarjeta", fecha: new Date().toISOString(), por: "CS" });
+        },
+        failure: function(e) { setSaving(false); setErr("Pago rechazado: " + (e.message || e)); },
+        cancel:  function()  { setSaving(false); },
+      });
+    })
+    .catch(function(e) { setSaving(false); setErr("Error sesión Zoho: " + e.message); });
+  }
+
+  var METODOS = ["tarjeta", "transferencia", "efectivo", "cheque"];
+
+  return (
+    <div style={{background:"#f9fafb",borderRadius:10,padding:14,border:"1px solid #e3e6ea",marginTop:14}}>
+      <div style={{fontSize:11,fontWeight:700,color:BLUE,marginBottom:12}}>➕ Aplicar abono</div>
+      <div style={Object.assign({},S.g2,{marginBottom:10})}>
+        <div>
+          <label style={S.label}>Monto (USD)</label>
+          <input style={Object.assign({},S.input,{fontWeight:700})} type="number" min="1" max={saldo}
+            placeholder={"Máx " + fmtUSD(saldo)} value={monto}
+            onChange={function(e){ setMonto(e.target.value); setErr(""); }}/>
+        </div>
+        <div>
+          <label style={S.label}>Método</label>
+          <select style={S.sel} value={metodo} onChange={function(e){ setMetodo(e.target.value); setErr(""); setAutorizado(false); setUsarOtra(false); }}>
+            {METODOS.map(function(m){ return <option key={m} value={m}>{m.charAt(0).toUpperCase()+m.slice(1)}</option>; })}
+          </select>
+        </div>
+        {metodo !== "tarjeta" && (
+          <div>
+            <label style={S.label}>Concepto</label>
+            <input style={S.input} value={concepto} onChange={function(e){ setConcepto(e.target.value); }} placeholder="Abono, 2do pago..."/>
+          </div>
+        )}
+        {metodo !== "tarjeta" && (
+          <div>
+            <label style={S.label}>Referencia / No. transacción</label>
+            <input style={S.input} value={ref} onChange={function(e){ setRef(e.target.value); }} placeholder="TXN-12345 / SPEI-..."/>
+          </div>
+        )}
+      </div>
+
+      {/* TARJETA GUARDADA */}
+      {metodo === "tarjeta" && pmId && !usarOtra && (
+        <div style={{padding:"10px 12px",borderRadius:8,background:"#e8f0fe",border:"1px solid #aac4f0",marginBottom:10,display:"flex",gap:10,alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{display:"flex",gap:10,alignItems:"center"}}>
+            <div style={{fontSize:18}}>💳</div>
+            <div>
+              <div style={{fontSize:12,fontWeight:700,color:BLUE}}>{brand} **** {last4||"guardada"}</div>
+              <div style={{fontSize:11,color:"#6b7280"}}>Tarjeta guardada · {c.nombre}</div>
+            </div>
+          </div>
+          <button style={{fontSize:11,color:"#6b7280",background:"none",border:"1px solid #e3e6ea",borderRadius:6,padding:"3px 8px",cursor:"pointer"}}
+            onClick={function(){ setUsarOtra(true); setAutorizado(false); }}>Usar otra</button>
+        </div>
+      )}
+
+      {/* USAR OTRA */}
+      {metodo === "tarjeta" && pmId && usarOtra && (
+        <div style={{padding:"10px 12px",borderRadius:8,background:"#fef9e7",border:"1px solid #f0d080",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{fontSize:12,color:AMBER}}>⚠️ Se abrirá el widget de Zoho para nueva tarjeta</div>
+          <button style={{fontSize:11,color:BLUE,background:"none",border:"1px solid #aac4f0",borderRadius:6,padding:"3px 8px",cursor:"pointer"}}
+            onClick={function(){ setUsarOtra(false); setAutorizado(false); }}>← Usar guardada</button>
+        </div>
+      )}
+
+      {/* SIN TARJETA GUARDADA */}
+      {metodo === "tarjeta" && !pmId && (
+        <div style={{padding:"10px 12px",borderRadius:8,background:"#fef9e7",border:"1px solid #f0d080",marginBottom:10,fontSize:12,color:AMBER}}>
+          ⚠️ Este cliente no tiene tarjeta guardada. Se abrirá el widget de Zoho.
+        </div>
+      )}
+
+      {/* CHECKBOX AUTORIZACIÓN */}
+      {metodo === "tarjeta" && pmId && !usarOtra && (
+        <div onClick={function(){ setAutorizado(function(p){ return !p; }); }}
+          style={{display:"flex",alignItems:"flex-start",gap:10,padding:"10px 12px",borderRadius:8,
+            background:autorizado?"rgba(26,127,60,0.06)":"#f9fafb",
+            border:"1px solid "+(autorizado?"#a3d9a5":"#e3e6ea"),
+            marginBottom:10,cursor:"pointer",userSelect:"none"}}>
+          <div style={{width:16,height:16,borderRadius:4,border:"2px solid "+(autorizado?"#1a7f3c":"#9ca3af"),
+            background:autorizado?"#1a7f3c":"#fff",flexShrink:0,marginTop:1,
+            display:"flex",alignItems:"center",justifyContent:"center"}}>
+            {autorizado && <span style={{color:"#fff",fontSize:11,fontWeight:900,lineHeight:1}}>✓</span>}
+          </div>
+          <div style={{fontSize:12,color:autorizado?"#1a7f3c":"#6b7280",lineHeight:1.4}}>
+            <strong>El cliente autorizó el cargo</strong> a la tarjeta {brand} **** {last4||"guardada"} por {monto ? fmtUSD(Number(monto)) : "el monto indicado"}
+          </div>
+        </div>
+      )}
+
+      {err && <div style={{fontSize:12,color:RED,marginBottom:8,fontWeight:600}}>⚠️ {err}</div>}
+      {zohoError && metodo === "tarjeta" && <div style={{fontSize:12,color:RED,marginBottom:8}}>⚠️ {zohoError}</div>}
+
+      {metodo === "tarjeta" ? (
+        <button style={Object.assign({},S.btn("success"),{width:"100%",justifyContent:"center"})}
+          disabled={!monto||saving||(pmId&&!usarOtra&&!autorizado)}
+          onClick={handleZoho}>
+          {saving ? "Procesando..." : "💳 Cobrar " + (monto ? fmtUSD(Number(monto)) : "—") + " con tarjeta"}
+        </button>
+      ) : (
+        <button style={Object.assign({},S.btn("success"),{width:"100%",justifyContent:"center"})}
+          disabled={!monto||saving} onClick={handleManual}>
+          {saving ? "Guardando..." : "Registrar abono de " + (monto ? fmtUSD(Number(monto)) : "—")}
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // FICHA DEL MIEMBRO — tabs
 // ─────────────────────────────────────────────────────────────
@@ -686,6 +886,8 @@ function FichaMiembro(props) {
                 <div style={{height:6,background:"#f0f1f4",borderRadius:4,overflow:"hidden",marginTop:8}}>
                   <div style={{height:"100%",width:Math.min(100,Math.round(c.totalPagado/(c.precioPaquete||1)*100))+"%",background:c.saldoPendiente>0?AMBER:GREEN,borderRadius:4,transition:"width 0.5s"}}/>
                 </div>
+                {c.saldoPendiente>0&&<PagoAbonoCS cliente={c} onAbono={props.onAbono}/>}
+                {c.saldoPendiente<=0&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:9,background:"rgba(26,127,60,0.06)",border:"1px solid #a3d9a5",textAlign:"center",fontSize:13,color:GREEN,fontWeight:600}}>✅ Saldo liquidado</div>}
               </div>
               <div style={S.stit}>Historial de pagos</div>
               {(c.pagos||[]).map(function(p){
@@ -976,6 +1178,9 @@ export default function CsReservasV3() {
     onNuevaReserva:handleNuevaReserva, onVerReserva:handleVerReserva,
     onNota:handleNota, onCaso:handleCaso, onOp:handleOp,
     onRetencion:handleRetencion, onComm:comm.open,
+    onAbono:function(nuevosAbonos){
+      cargarMiembros();
+    },
     onUpdatePagos:handleUpdatePagos,
   };
 
