@@ -270,100 +270,65 @@ function ReservaFormModal(props) {
   var c = props.cliente; var res = props.reserva; var isEdit = !!res;
   var preDestino = props.destino || null;
   var initDest = res ? res.destino : (preDestino ? preDestino.nombre : (c.destinos&&c.destinos[0] ? c.destinos[0].nombre : ""));
-  var [destino,setDestino] = useState(initDest);
-  var [checkin,setCheckin] = useState(res ? res.checkin : daysFromNow(30));
-  var [hotel,setHotel] = useState(res ? res.hotel : "");
-  var [habitacion,setHabitacion] = useState(res ? res.habitacion : "");
-  var [regimen,setRegimen] = useState(res ? res.regimen : "Todo incluido");
-  var [personas,setPersonas] = useState(res ? String(res.personas) : "2");
-  var [nochesExtra,setNochesExtra] = useState(res ? String(res.nochesExtra||0) : "0");
-  var [notas,setNotas] = useState(res ? res.notasInternas : "");
-  var destinoObj = (c.destinos||[]).find(function(d){return d.nombre===destino;});
-  var nBase = destinoObj ? destinoObj.noches : 0;
-  var nExtra = parseInt(nochesExtra)||0;
-  var totalN = nBase+nExtra;
-  var checkout = addDays(checkin,totalN);
+  var [destino,  setDestino]  = useState(initDest);
+  var [checkin,  setCheckin]  = useState(res ? res.checkin  : "");
+  var [checkout, setCheckout] = useState(res ? res.checkout : "");
+  var [adultos,  setAdultos]  = useState(res ? String(res.adultos||2) : "2");
+  var [ninos,    setNinos]    = useState(res ? String(res.ninos||0)   : "0");
+  var [notas,    setNotas]    = useState(res ? res.notasInternas : "");
+
+  var destinoObj = (c.destinos||[]).find(function(d){ return d.nombre===destino; });
   var tipoDestino = destinoObj ? destinoObj.tipo : "qc";
-  var hotelesOpts = (HOTELES_CATALOG[destino]||[]).filter(function(h){ return (!h.tipos||h.tipos.includes(tipoDestino)) && calificaHotel(h,c).ok; });
-  var hotelesNoCalif = (HOTELES_CATALOG[destino]||[]).filter(function(h){ return !calificaHotel(h,c).ok; });
-  var hotelObj = (HOTELES_CATALOG[destino]||[]).find(function(h){return h.nombre===hotel;})||null;
-  var habObj = hotelObj ? (hotelObj.habs.find(function(h){return h.nombre===habitacion;})||hotelObj.habs[0]||null) : null;
-  var nochePrice = (hotelObj?hotelObj.precioNoche:90) + (habObj&&!habObj.base?habObj.up:0);
-  var regimenesDisp = hotelObj ? (hotelObj.regs||[]) : [];
-  var costoExtra = nExtra * nochePrice;
-  var ok = destino && hotel && checkin && habitacion;
+  var nBase  = destinoObj ? destinoObj.noches : 0;
+  var nTotal = (checkin && checkout) ? Math.max(0, Math.round((new Date(checkout)-new Date(checkin))/(1000*60*60*24))) : 0;
+  var nExtra = Math.max(0, nTotal - nBase);
+  var ok     = destino && checkin && checkout && new Date(checkout) > new Date(checkin);
+
   return (
-    <ModalWrap title={isEdit?"Modificar reserva":"Nueva reserva"} sub={c.nombre+" — "+c.folio} color={TEAL} onClose={props.onClose} wide>
+    <ModalWrap title={isEdit?"Modificar reserva":"Nueva solicitud de reserva"} sub={c.nombre+" — "+c.folio} color={TEAL} onClose={props.onClose} wide>
       <div style={Object.assign({},S.g2,{marginBottom:12})}>
         <div>
           <label style={S.label}>Destino</label>
-          <select style={S.sel} value={destino} onChange={function(e){setDestino(e.target.value);setHotel("");setHabitacion("");}}>
+          <select style={S.sel} value={destino} onChange={function(e){ setDestino(e.target.value); }}>
             <option value="">-- Seleccionar --</option>
-            {(c.destinos||[]).map(function(d){return <option key={d.id} value={d.nombre}>{d.nombre} · {d.noches}n {(d.tipo||"").toUpperCase()}</option>;})}
+            {(c.destinos||[]).map(function(d){ return <option key={d.id||d.nombre} value={d.nombre}>{d.nombre} · {d.noches}n {(d.tipo||"").toUpperCase()}</option>; })}
           </select>
         </div>
+        <div/>
         <div>
-          <label style={S.label}>Check-in</label>
-          <input style={S.input} type="date" value={checkin} min={TODAY} onChange={function(e){setCheckin(e.target.value);}}/>
+          <label style={S.label}>Fecha check-in</label>
+          <input style={S.input} type="date" value={checkin} onChange={function(e){ setCheckin(e.target.value); }}/>
+        </div>
+        <div>
+          <label style={S.label}>Fecha check-out</label>
+          <input style={S.input} type="date" value={checkout} min={checkin||""} onChange={function(e){ setCheckout(e.target.value); }}/>
         </div>
       </div>
-      {destino&&(
+      {destino && checkin && checkout && nTotal > 0 && (
         <div style={{padding:"9px 12px",borderRadius:9,background:"rgba(14,165,160,0.05)",border:"1px solid rgba(14,165,160,0.2)",marginBottom:12,display:"flex",gap:18,fontSize:12,flexWrap:"wrap"}}>
-          <span style={{color:"#9ca3af"}}>Noches incl.: <strong style={{color:"#1a1f2e"}}>{nBase}</strong></span>
-          <span style={{color:"#9ca3af"}}>Extra: <strong style={{color:AMBER}}>{nExtra}</strong></span>
-          <span style={{color:"#9ca3af"}}>Total: <strong style={{color:TEAL}}>{totalN}n</strong></span>
-          <span style={{color:"#9ca3af"}}>Checkout: <strong style={{color:"#1a1f2e"}}>{fmtDate(checkout)}</strong></span>
-          {costoExtra>0&&<span style={{color:"#9ca3af"}}>Cargo extra ({fmtUSD(nochePrice)}/n): <strong style={{color:AMBER}}>{fmtUSD(costoExtra)}</strong></span>}
+          <span style={{color:"#9ca3af"}}>Noches incluidas: <strong style={{color:"#1a1f2e"}}>{nBase}</strong></span>
+          <span style={{color:"#9ca3af"}}>Total noches: <strong style={{color:TEAL}}>{nTotal}</strong></span>
+          {nExtra > 0 && <span style={{color:"#9ca3af"}}>Noches adicionales: <strong style={{color:AMBER}}>{nExtra}</strong></span>}
         </div>
       )}
       <div style={Object.assign({},S.g2,{marginBottom:12})}>
         <div>
-          <label style={S.label}>Hotel</label>
-          <select style={S.sel} value={hotel} onChange={function(e){
-            var h = e.target.value;
-            setHotel(h);
-            var hObj = (HOTELES_CATALOG[destino]||[]).find(function(x){return x.nombre===h;})||null;
-            if (hObj && hObj.regs && hObj.regs.length > 0) setRegimen(hObj.regs[0]);
-          }}>
-            <option value="">-- Seleccionar hotel --</option>
-            {hotelesOpts.map(function(h){return <option key={h.id} value={h.nombre}>{h.nombre} ({h.cat}★ · ${h.precioNoche}/n)</option>;})}
-            {hotelesNoCalif.length>0&&<option disabled>── No califica ──</option>}
-            {hotelesNoCalif.map(function(h){return <option key={h.id} disabled>{h.nombre}</option>;})}
-          </select>
+          <label style={S.label}>Adultos</label>
+          <input style={S.input} type="number" min="1" max="6" value={adultos} onChange={function(e){ setAdultos(e.target.value); }}/>
         </div>
         <div>
-          <label style={S.label}>Habitacion</label>
-          <select style={S.sel} value={habitacion} onChange={function(e){setHabitacion(e.target.value);}}>
-            <option value="">-- Seleccionar --</option>
-            {(hotelObj?hotelObj.habs:[]).map(function(h){var np=(hotelObj?hotelObj.precioNoche:0)+(h.base?0:h.up); return <option key={h.id} value={h.nombre}>{h.nombre}{h.base?" (incluida)":" (+$"+h.up+" upg)"} — extra ${np}/n</option>;})}
-          </select>
-        </div>
-        <div>
-          <label style={S.label}>Regimen</label>
-          <select style={S.sel} value={regimen} onChange={function(e){setRegimen(e.target.value);}}>
-            {regimenesDisp.length > 0
-              ? regimenesDisp.map(function(r){return <option key={r}>{r}</option>;})
-              : <option value="">-- Selecciona hotel primero --</option>
-            }
-          </select>
-        </div>
-        <div>
-          <label style={S.label}>Personas</label>
-          <input style={S.input} type="number" min="1" max="6" value={personas} onChange={function(e){setPersonas(e.target.value);}}/>
-        </div>
-        <div>
-          <label style={S.label}>Noches extra (cargo adicional)</label>
-          <input style={S.input} type="number" min="0" max="30" value={nochesExtra} onChange={function(e){setNochesExtra(e.target.value);}}/>
+          <label style={S.label}>Ninos</label>
+          <input style={S.input} type="number" min="0" max="6" value={ninos} onChange={function(e){ setNinos(e.target.value); }}/>
         </div>
       </div>
       <div style={{marginBottom:20}}>
         <label style={S.label}>Notas / solicitudes especiales</label>
-        <textarea style={Object.assign({},S.ta,{minHeight:60,marginTop:4})} value={notas} onChange={function(e){setNotas(e.target.value);}} placeholder="Preferencias, celebraciones..."/>
+        <textarea style={Object.assign({},S.ta,{minHeight:60,marginTop:4})} value={notas} onChange={function(e){setNotas(e.target.value);}} placeholder="Preferencias, celebraciones, peticiones..."/>
       </div>
       <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
         <button style={S.btn("ghost")} onClick={props.onClose}>Cancelar</button>
-        <button style={S.btn("teal")} onClick={function(){props.onSave({destino:destino,checkin:checkin,checkout:checkout,hotel:hotel,habitacion:habitacion,regimen:regimen,personas:parseInt(personas)||2,nochesIncluidas:nBase,nochesExtra:nExtra,totalCobrado:costoExtra,tipo:tipoDestino,notasInternas:notas,agente:props.autor||"Agente"});props.onClose();}} disabled={!ok}>
-          {isEdit?"Guardar cambios":"Crear reserva"}
+        <button style={S.btn("teal")} onClick={function(){ props.onSave({destino:destino,checkin:checkin,checkout:checkout,adultos:parseInt(adultos)||2,ninos:parseInt(ninos)||0,nochesIncluidas:nBase,nochesExtra:nExtra,tipo:tipoDestino,notasInternas:notas,agente:props.autor||"Agente",status:"solicitud"}); props.onClose(); }} disabled={!ok}>
+          {isEdit?"Guardar cambios":"Enviar solicitud"}
         </button>
       </div>
     </ModalWrap>
