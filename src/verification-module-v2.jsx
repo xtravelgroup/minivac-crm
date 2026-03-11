@@ -928,7 +928,9 @@ function DetailView({ lead, onBack, onUpdate }) {
   const handleChargeResult = (result) => {
     const attempt = { ts:new Date().toISOString(), amount:exp.pagoInicial, status:result==="approved"?"approved":"rejected" };
     const v = { ...(verif||{}), paymentStatus:result, chargeAttempts:[attempt, ...((verif||{}).chargeAttempts||[])] };
-    setVerif(v); pushUpdate(exp, v, null);
+    setVerif(v);
+    var extra = result === "approved" ? { status: "venta" } : null;
+    pushUpdate(exp, v, extra);
     setChargeModal(false);
     if (result === "approved") setTimeout(() => setSendModal(true), 400);
     else setTimeout(() => setFinishModal({ defaultResult:"tarjeta_rechazada" }), 400);
@@ -1163,16 +1165,21 @@ export default function VerificationModule() {
   }, []);
 
   const updateLead = function(u) {
-    // Guardar verificacion en Supabase
+    // Determinar status correcto
+    var newStatus = u.status;
+    if (u.verificacion && u.verificacion.result === "venta") newStatus = "venta";
+    if (u.verificacion && u.verificacion.paymentStatus === "approved" && !u.verificacion.result) newStatus = "venta";
+
     var dbUpdate = {
       verificacion: u.verificacion,
-      status: u.verificacion && u.verificacion.result === "venta" ? "venta" : u.status,
+      status: newStatus,
     };
     SB.from("leads").update(dbUpdate).eq("id", u.id).then(function(res) {
       if (res.error) {
         notify("Error al guardar: " + res.error.message, false);
       } else {
-        setLeads(function(p){ return p.map(function(l){ return l.id === u.id ? u : l; }); });
+        var updated = Object.assign({}, u, { status: newStatus });
+        setLeads(function(p){ return p.map(function(l){ return l.id === u.id ? updated : l; }); });
         notify("Expediente actualizado", true);
       }
     });
