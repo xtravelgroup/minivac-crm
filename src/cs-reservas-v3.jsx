@@ -1210,7 +1210,7 @@ export default function CsReservasV3() {
 
   // ── Cargar catálogo de destinos (para nombres)
   useEffect(function(){
-    SB.from("destinos_catalog").select("id,nombre,icon").then(function(res){
+    SB.from("destinos_catalog").select("id,nombre,icon,qc,nq,activo").then(function(res){
       if(res.data){ var m={}; res.data.forEach(function(d){ m[d.id]=d; }); setDestCatalogMap(m); }
     });
   },[]);
