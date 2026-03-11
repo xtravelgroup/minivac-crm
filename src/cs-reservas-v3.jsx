@@ -945,12 +945,13 @@ function TransferirModal(props) {
 function EditContactoModal(props) {
   var c = props.cliente;
   var [d, setD] = useState({
-    tel:        c.tel        || "",
-    whatsapp:   c.whatsapp   || "",
-    email:      c.email      || "",
-    direccion:  c.direccion  || "",
-    coProp:     c.coProp     || "",
-    coPropTel:  c.coPropTel  || "",
+    tel:         c.tel         || "",
+    whatsapp:    c.whatsapp    || "",
+    email:       c.email       || "",
+    direccion:   c.direccion   || "",
+    estadoCivil: c.estadoCivil || "",
+    coProp:      c.coProp      || "",
+    coPropTel:   c.coPropTel   || "",
   });
   var [saving, setSaving] = useState(false);
   var [err,    setErr]    = useState("");
@@ -967,12 +968,15 @@ function EditContactoModal(props) {
         tPhone: d.tel,
         tEmail: d.email,
         address: d.direccion,
+        tEstadoCivil: d.estadoCivil,
+        estadoCivil:  d.estadoCivil,
         pPhone: d.coPropTel,
       });
       return SB.from("leads").update({
-        whatsapp:  d.whatsapp,
-        email:     d.email,
-        expediente: expNuevo,
+        whatsapp:      d.whatsapp,
+        email:         d.email,
+        estado_civil:  d.estadoCivil,
+        expediente:    expNuevo,
       }).eq("id", c.id);
     })
     .then(function(res) {
@@ -1010,6 +1014,21 @@ function EditContactoModal(props) {
             <div style={{gridColumn:"1/-1"}}>
               <label style={S.label}>📍 Dirección</label>
               <input style={S.input} value={d.direccion} onChange={function(e){ set("direccion", e.target.value); }} placeholder="Calle, ciudad, estado..."/>
+            </div>
+            <div>
+              <label style={S.label}>💍 Estado civil</label>
+              <select style={S.sel} value={d.estadoCivil} onChange={function(e){ set("estadoCivil", e.target.value); }}>
+                <option value="">-- Seleccionar --</option>
+                <option value="Soltero">Soltero</option>
+                <option value="Soltera">Soltera</option>
+                <option value="Casado">Casado</option>
+                <option value="Casada">Casada</option>
+                <option value="Union libre">Unión libre</option>
+                <option value="Divorciado">Divorciado</option>
+                <option value="Divorciada">Divorciada</option>
+                <option value="Viudo">Viudo</option>
+                <option value="Viuda">Viuda</option>
+              </select>
             </div>
           </div>
         </div>
@@ -1343,11 +1362,7 @@ function FichaMiembro(props) {
                 );
               })}
             </div>
-            <div style={S.g3}>
-              <div style={S.card}><label style={S.label}>Precio paquete</label><div style={{fontSize:16,fontWeight:800,color:"#1a1f2e"}}>{fmtUSD(c.precioPaquete)}</div></div>
-              <div style={S.card}><label style={S.label}>Total pagado</label><div style={{fontSize:16,fontWeight:800,color:GREEN}}>{fmtUSD(c.totalPagado)}</div></div>
-              <div style={S.card}><label style={S.label}>Saldo</label><div style={{fontSize:16,fontWeight:800,color:c.saldoPendiente>0?AMBER:GREEN}}>{c.saldoPendiente>0?fmtUSD(c.saldoPendiente):"✅ Liq."}</div></div>
-            </div>
+
           </div>
         )}
 

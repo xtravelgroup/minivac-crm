@@ -104,7 +104,7 @@ var MODULOS = [
   {id:"seller",      label:"Vendedores",     icon:"seller",       section:"Principal", roles:["admin","director","supervisor","vendedor"]},
   {id:"verificacion",label:"Verificacion",   icon:"verificacion", section:"Principal", roles:["admin","director","supervisor","verificador"]},
   {id:"reservas",    label:"Reservaciones",  icon:"reservas",     section:"Operacion", roles:["admin","director","supervisor","cs"]},
-  {id:"cs",          label:"CS + Reservas",  icon:"cs",           section:"Operacion", roles:["admin","director","supervisor","cs","verificador"]},
+  {id:"cs",          label:"Membresias",    icon:"cs",           section:"Operacion", roles:["admin","director","supervisor","cs","verificador"]},
   {id:"destinos",    label:"Destinos",       icon:"destinos",     section:"Catalogo",  roles:["admin","director"]},
   {id:"hoteles",     label:"Hoteles",        icon:"hoteles",      section:"Catalogo",  roles:["admin","director"]},
   {id:"paquetes",    label:"Paquetes",       icon:"paquetes",     section:"Catalogo",  roles:["admin","director","supervisor"]},
