@@ -397,44 +397,159 @@ function ChargeModal({ lead, onClose, onResult }) {
 }
 
 function SendDocsModal({ lead, onClose, onSent }) {
-  const [phase, setPhase] = useState("ready");
-  const exp = lead.exp;
-  const doSend = () => { setPhase("sending"); setTimeout(() => setPhase("sent"), 1800); };
+  const [phase,    setPhase]    = useState("ready");
+  const [error,    setError]    = useState("");
+  const [link,     setLink]     = useState("");
+  const [waSent,   setWaSent]   = useState(false);
+  const [mailSent, setMailSent] = useState(false);
+  const exp  = lead.exp;
+  const SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
+  const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA";
+  const HDR  = { "Content-Type":"application/json", "Authorization":"Bearer "+SB_KEY, "apikey":SB_KEY };
+  const nombre = (exp.tFirstName||"") + " " + (exp.tLastName||"");
+  const phone  = (exp.tPhone||"").replace(/\D/g,"");
+  const email  = exp.tEmail||"";
+
+  const doSend = async () => {
+    setPhase("generating"); setError("");
+    try {
+      // 1. Generar link de firma
+      var res = await fetch(SB_URL + "/functions/v1/zoho-payments/generar-link", {
+        method:"POST", headers:HDR,
+        body: JSON.stringify({ lead_id: lead.id })
+      });
+      var data = await res.json();
+      if (!data.link) throw new Error(data.error || "No se pudo generar el link");
+      var firmaLink = data.link;
+      setLink(firmaLink);
+
+      // 2. Mensaje WhatsApp
+      var waMsg = "Hola " + nombre.trim() + "! Te enviamos tu Travel Certificate de X Travel Group para firma digital. Por favor haz clic en el siguiente link para revisar y firmar tu certificado: " + firmaLink + " Gracias por tu compra! Para dudas: 1.800.430.4640";
+      var waNum = phone.startsWith("1") ? phone : "1" + phone;
+      var waUrl = "https://api.whatsapp.com/send?phone=" + waNum + "&text=" + encodeURIComponent(waMsg);
+
+      // 3. Enviar email via mailto (abre cliente de correo del agente)
+      var emailSubj = "Tu Travel Certificate - X Travel Group";
+      var emailBody = "Hola " + nombre.trim() + ",\n\nTe enviamos tu Travel Certificate de X Travel Group para firma digital.\n\nHaz clic en el siguiente link para revisar y firmar:\n" + firmaLink + "\n\nEste link es personal e intransferible. Si tienes dudas contactanos al 1.800.430.4640.\n\nGracias,\nX Travel Group Inc\nmembers@xtravelgroup.com";
+      var mailUrl = "mailto:" + email + "?subject=" + encodeURIComponent(emailSubj) + "&body=" + encodeURIComponent(emailBody);
+
+      setPhase("ready_to_send");
+
+      // Guardar link generado en Supabase
+      await fetch(SB_URL + "/rest/v1/leads?id=eq." + lead.id, {
+        method:"PATCH", headers:{ ...HDR, "Prefer":"return=minimal" },
+        body: JSON.stringify({ firma_token: data.token, firma_enviada_at: new Date().toISOString() })
+      });
+
+      // Auto-abrir WhatsApp primero
+      setTimeout(function() { window.open(waUrl, "_blank"); setWaSent(true); }, 400);
+      // Auto-abrir email despues
+      setTimeout(function() { window.open(mailUrl, "_blank"); setMailSent(true); }, 1200);
+
+    } catch(e) {
+      setError(e.message || "Error al generar el link");
+      setPhase("ready");
+    }
+  };
+
+  const openWA = () => {
+    var waMsg = "Hola " + nombre.trim() + "! Te enviamos tu Travel Certificate de X Travel Group para firma digital. Haz clic aqui para revisar y firmar: " + link + " Dudas: 1.800.430.4640";
+    var waNum = phone.startsWith("1") ? phone : "1" + phone;
+    window.open("https://api.whatsapp.com/send?phone=" + waNum + "&text=" + encodeURIComponent(waMsg), "_blank");
+    setWaSent(true);
+  };
+
+  const openMail = () => {
+    var emailSubj = "Tu Travel Certificate - X Travel Group";
+    var emailBody = "Hola " + nombre.trim() + ",\n\nTe enviamos tu Travel Certificate de X Travel Group para firma digital.\n\nHaz clic en el siguiente link para revisar y firmar:\n" + link + "\n\nPara dudas: 1.800.430.4640\n\nGracias,\nX Travel Group Inc";
+    window.open("mailto:" + email + "?subject=" + encodeURIComponent(emailSubj) + "&body=" + encodeURIComponent(emailBody), "_blank");
+    setMailSent(true);
+  };
+
+  const copyLink = () => { navigator.clipboard.writeText(link).catch(function(){}); };
 
   return (
     <div style={S.modal} onClick={onClose}>
-      <div style={{ ...S.modalBox, maxWidth:"440px" }} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize:"18px", fontWeight:"700", color:"#1a1f2e", marginBottom:"4px" }}>Enviar Documentos al Cliente</div>
-        <div style={{ fontSize:"13px", color:"#9ca3af", marginBottom:"18px" }}>El cliente recibira 2 documentos para firmar</div>
-        {[
-          { title:"Autorizacion de cargo", desc:"Firma autorizando el cobro del enganche" },
-          { title:"Terminos y condiciones", desc:"Condiciones del paquete vacacional contratado" },
-        ].map((doc,i) => (
-          <div key={i} style={{ display:"flex", gap:"12px", alignItems:"center", padding:"12px 14px", borderRadius:"10px", background:"#ffffff", border:"1px solid #e3e6ea", marginBottom:"8px" }}>
-            <div>
-              <div style={{ fontSize:"13px", fontWeight:"600", color:"#3d4554" }}>{doc.title}</div>
-              <div style={{ fontSize:"12px", color:"#9ca3af" }}>{doc.desc}</div>
-            </div>
-          </div>
-        ))}
-        <div style={{ margin:"14px 0", padding:"12px 14px", borderRadius:"10px", background:"#f9fafb", border:"1px solid #e3e6ea" }}>
-          <div style={S.label}>Destinos de envio</div>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:"6px", marginTop:"6px" }}>
-            <span style={S.badge("#25d366","rgba(37,211,102,0.08)","rgba(37,211,102,0.25)")}>WhatsApp {exp.tPhone}</span>
-            <span style={S.badge("#1565c0","rgba(96,165,250,0.08)","#b5cdf2")}>{exp.tEmail||"sin email"}</span>
+      <div style={{ ...S.modalBox, maxWidth:"460px" }} onClick={e => e.stopPropagation()}>
+
+        <div style={{ fontSize:"18px", fontWeight:"700", color:"#1a1f2e", marginBottom:"4px" }}>Enviar Travel Certificate</div>
+        <div style={{ fontSize:"13px", color:"#9ca3af", marginBottom:"18px" }}>Se generara un link unico de firma para este cliente</div>
+
+        {/* Cliente info */}
+        <div style={{ padding:"12px 14px", borderRadius:"10px", background:"#f9fafb", border:"1px solid #e3e6ea", marginBottom:"14px" }}>
+          <div style={{ fontSize:"12px", fontWeight:"600", color:"#374151", marginBottom:"8px" }}>Datos del cliente</div>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:"6px" }}>
+            <span style={{ fontSize:"12px", fontWeight:"600", color:"#1a1f2e" }}>{nombre.trim()}</span>
+            <span style={S.badge("#25d366","rgba(37,211,102,0.08)","rgba(37,211,102,0.25)")}>WA {exp.tPhone||"sin telefono"}</span>
+            <span style={S.badge("#1565c0","rgba(96,165,250,0.08)","#b5cdf2")}>{email||"sin email"}</span>
           </div>
         </div>
-        {phase === "ready"   && <button style={{ ...S.btn("primary"), width:"100%", justifyContent:"center" }} onClick={doSend}>Enviar Documentos Ahora</button>}
-        {phase === "sending" && <div style={{ textAlign:"center", padding:"14px", color:"#6b7280", fontSize:"14px" }}>Enviando...</div>}
-        {phase === "sent"    && (
-          <div>
-            <div style={{ padding:"14px", borderRadius:"10px", textAlign:"center", background:"rgba(74,222,128,0.07)", border:"1px solid rgba(74,222,128,0.2)", marginBottom:"12px" }}>
-              <div style={{ fontSize:"14px", fontWeight:"600", color:"#1a7f3c" }}>Documentos enviados</div>
-              <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"3px" }}>WhatsApp + Email - En espera de firma</div>
-            </div>
-            <button style={{ ...S.btn("success"), width:"100%", justifyContent:"center" }} onClick={onSent}>Continuar - Finalizar verificacion</button>
+
+        {/* Error */}
+        {error && (
+          <div style={{ padding:"10px 14px", borderRadius:"8px", background:"rgba(185,28,28,0.07)", border:"1px solid #fca5a5", color:"#b91c1c", fontSize:"12px", marginBottom:"14px" }}>
+            {error}
           </div>
         )}
+
+        {/* FASE: ready */}
+        {phase === "ready" && (
+          <button style={{ ...S.btn("primary"), width:"100%", justifyContent:"center" }} onClick={doSend}>
+            Generar link y enviar por WhatsApp + Email
+          </button>
+        )}
+
+        {/* FASE: generating */}
+        {phase === "generating" && (
+          <div style={{ textAlign:"center", padding:"20px", color:"#6b7280", fontSize:"13px" }}>
+            <div style={{ marginBottom:"8px" }}>Generando link seguro...</div>
+            <div style={{ width:"28px", height:"28px", border:"2px solid #e3e6ea", borderTopColor:"#1a2e4a", borderRadius:"50%", animation:"spin 0.8s linear infinite", margin:"0 auto" }}></div>
+          </div>
+        )}
+
+        {/* FASE: ready_to_send - link generado, mostrar botones */}
+        {phase === "ready_to_send" && (
+          <div>
+            {/* Link preview */}
+            <div style={{ padding:"10px 14px", borderRadius:"8px", background:"#f0f9ff", border:"1px solid #bae6fd", marginBottom:"14px", display:"flex", alignItems:"center", gap:"10px" }}>
+              <div style={{ flex:1, fontSize:"11px", color:"#0369a1", wordBreak:"break-all", fontFamily:"monospace" }}>{link}</div>
+              <button onClick={copyLink} style={{ flexShrink:0, fontSize:"11px", padding:"4px 10px", borderRadius:"5px", border:"1px solid #bae6fd", background:"#fff", color:"#0369a1", cursor:"pointer", fontFamily:"inherit" }}>Copiar</button>
+            </div>
+
+            {/* WhatsApp */}
+            <div style={{ padding:"14px", borderRadius:"10px", background:"#fff", border:"1px solid " + (waSent ? "rgba(37,211,102,0.4)" : "#e3e6ea"), marginBottom:"10px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:"12px" }}>
+              <div>
+                <div style={{ fontSize:"13px", fontWeight:"600", color:"#1a1f2e" }}>WhatsApp</div>
+                <div style={{ fontSize:"12px", color:"#9ca3af" }}>{exp.tPhone||"sin telefono"}</div>
+              </div>
+              {waSent
+                ? <span style={{ fontSize:"12px", fontWeight:"600", color:"#1a7f3c" }}>Enviado</span>
+                : <button onClick={openWA} style={{ ...S.btn("success"), fontSize:"12px", padding:"7px 14px" }}>Abrir WhatsApp</button>
+              }
+            </div>
+
+            {/* Email */}
+            <div style={{ padding:"14px", borderRadius:"10px", background:"#fff", border:"1px solid " + (mailSent ? "rgba(21,101,192,0.3)" : "#e3e6ea"), marginBottom:"14px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:"12px" }}>
+              <div>
+                <div style={{ fontSize:"13px", fontWeight:"600", color:"#1a1f2e" }}>Email</div>
+                <div style={{ fontSize:"12px", color:"#9ca3af" }}>{email||"sin email"}</div>
+              </div>
+              {mailSent
+                ? <span style={{ fontSize:"12px", fontWeight:"600", color:"#1565c0" }}>Enviado</span>
+                : <button onClick={openMail} style={{ ...S.btn("primary"), fontSize:"12px", padding:"7px 14px" }}>Abrir Email</button>
+              }
+            </div>
+
+            {/* Confirmar */}
+            <button
+              style={{ ...S.btn("success"), width:"100%", justifyContent:"center" }}
+              onClick={onSent}
+            >
+              Confirmar - Documentos enviados al cliente
+            </button>
+          </div>
+        )}
+
       </div>
     </div>
   );
