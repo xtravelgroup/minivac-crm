@@ -60,7 +60,7 @@ var S = {
 // ─────────────────────────────────────────────────────────────
 var ROLES = {
   cs:        { label:"Customer Service", color:VIOLET,
-    permisos:{ verReservas:true, crearReserva:true, modificarReserva:true, cancelarReserva:true, confirmarReserva:true,
+    permisos:{ verReservas:true, crearReserva:true, modificarReserva:false, cancelarReserva:false, confirmarReserva:false,
                verHistorial:true, crearNota:true, crearCaso:true, crearOperacion:true,
                verFinanciero:true, verContacto:true, iniciarRetencion:true } },
   reservas:  { label:"Reservas", color:TEAL,
