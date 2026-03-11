@@ -679,6 +679,178 @@ function PagoAbonoCS(props) {
   );
 }
 
+
+// ─────────────────────────────────────────────────────────────
+// MODAL EDITAR DESTINOS — CS
+// ─────────────────────────────────────────────────────────────
+function EditDestinosModal(props) {
+  var c = props.cliente;
+  var catalog = props.catalog || {};  // destCatalogMap {id -> {id, nombre, icon, qc, nq}}
+  var [destinos, setDestinos] = useState((c.destinos||[]).map(function(d){ return Object.assign({},d); }));
+  var [saving, setSaving] = useState(false);
+  var [err, setErr] = useState("");
+
+  var selIds = destinos.map(function(d){ return d.leadDestId || d.nombre; });
+
+  function removeDest(i) {
+    setDestinos(function(p){ return p.filter(function(_,j){ return j !== i; }); });
+  }
+
+  function setNoches(i, n) {
+    setDestinos(function(p){ return p.map(function(d,j){ return j===i ? Object.assign({},d,{noches:Number(n)}) : d; }); });
+  }
+
+  function setRegalo(i, regalo) {
+    setDestinos(function(p){ return p.map(function(d,j){ return j===i ? Object.assign({},d,{regalo:regalo}) : d; }); });
+  }
+
+  function addDest(cat, tipo) {
+    var noches = tipo==="qc" ? ((cat.qc&&cat.qc.nights)||5) : ((cat.nq&&cat.nq.nights)||3);
+    setDestinos(function(p){ return p.concat([{ id:"D"+(p.length+1), leadDestId:cat.id, nombre:(cat.icon||"")+" "+cat.nombre, noches:noches, tipo:tipo, regalo:null }]); });
+  }
+
+  function handleSave() {
+    setSaving(true);
+    var nuevosDest = destinos.map(function(d){ return { destId: d.leadDestId || d.nombre, noches: d.noches, tipo: d.tipo, regalo: d.regalo || null }; });
+    SB.from("leads").update({ destinos: nuevosDest }).eq("id", c.id)
+      .then(function(res) {
+        setSaving(false);
+        if (res.error) { setErr("Error al guardar: " + res.error.message); return; }
+        props.onSave(destinos);
+      });
+  }
+
+  // Calcular destinos disponibles para agregar
+  var catalogArr = Object.values(catalog).filter(function(d){ return !selIds.includes(d.id); });
+  var destQC = catalogArr.filter(function(d){ return d.qc && d.qc.nights; });
+  var destNQ = catalogArr.filter(function(d){ return d.nq && d.nq.enabled; });
+
+  return (
+    <div style={S.modal} onClick={props.onClose}>
+      <div style={Object.assign({},S.mbox,{maxWidth:640})} onClick={function(e){ e.stopPropagation(); }}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <div style={{fontSize:16,fontWeight:700,color:"#1a1f2e"}}>Editar destinos</div>
+          <button onClick={props.onClose} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#9ca3af"}}>✕</button>
+        </div>
+        <div style={{fontSize:12,color:"#9ca3af",marginBottom:4}}>{c.nombre} · {c.folio}</div>
+        <div style={{height:3,borderRadius:2,background:BLUE,marginBottom:20}}/>
+
+        {/* DESTINOS ACTUALES */}
+        <div style={{marginBottom:16}}>
+          <div style={S.stit}>Destinos del paquete</div>
+          {destinos.length===0 && <div style={{fontSize:12,color:"#9ca3af",textAlign:"center",padding:20}}>Sin destinos — agrega uno abajo</div>}
+          {destinos.map(function(dest, i) {
+            var cat = catalog[dest.leadDestId || dest.nombre] || {};
+            var regalos = (cat.qc && cat.qc.gifts && cat.qc.gifts.items) || [];
+            return (
+              <div key={i} style={{padding:"12px 14px",borderRadius:10,marginBottom:8,
+                background:dest.tipo==="qc"?"rgba(21,101,192,0.04)":"rgba(124,58,237,0.04)",
+                border:"2px solid "+(dest.tipo==="qc"?"rgba(21,101,192,0.2)":"rgba(124,58,237,0.2)")}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:regalos.length>0?10:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:20}}>{cat.icon||"🏖️"}</span>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:700,color:"#1a1f2e"}}>{cat.nombre||dest.nombre}</div>
+                      <div style={{fontSize:11,color:dest.tipo==="qc"?BLUE:VIOLET}}>
+                        {dest.tipo==="qc"?"⭐ QC":"🔹 NQ"} · {dest.noches} noches
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+                      <div style={{fontSize:9,color:"#9ca3af",marginBottom:2}}>Noches</div>
+                      <input style={Object.assign({},S.input,{width:54,textAlign:"center",padding:"5px 4px",fontSize:13,fontWeight:700})}
+                        type="number" min="1" max="14" value={dest.noches}
+                        onChange={function(e){ setNoches(i, e.target.value); }}/>
+                    </div>
+                    <button onClick={function(){ removeDest(i); }}
+                      style={{background:"#fef2f2",border:"1px solid #f5b8b8",color:RED,borderRadius:7,padding:"4px 8px",cursor:"pointer",fontSize:14,fontWeight:700}}>✕</button>
+                  </div>
+                </div>
+                {regalos.length > 0 && (
+                  <div>
+                    <div style={{fontSize:9,color:AMBER,fontWeight:700,textTransform:"uppercase",marginBottom:5}}>🎁 Regalo (elige 1)</div>
+                    <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                      <div onClick={function(){ setRegalo(i,null); }}
+                        style={{padding:"3px 9px",borderRadius:7,cursor:"pointer",fontSize:11,
+                          background:!dest.regalo?"#e8f0fe":"#f9fafb",border:"1px solid "+(!dest.regalo?"#aac4f0":"#e3e6ea"),
+                          color:!dest.regalo?BLUE:"#9ca3af",fontWeight:!dest.regalo?700:400}}>
+                        Sin regalo
+                      </div>
+                      {regalos.filter(function(r){ return r.active!==false; }).map(function(r){
+                        var sel = dest.regalo && dest.regalo.id===r.id;
+                        return (
+                          <div key={r.id} onClick={function(){ setRegalo(i,{id:r.id,icon:r.icon,label:r.name}); }}
+                            style={{padding:"3px 9px",borderRadius:7,cursor:"pointer",fontSize:11,display:"flex",alignItems:"center",gap:4,
+                              background:sel?"#fef9e7":"#f9fafb",border:"2px solid "+(sel?"rgba(245,158,11,0.5)":"#e3e6ea"),
+                              color:sel?AMBER:"#9ca3af",fontWeight:sel?700:400}}>
+                            {r.icon&&<span>{r.icon}</span>}{r.name}{sel&&<span> ✓</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* AGREGAR QC */}
+        {destQC.length > 0 && (
+          <div style={{marginBottom:10}}>
+            <div style={{fontSize:10,fontWeight:700,color:GREEN,textTransform:"uppercase",marginBottom:6}}>⭐ Agregar QC</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+              {destQC.map(function(cat){
+                return (
+                  <button key={cat.id} onClick={function(){ addDest(cat,"qc"); }}
+                    style={{padding:"6px 12px",borderRadius:9,cursor:"pointer",display:"flex",alignItems:"center",gap:6,
+                      background:"rgba(21,101,192,0.04)",border:"2px solid rgba(21,101,192,0.15)",fontSize:12}}>
+                    <span>{cat.icon||"🏖️"}</span>
+                    <span style={{fontWeight:600,color:"#1a1f2e"}}>{cat.nombre}</span>
+                    <span style={{fontSize:10,color:BLUE}}>{(cat.qc&&cat.qc.nights)||5}n</span>
+                    <span style={{color:BLUE,fontWeight:700}}>+</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* AGREGAR NQ */}
+        {destNQ.length > 0 && (
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:10,fontWeight:700,color:VIOLET,textTransform:"uppercase",marginBottom:6}}>🔹 Agregar NQ</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+              {destNQ.map(function(cat){
+                return (
+                  <button key={cat.id} onClick={function(){ addDest(cat,"nq"); }}
+                    style={{padding:"6px 12px",borderRadius:9,cursor:"pointer",display:"flex",alignItems:"center",gap:6,
+                      background:"rgba(124,58,237,0.04)",border:"2px solid rgba(124,58,237,0.15)",fontSize:12}}>
+                    <span>{cat.icon||"🏖️"}</span>
+                    <span style={{fontWeight:600,color:"#1a1f2e"}}>{cat.nombre}</span>
+                    <span style={{fontSize:10,color:VIOLET}}>{(cat.nq&&cat.nq.nights)||3}n · {(cat.nq&&cat.nq.label)||"NQ"}</span>
+                    <span style={{color:VIOLET,fontWeight:700}}>+</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {err && <div style={{fontSize:12,color:RED,marginBottom:10}}>⚠️ {err}</div>}
+
+        <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+          <button style={S.btn("ghost")} onClick={props.onClose}>Cancelar</button>
+          <button style={S.btn("primary")} onClick={handleSave} disabled={saving}>
+            {saving ? "Guardando..." : "Guardar destinos"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // FICHA DEL MIEMBRO — tabs
 // ─────────────────────────────────────────────────────────────
@@ -695,6 +867,7 @@ function FichaMiembro(props) {
   var historialCS=interacciones.filter(function(x){return x.clienteFolio===c.folio;}).sort(function(a,b){return new Date(b.fecha)-new Date(a.fecha);});
 
   var MEMBCOLOR={Silver:"#6b7280",Gold:AMBER,Platinum:VIOLET};
+  var [editDestinos, setEditDestinos] = useState(false);
 
   var TABS=[
     {id:"contacto",  label:"📞 Contacto",                         show:perms.verContacto},
@@ -771,7 +944,10 @@ function FichaMiembro(props) {
         {tab==="paquete"&&(
           <div>
             <div style={S.card}>
-              <div style={S.stit}>Destinos del paquete</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={S.stit}>Destinos del paquete</div>
+                <button style={Object.assign({},S.btn("ghost"),{padding:"4px 10px",fontSize:11})} onClick={function(){ setEditDestinos(true); }}>✏️ Editar</button>
+              </div>
               {(c.destinos||[]).length===0&&<div style={{fontSize:12,color:"#9ca3af",textAlign:"center",padding:"20px 0"}}>Sin destinos asignados</div>}
               {(c.destinos||[]).map(function(d,i){
                 var resD=resCliente.filter(function(r){return r.destino===d.nombre;});
@@ -948,6 +1124,7 @@ function FichaMiembro(props) {
         )}
 
       </div>
+    {editDestinos && <EditDestinosModal cliente={c} catalog={props.destCatalogMap||{}} onClose={function(){ setEditDestinos(false); }} onSave={function(){ setEditDestinos(false); if(props.onDestinosGuardados) props.onDestinosGuardados(); }}/>}
     </div>
   );
 }
@@ -1185,6 +1362,8 @@ export default function CsReservasV3() {
     onAbono:function(nuevosAbonos){
       cargarMiembros();
     },
+    onDestinosGuardados:function(){ cargarMiembros(); },
+    destCatalogMap:destCatalogMap,
     onUpdatePagos:handleUpdatePagos,
   };
 
