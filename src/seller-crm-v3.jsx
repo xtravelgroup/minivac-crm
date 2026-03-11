@@ -1777,11 +1777,13 @@ export default function SellerCRMv3({ currentUser: shellUser }) {
       });
   }
 
-  // Cargar al montar
-  useState(function() {
+  // Cargar al montar y polling cada 30 segundos
+  useEffect(function() {
     cargarLeads();
     if (isSup) cargarUsuarios();
-  });
+    var interval = setInterval(function() { cargarLeads(); }, 30000);
+    return function() { clearInterval(interval); };
+  }, []);
 
   const limpiarTarjeta = function(lead) {
     return {
