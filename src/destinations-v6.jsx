@@ -104,12 +104,15 @@ function dbToDestino(r) {
     active:        r.activo !== false,
     includedGifts: r.included_gifts || [],
     qc: {
-      nights:  qc.nights  || 4,
-      ageMin:  qc.ageMin  || 18,
-      ageMax:  qc.ageMax  || 99,
-      marital: qc.marital || [],
-      hotels:  qc.hotels  || [],
-      gifts:   qc.gifts   || { enabled:false, maxChoices:1, items:[] },
+      nights:      qc.nights      || 4,
+      ageMin:      qc.ageMin      || 18,
+      ageMax:      qc.ageMax      || 99,
+      marital:     qc.marital     || [],
+      adultos:     qc.adultos     || 2,
+      ninos:       qc.ninos       || 0,
+      edadMaxNino: qc.edadMaxNino || 12,
+      hotels:      qc.hotels      || [],
+      gifts:       qc.gifts       || { enabled:false, maxChoices:1, items:[] },
     },
     nq: {
       enabled: nq.enabled || false,
@@ -341,7 +344,7 @@ function DestCard({ dest:d, onEdit, onToggle }) {
             <span style={{fontSize:16}}>⭐</span>
             <div style={{textAlign:"left"}}>
               <div style={{fontWeight:700,color:"#1a385a",fontSize:12}}>Paquete QC</div>
-              <div style={{fontSize:10,color:"#9ca3af"}}>{d.qc.nights} noches · {qcHotels.length} hotel{qcHotels.length!==1?"es":""}{hasGifts?` · 🎁 ${activeGifts.length}`:""}</div>
+              <div style={{fontSize:10,color:"#9ca3af"}}>{d.qc.nights}n · {d.qc.adultos||2} adultos{d.qc.ninos>0?" · "+d.qc.ninos+" niños":""} · edad {d.qc.ageMin}-{d.qc.ageMax} · {qcHotels.length} hotel{qcHotels.length!==1?"es":""}</div>
             </div>
           </div>
           <span style={{fontSize:10,color:"#9ca3af"}}>{panel==="qc"?"▲":"▼"}</span>
@@ -950,7 +953,7 @@ function DestModal({ data, saving, onSave, onDelete, onClose }) {
     name:"", state:"", icon:"🏖️", category:CATEGORIES[0], description:"", active:true,
     region:"internacional",
     includedGifts: [],
-    qc:  { nights:5, hotels:[], gifts:{ enabled:false, maxChoices:1, items:[] } },
+    qc:  { nights:5, ageMin:18, ageMax:99, marital:[], adultos:2, ninos:0, edadMaxNino:12, hotels:[], gifts:{ enabled:false, maxChoices:1, items:[] } },
     nq:  { enabled:false, nights:3, label:"", hotels:[] },
   };
   const clone = d => ({
@@ -1035,7 +1038,83 @@ function DestModal({ data, saving, onSave, onDelete, onClose }) {
 
             <FLD label="Descripción"><textarea style={{...S.inp,height:64,resize:"vertical",marginTop:8}} value={f.description} onChange={e=>set("description",e.target.value)} /></FLD>
 
-            {/* REGALOS SIEMPRE INCLUIDOS */}
+            {/* CALIFICACIÓN DEL DESTINO */}
+            <div style={{marginTop:16,padding:"14px 16px",borderRadius:12,background:"#f0f7ff",border:"1px solid #c5d8fc"}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#1565c0",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:12}}>
+                ✅ Calificación del destino
+              </div>
+              <div style={{fontSize:11,color:"#9ca3af",marginBottom:14}}>
+                El vendedor solo verá este destino si el cliente cumple estas reglas.
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
+                <FLD label="Noches QC">
+                  <input style={S.inp} type="number" min="1" max="14" value={f.qc.nights||5}
+                    onChange={e=>set("qc",Object.assign({},f.qc,{nights:Number(e.target.value)}))} />
+                </FLD>
+                <FLD label="Edad mínima">
+                  <input style={S.inp} type="number" min="18" max="99" value={f.qc.ageMin||18}
+                    onChange={e=>set("qc",Object.assign({},f.qc,{ageMin:Number(e.target.value)}))} />
+                </FLD>
+                <FLD label="Edad máxima">
+                  <input style={S.inp} type="number" min="18" max="99" value={f.qc.ageMax||99}
+                    onChange={e=>set("qc",Object.assign({},f.qc,{ageMax:Number(e.target.value)}))} />
+                </FLD>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
+                <FLD label="Adultos incluidos">
+                  <input style={S.inp} type="number" min="1" max="6" value={f.qc.adultos||2}
+                    onChange={e=>set("qc",Object.assign({},f.qc,{adultos:Number(e.target.value)}))} />
+                </FLD>
+                <FLD label="Niños incluidos">
+                  <input style={S.inp} type="number" min="0" max="6" value={f.qc.ninos||0}
+                    onChange={e=>set("qc",Object.assign({},f.qc,{ninos:Number(e.target.value)}))} />
+                </FLD>
+                <FLD label="Edad máx. niño">
+                  <input style={S.inp} type="number" min="0" max="17" value={f.qc.edadMaxNino||12}
+                    onChange={e=>set("qc",Object.assign({},f.qc,{edadMaxNino:Number(e.target.value)}))}
+                    disabled={!(f.qc.ninos>0)}
+                    style={{...S.inp, opacity:f.qc.ninos>0?1:0.4}} />
+                </FLD>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
+                <FLD label="Adultos incluidos">
+                  <input style={S.inp} type="number" min="1" max="6" value={f.qc.adultos||2}
+                    onChange={e=>set("qc",Object.assign({},f.qc,{adultos:Number(e.target.value)}))} />
+                </FLD>
+                <FLD label="Niños incluidos">
+                  <input style={S.inp} type="number" min="0" max="6" value={f.qc.ninos||0}
+                    onChange={e=>set("qc",Object.assign({},f.qc,{ninos:Number(e.target.value)}))} />
+                </FLD>
+                <FLD label="Edad máx. niño">
+                  <input style={S.inp} type="number" min="0" max="17" value={f.qc.edadMaxNino||12}
+                    onChange={e=>set("qc",Object.assign({},f.qc,{edadMaxNino:Number(e.target.value)}))}
+                    disabled={!f.qc.ninos}
+                    style={{...S.inp, opacity:f.qc.ninos?1:0.4}} />
+                </FLD>
+              </div>
+              <div style={{fontSize:10,color:"#9ca3af",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>
+                Estados civiles que califican
+              </div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+                {["Casado","Union libre","Soltero hombre","Soltera mujer","Divorciado","Viudo"].map(function(ec){
+                  var sel = (f.qc.marital||[]).includes(ec);
+                  return (
+                    <div key={ec} onClick={function(){
+                      var cur = f.qc.marital||[];
+                      var next = sel ? cur.filter(function(x){ return x!==ec; }) : cur.concat([ec]);
+                      set("qc", Object.assign({},f.qc,{marital:next}));
+                    }} style={{padding:"6px 14px",borderRadius:20,cursor:"pointer",fontSize:12,fontWeight:sel?"700":"400",
+                      background:sel?"#1a385a":"#f4f5f7",color:sel?"#fff":"#6b7280",
+                      border:"1px solid "+(sel?"#1a385a":"#e3e6ea"),transition:"all 0.14s"}}>
+                      {ec}
+                    </div>
+                  );
+                })}
+              </div>
+              {(f.qc.marital||[]).length===0 && (
+                <div style={{marginTop:8,fontSize:11,color:"#f59e0b"}}>⚠ Selecciona al menos un estado civil</div>
+              )}
+            </div>
             <div style={{marginTop:16,padding:"14px 16px",borderRadius:12,background:"rgba(74,222,128,0.05)",border:"1px solid rgba(74,222,128,0.2)"}}>
               <div style={{fontSize:11,fontWeight:800,color:"#4ade80",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>
                 🎁 Regalos siempre incluidos en este destino
