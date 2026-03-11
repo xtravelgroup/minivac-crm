@@ -1256,10 +1256,10 @@ function FichaMiembro(props) {
     {id:"contacto",  label:"📞 Contacto",                         show:perms.verContacto},
     {id:"paquete",   label:"📦 Paquete",                          show:true},
     {id:"reservas",  label:"🏨 Reservas"+(resCliente.length?" ("+resCliente.length+")":""), show:true},
-    {id:"historial", label:"🕒 Historial",                        show:perms.verHistorial},
     {id:"financiero",label:"💰 Financiero",                       show:perms.verFinanciero},
     {id:"casos",     label:"📋 Casos"+(casosCliente.length?" ("+casosCliente.length+")":""), show:perms.crearCaso||perms.verHistorial},
     {id:"ops",       label:"⚙️ Ops"+(opsCliente.length?" ("+opsCliente.length+")":""),      show:perms.crearOperacion||perms.verHistorial},
+    {id:"historial", label:"🕒 Historial",                        show:perms.verHistorial},
   ].filter(function(t){return t.show;});
 
   return (
