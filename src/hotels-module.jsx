@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase as SB } from "./supabase";
+import HotelSearch from "./hotel-search.jsx";
 
 var BRAND_DARK = "#1a385a";
 var BRAND_MID  = "#47718a";
@@ -340,6 +341,8 @@ function CadenaDetalle(props){
   var [filtroDestino,setFiltroDestino]=useState("todos");
   var [hotelModal,setHotelModal]=useState(null);
   var [hotelDetalle,setHotelDetalle]=useState(null);
+  var [googleSearch,setGoogleSearch]=useState(false);
+  var [preloadData,setPreloadData]=useState(null);
 
   var destinos=["todos"].concat(Array.from(new Set(hotels.map(function(h){return h.destino;}))));
   var vis=hotels.filter(function(h){
@@ -347,6 +350,36 @@ function CadenaDetalle(props){
     var md=filtroDestino==="todos"||h.destino===filtroDestino;
     return mb&&md;
   });
+
+  function handleGoogleImport(data){
+    // Mapear datos de Google al formato HotelModal
+    var preload = {
+      nombre:       data.nombre || "",
+      destino:      data.destino || "",
+      descripcion:  data.descripcion || "",
+      categoria:    data.categoria || "5 estrellas",
+      plan:         data.plan || "Todo Incluido",
+      activo:       true,
+      fee:          0,
+      precio_noche: 90,
+      amenidades:   data.amenidades || [],
+      habitaciones: (data.habitaciones||[]).map(function(h){
+        return {id:h.id||("H"+Date.now()+Math.random().toString(36).slice(2,5)),nombre:h.nombre,tipoCama:h.tipoCama||"King",vistas:[],maxOcupantes:h.maxOcupantes||2,m2:h.m2||0,amenidades:[],activo:true,descripcion:h.descripcion||"",upgrade:0};
+      }),
+      temporadas:   [],
+      capacidad:    data.capacidad || {maxAdultos:2,permitirNinos:false,edadMinNino:0,edadMaxNino:12,maxNinos:0},
+      restricciones:data.restricciones || {edadMin:25,edadMax:99,estadoCivil:[]},
+      cadena_id:    cadena.id,
+      // meta Google
+      fotos:        data.fotos || [],
+      telefono:     data.telefono || "",
+      website:      data.website || "",
+      rating:       data.rating || 0,
+    };
+    setPreloadData(preload);
+    setGoogleSearch(false);
+    setHotelModal({hotel:null});
+  }
 
   if(hotelDetalle){
     var hotelActual=hotels.find(function(h){return h.id===hotelDetalle.id;})||hotelDetalle;
@@ -424,6 +457,17 @@ function CadenaDetalle(props){
     );
   }
 
+  if(googleSearch){
+    return (
+      <div style={s.wrap}>
+        <HotelSearch
+          onImport={handleGoogleImport}
+          onClose={function(){setGoogleSearch(false);}}
+        />
+      </div>
+    );
+  }
+
   return (
     <div style={s.wrap}>
       {/* Topbar */}
@@ -434,7 +478,8 @@ function CadenaDetalle(props){
         <span style={{fontSize:11,color:"#9ca3af"}}>{hotels.length} hotel{hotels.length!==1?"es":""}</span>
         <div style={{flex:1}}/>
         <Btn v="ghost" sm onClick={props.onEditCadena}>Editar cadena</Btn>
-        <Btn sm onClick={function(){setHotelModal({hotel:null});}}>+ Nuevo hotel</Btn>
+        <Btn v="ghost" sm onClick={function(){setHotelModal({hotel:null});}}>+ Manual</Btn>
+        <Btn sm onClick={function(){setGoogleSearch(true);}}>+ Buscar en Google</Btn>
       </div>
       {/* Filtros */}
       <div style={{padding:"10px 20px",background:"#ffffff",borderBottom:"1px solid #e3e6ea",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",flexShrink:0}}>
@@ -450,7 +495,12 @@ function CadenaDetalle(props){
           <div style={{textAlign:"center",padding:"60px 20px",background:"#ffffff",borderRadius:12,border:"2px dashed #e3e6ea"}}>
             <div style={{fontSize:32,marginBottom:10}}>🏨</div>
             <div style={{fontSize:14,fontWeight:700,color:"#6b7280",marginBottom:4}}>{hotels.length===0?"Sin hoteles en esta cadena":"Sin resultados"}</div>
-            {hotels.length===0&&<Btn onClick={function(){setHotelModal({hotel:null});}}>+ Agregar primer hotel</Btn>}
+            {hotels.length===0&&(
+              <div style={{display:"flex",gap:8,justifyContent:"center",marginTop:8}}>
+                <Btn v="ghost" onClick={function(){setHotelModal({hotel:null});}}>+ Agregar manualmente</Btn>
+                <Btn onClick={function(){setGoogleSearch(true);}}>+ Buscar en Google</Btn>
+              </div>
+            )}
           </div>
         )}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -473,7 +523,7 @@ function CadenaDetalle(props){
           })}
         </div>
       </div>
-      {hotelModal&&<HotelModal hotel={hotelModal.hotel} cadenaId={cadena.id} onSave={function(f){props.onSaveHotel(f);setHotelModal(null);}} onDelete={function(id){props.onDeleteHotel(id);setHotelModal(null);}} onClose={function(){setHotelModal(null);}}/>}
+      {hotelModal&&<HotelModal hotel={preloadData||hotelModal.hotel} cadenaId={cadena.id} onSave={function(f){props.onSaveHotel(f);setHotelModal(null);setPreloadData(null);}} onDelete={function(id){props.onDeleteHotel(id);setHotelModal(null);setPreloadData(null);}} onClose={function(){setHotelModal(null);setPreloadData(null);}}/>}
     </div>
   );
 }
