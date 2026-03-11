@@ -204,7 +204,10 @@ function leadToMiembro(r) {
     statusCliente:  "activo",
     motivoRetencion:null,
     destinos:       destinos,
-    verificacion:   r.verificacion || null,
+    verificacion:   r.verificacion ? Object.assign({}, r.verificacion, {
+      firma_firmada_at:  r.firma_firmada_at  || (r.verificacion ? r.verificacion.firma_firmada_at  : null),
+      firma_enviada_at:  r.firma_enviada_at  || (r.verificacion ? r.verificacion.firma_enviada_at  : null),
+    }) : (r.firma_enviada_at ? { firma_enviada_at: r.firma_enviada_at, firma_firmada_at: r.firma_firmada_at || null } : null),
   };
 }
 
@@ -479,7 +482,7 @@ function FichaMiembro(props) {
   var c=props.cliente; var perms=props.perms; var rol=props.rol;
   var reservas=props.reservas; var interacciones=props.interacciones;
   var casos=props.casos; var ops=props.ops;
-  var [tab,setTab]=useState("paquete");
+  var [tab,setTab]=useState("contacto");
 
   var resCliente=reservas.filter(function(r){return r.clienteFolio===c.folio;});
   var resActivas=resCliente.filter(function(r){return r.status!=="cancelada"&&r.status!=="completada";});
@@ -490,8 +493,8 @@ function FichaMiembro(props) {
   var MEMBCOLOR={Silver:"#6b7280",Gold:AMBER,Platinum:VIOLET};
 
   var TABS=[
-    {id:"paquete",   label:"📦 Paquete",                          show:true},
     {id:"contacto",  label:"📞 Contacto",                         show:perms.verContacto},
+    {id:"paquete",   label:"📦 Paquete",                          show:true},
     {id:"reservas",  label:"🏨 Reservas"+(resCliente.length?" ("+resCliente.length+")":""), show:true},
     {id:"historial", label:"🕒 Historial",                        show:perms.verHistorial},
     {id:"financiero",label:"💰 Financiero",                       show:perms.verFinanciero},
@@ -523,6 +526,7 @@ function FichaMiembro(props) {
             <span style={S.bdg(GREEN,"#edf7ee","#a3d9a5")}>✅ Miembro activo</span>
             <span style={S.bdg(MEMBCOLOR[c.membresia]||"#6b7280","#f4f5f7","#e3e6ea")}>{c.membresia}</span>
             {c.saldoPendiente>0&&<span style={S.bdg(AMBER,"#fef9e7","#f0d080")}>Saldo {fmtUSD(c.saldoPendiente)}</span>}
+            {c.verificacion&&!c.verificacion.firma_firmada_at&&<span style={S.bdg(RED,"#fef2f2","#f5b8b8")}>✍️ Firma pendiente</span>}
             {resActivas.length>0&&<span style={S.bdg(TEAL,"rgba(14,165,160,0.08)","rgba(14,165,160,0.3)")}>{resActivas.length} reserva{resActivas.length>1?"s":""}</span>}
           </div>
         </div>
@@ -947,6 +951,10 @@ export default function CsReservasV3() {
   // ── Selección actualizada después de cambios de estado
   var selectedActualizado = selected && miembrosEnriquecidos.find(function(m){return m.id===selected.id;}) || selected;
 
+  var [modoDetalle, setModoDetalle] = useState(false);
+  function handleSelect(c){ setSelected(c); setModoDetalle(true); }
+  function handleRegresar(){ setModoDetalle(false); }
+
   var fichaProps = {
     currentUser:currentUser, perms:perms, rol:rolActual,
     reservas:reservas, interacciones:interacciones, casos:casos, ops:operaciones,
@@ -1000,15 +1008,46 @@ export default function CsReservasV3() {
           </div>
         ) : (
           <>
-            <ListaMiembros
-              clientes={miembrosEnriquecidos}
-              selected={selectedActualizado}
-              onSelect={setSelected}
-            />
-            {selectedActualizado
-              ? <FichaMiembro key={selectedActualizado.id} cliente={selectedActualizado} {...fichaProps}/>
-              : <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"#9ca3af"}}>Selecciona un miembro</div>
-            }
+            {/* MODO LISTA — se oculta al seleccionar */}
+            {!modoDetalle && (
+              <ListaMiembros
+                clientes={miembrosEnriquecidos}
+                selected={selectedActualizado}
+                onSelect={handleSelect}
+              />
+            )}
+            {/* MODO DETALLE — ocupa toda la pantalla */}
+            {modoDetalle && selectedActualizado ? (
+              <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+                {/* Barra de navegación con botón regresar */}
+                <div style={{background:"#ffffff",borderBottom:"1px solid #e3e6ea",padding:"8px 16px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+                  <button style={Object.assign({},S.btn("ghost"),{padding:"5px 12px",fontSize:12})} onClick={handleRegresar}>
+                    ← Miembros
+                  </button>
+                  <div style={{width:1,height:16,background:"#e3e6ea"}}/>
+                  <div style={{fontSize:12,color:"#6b7280"}}>{miembrosEnriquecidos.length} miembros</div>
+                  <div style={{flex:1}}/>
+                  {/* Navegación rápida anterior/siguiente */}
+                  {(function(){
+                    var idx = miembrosEnriquecidos.findIndex(function(m){return m.id===selectedActualizado.id;});
+                    var prev = idx>0 ? miembrosEnriquecidos[idx-1] : null;
+                    var next = idx<miembrosEnriquecidos.length-1 ? miembrosEnriquecidos[idx+1] : null;
+                    return (
+                      <div style={{display:"flex",gap:4}}>
+                        <button style={Object.assign({},S.btn("ghost"),{padding:"4px 10px",fontSize:11,opacity:prev?1:0.35,cursor:prev?"pointer":"default"})} onClick={function(){if(prev) setSelected(prev);}} disabled={!prev}>‹ Ant.</button>
+                        <button style={Object.assign({},S.btn("ghost"),{padding:"4px 10px",fontSize:11,opacity:next?1:0.35,cursor:next?"pointer":"default"})} onClick={function(){if(next) setSelected(next);}} disabled={!next}>Sig. ›</button>
+                      </div>
+                    );
+                  })()}
+                </div>
+                <FichaMiembro key={selectedActualizado.id} cliente={selectedActualizado} {...fichaProps}/>
+              </div>
+            ) : !modoDetalle && (
+              <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8,color:"#9ca3af"}}>
+                <div style={{fontSize:24}}>👆</div>
+                <div style={{fontSize:13}}>Selecciona un miembro de la lista</div>
+              </div>
+            )}
           </>
         )}
 
