@@ -289,6 +289,7 @@ function ReservaFormModal(props) {
   var hotelObj = (HOTELES_CATALOG[destino]||[]).find(function(h){return h.nombre===hotel;})||null;
   var habObj = hotelObj ? (hotelObj.habs.find(function(h){return h.nombre===habitacion;})||hotelObj.habs[0]||null) : null;
   var nochePrice = (hotelObj?hotelObj.precioNoche:90) + (habObj&&!habObj.base?habObj.up:0);
+  var regimenesDisp = hotelObj ? (hotelObj.regs||[]) : [];
   var costoExtra = nExtra * nochePrice;
   var ok = destino && hotel && checkin && habitacion;
   return (
@@ -318,7 +319,12 @@ function ReservaFormModal(props) {
       <div style={Object.assign({},S.g2,{marginBottom:12})}>
         <div>
           <label style={S.label}>Hotel</label>
-          <select style={S.sel} value={hotel} onChange={function(e){setHotel(e.target.value);}}>
+          <select style={S.sel} value={hotel} onChange={function(e){
+            var h = e.target.value;
+            setHotel(h);
+            var hObj = (HOTELES_CATALOG[destino]||[]).find(function(x){return x.nombre===h;})||null;
+            if (hObj && hObj.regs && hObj.regs.length > 0) setRegimen(hObj.regs[0]);
+          }}>
             <option value="">-- Seleccionar hotel --</option>
             {hotelesOpts.map(function(h){return <option key={h.id} value={h.nombre}>{h.nombre} ({h.cat}★ · ${h.precioNoche}/n)</option>;})}
             {hotelesNoCalif.length>0&&<option disabled>── No califica ──</option>}
@@ -335,7 +341,10 @@ function ReservaFormModal(props) {
         <div>
           <label style={S.label}>Regimen</label>
           <select style={S.sel} value={regimen} onChange={function(e){setRegimen(e.target.value);}}>
-            {REGIMENES.map(function(r){return <option key={r}>{r}</option>;})}
+            {regimenesDisp.length > 0
+              ? regimenesDisp.map(function(r){return <option key={r}>{r}</option>;})
+              : <option value="">-- Selecciona hotel primero --</option>
+            }
           </select>
         </div>
         <div>
