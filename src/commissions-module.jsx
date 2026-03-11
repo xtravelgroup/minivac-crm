@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase as SB } from "./supabase.js";
 
 // --- HELPERS ---
 const TODAY = new Date().toISOString().split("T")[0];
@@ -803,10 +804,64 @@ function TablaVentas({ ventas, users, week }) {
 // --- ROOT ---
 export default function CommissionsModule({ currentUser: shellUser }) {
   const [users,       setUsers]       = useState(SEED_USERS);
-  const [ventas]                      = useState(SEED_VENTAS);
-  const [numeros]                     = useState(SEED_NUMEROS);
+  const [ventas,      setVentas]      = useState([]);
+  const [numeros,     setNumeros]     = useState(SEED_NUMEROS);
   const [configModal, setConfigModal] = useState(null);
   const [toast,       setToast]       = useState(null);
+
+  // Cargar ventas reales de Supabase
+  function cargarVentas() {
+    SB.from("leads")
+      .select("*, vendedor:vendedor_id(id, nombre, auth_id)")
+      .eq("status", "venta")
+      .order("updated_at", { ascending: false })
+      .then(function(res) {
+        if (res.data) {
+          var mapped = res.data.map(function(r) {
+            return {
+              id:            r.id,
+              folio:         r.folio || r.id.slice(0,8),
+              cliente:       (r.nombre || "") + " " + (r.apellido || ""),
+              vendedorId:    r.vendedor_id || "",
+              verificadorId: "",
+              fechaVenta:    (r.updated_at || r.created_at || TODAY).split("T")[0],
+              salePrice:     Number(r.sale_price) || 0,
+              cancelada:     false,
+              fechaCancelacion: null,
+            };
+          });
+          setVentas(mapped);
+        }
+      });
+  }
+
+  // Cargar usuarios reales de Supabase
+  function cargarUsers() {
+    SB.from("users")
+      .select("*")
+      .then(function(res) {
+        if (res.data && res.data.length > 0) {
+          var mapped = res.data.map(function(u) {
+            return {
+              id:       u.auth_id || u.id,
+              nombre:   u.nombre || "",
+              role:     u.rol || "vendedor",
+              active:   true,
+              commPct:  u.comision_pct || 10,
+              spiffAmt: u.spiff || 0,
+            };
+          });
+          setUsers(mapped);
+        }
+      });
+  }
+
+  useEffect(function() {
+    cargarVentas();
+    cargarUsers();
+    var interval = setInterval(cargarVentas, 30000);
+    return function() { clearInterval(interval); };
+  }, []);
 
   // Derivar rol desde el usuario real del shell
   var rolShell = shellUser && shellUser.rol ? shellUser.rol : "vendedor";
