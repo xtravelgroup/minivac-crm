@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase as SB } from "./supabase";
 import HotelSearch from "./hotel-search.jsx";
 
 var BRAND_DARK  = "#1a385a";
@@ -108,7 +109,7 @@ function uid(){ return "H"+Date.now()+Math.floor(Math.random()*9999); }
 
 function S(){
   return {
-    wrap: {height:"100%",display:"flex",flexDirection:"column",fontFamily:"'Poppins','DM Sans','Segoe UI',sans-serif",background:"#1a1f2e",color:"#1a1f2e"},
+    wrap: {height:"100%",display:"flex",flexDirection:"column",fontFamily:"'DM Sans','Segoe UI',-apple-system,sans-serif",background:"#f4f5f7",color:"#1a1f2e"},
     card: {background:"#fff",borderRadius:"14px",border:"1px solid #e2e8f0",boxShadow:"0 1px 4px rgba(0,0,0,0.04)"},
     inp:  {width:"100%",padding:"8px 11px",borderRadius:"8px",border:"1px solid #e2e8f0",fontSize:"13px",color:"#1a1f2e",background:"#ffffff",outline:"none",boxSizing:"border-box",fontFamily:"inherit"},
     lbl:  {fontSize:"11px",fontWeight:"600",color:"#9ca3af",marginBottom:"4px",display:"block"},
@@ -121,7 +122,7 @@ function Btn(props){
   var v=props.v||"primary"; var sm=props.sm;
   var styles={
     primary:{background:"linear-gradient(135deg,"+BRAND_DARK+","+BRAND_MID+")",color:"#fff",border:"none"},
-    ghost:  {background:"#1a1f2e",color:"#9ca3af",border:"1px solid #e2e8f0"},
+    ghost:  {background:"#f6f7f9",color:"#6b7280",border:"1px solid #e3e6ea"},
     danger: {background:"#fef2f2",color:RED,border:"1px solid #fecaca"},
     success:{background:"#f0fdf4",color:GREEN,border:"1px solid #bbf7d0"},
     amber:  {background:"#fffbeb",color:AMBER,border:"1px solid #fde68a"},
@@ -1090,7 +1091,8 @@ function HotelDetalle(props){
 
 
 export default function HotelsModule(){
-  var [hotels,setHotels]=useState(SEED_HOTELS);
+  var [hotels,setHotels]=useState([]);
+  var [loading,setLoading]=useState(true);
   var [modal,setModal]=useState(null);
   var [detalle,setDetalle]=useState(null);
   var [buscar,setBuscar]=useState("");
@@ -1098,6 +1100,19 @@ export default function HotelsModule(){
   var [filtroActivo,setFiltroActivo]=useState("todos");
   var [showSearch,setShowSearch]=useState(false);
   var s=S();
+
+  function cargarHoteles() {
+    SB.from("hoteles").select("*").order("nombre",{ascending:true})
+    .then(function(r){
+      setLoading(false);
+      if (r.error) { console.error("Error hoteles:", r.error.message); return; }
+      setHotels(r.data || []);
+    });
+  }
+
+  useEffect(function(){
+    cargarHoteles();
+  }, []);
 
   var destinos=["todos"].concat(Array.from(new Set(hotels.map(function(h){return h.destino;}))));
 
@@ -1109,12 +1124,21 @@ export default function HotelsModule(){
   });
 
   function saveHotel(form){
-    var exists=hotels.some(function(h){return h.id===form.id;});
-    setHotels(exists
-      ?hotels.map(function(h){return h.id===form.id?form:h;})
-      :hotels.concat([form]));
-    setModal(null);
-    if(detalle&&detalle.id===form.id) setDetalle(form);
+    var isNew = !form.id || !hotels.some(function(h){return h.id===form.id;});
+    if (isNew) {
+      var ins = Object.assign({}, form);
+      delete ins.id;
+      SB.from("hoteles").insert(ins).select().then(function(r){
+        if (r.error) { alert("Error: "+r.error.message); return; }
+        cargarHoteles(); setModal(null);
+      });
+    } else {
+      SB.from("hoteles").update(form).eq("id",form.id).then(function(r){
+        if (r.error) { alert("Error: "+r.error.message); return; }
+        cargarHoteles(); setModal(null);
+        if(detalle&&detalle.id===form.id) setDetalle(form);
+      });
+    }
   }
   function importHotel(form){
     setHotels(hotels.concat([form]));
@@ -1122,10 +1146,17 @@ export default function HotelsModule(){
     setDetalle(form);
   }
   function deleteHotel(id){
-    setHotels(hotels.filter(function(h){return h.id!==id;}));
-    setModal(null);
-    setDetalle(null);
+    SB.from("hoteles").delete().eq("id",id).then(function(r){
+      if (r.error) { alert("Error: "+r.error.message); return; }
+      cargarHoteles(); setModal(null); setDetalle(null);
+    });
   }
+
+  if(loading) return (
+    <div style={{minHeight:"100vh",background:"#f4f5f7",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{fontSize:13,color:"#9ca3af"}}>Cargando hoteles...</div>
+    </div>
+  );
 
   if(showSearch){
     return (
