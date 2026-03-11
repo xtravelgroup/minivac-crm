@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase as SB } from "./supabase.js";
-import { PanelPagos } from "./usePagos.jsx";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
 import { registrarEvento, TablaHistorial } from "./useHistorial.jsx";
 
