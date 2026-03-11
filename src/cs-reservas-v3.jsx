@@ -209,6 +209,7 @@ function leadToMiembro(r) {
     statusCliente:  "activo",
     motivoRetencion:null,
     destinos:       destinos,
+    _exp:           exp,
     verificacion:   r.verificacion ? Object.assign({}, r.verificacion, {
       firma_firmada_at:  r.firma_firmada_at  || (r.verificacion ? r.verificacion.firma_firmada_at  : null),
       firma_enviada_at:  r.firma_enviada_at  || (r.verificacion ? r.verificacion.firma_enviada_at  : null),
@@ -681,6 +682,263 @@ function PagoAbonoCS(props) {
 
 
 
+
+// ─────────────────────────────────────────────────────────────
+// MODAL EDITAR NOMBRE TITULAR — CS
+// ─────────────────────────────────────────────────────────────
+function EditNombreModal(props) {
+  var c = props.cliente;
+  var exp = c._exp || {};
+  var [firstName, setFirstName] = useState(exp.tFirstName || c.nombre.split(" ")[0] || "");
+  var [lastName,  setLastName]  = useState(exp.tLastName  || c.nombre.split(" ").slice(1).join(" ") || "");
+  var [saving, setSaving] = useState(false);
+  var [err,    setErr]    = useState("");
+
+  function handleSave() {
+    if (!firstName.trim()) { setErr("El nombre es requerido"); return; }
+    setSaving(true); setErr("");
+    SB.from("leads").select("expediente").eq("id", c.id).single()
+    .then(function(res2) {
+      var expActual = (res2.data && res2.data.expediente) ? Object.assign({}, res2.data.expediente) : {};
+      var expNuevo = Object.assign({}, expActual, { tFirstName: firstName.trim(), tLastName: lastName.trim() });
+      var nombreCompleto = (firstName.trim() + " " + lastName.trim()).trim();
+      return SB.from("leads").update({ nombre: nombreCompleto, expediente: expNuevo }).eq("id", c.id);
+    })
+    .then(function(res) {
+      setSaving(false);
+      if (res && res.error) { setErr("Error al guardar: " + res.error.message); return; }
+      props.onSave({ nombre: (firstName.trim() + " " + lastName.trim()).trim() });
+    });
+  }
+
+  return (
+    <div style={S.modal} onClick={props.onClose}>
+      <div style={Object.assign({}, S.mbox, {maxWidth: 420})} onClick={function(e){ e.stopPropagation(); }}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <div style={{fontSize:16,fontWeight:700,color:"#1a1f2e"}}>Corregir nombre del titular</div>
+          <button onClick={props.onClose} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#9ca3af"}}>✕</button>
+        </div>
+        <div style={{fontSize:12,color:"#9ca3af",marginBottom:4}}>{c.folio}</div>
+        <div style={{height:3,borderRadius:2,background:BLUE,marginBottom:20}}/>
+        <div style={S.g2}>
+          <div>
+            <label style={S.label}>Nombre(s)</label>
+            <input style={S.input} value={firstName} onChange={function(e){ setFirstName(e.target.value); }} placeholder="Nombre"/>
+          </div>
+          <div>
+            <label style={S.label}>Apellido(s)</label>
+            <input style={S.input} value={lastName} onChange={function(e){ setLastName(e.target.value); }} placeholder="Apellido"/>
+          </div>
+        </div>
+        {err && <div style={{fontSize:12,color:RED,margin:"10px 0"}}>⚠️ {err}</div>}
+        <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:16}}>
+          <button style={S.btn("ghost")} onClick={props.onClose}>Cancelar</button>
+          <button style={S.btn("primary")} onClick={handleSave} disabled={saving}>
+            {saving ? "Guardando..." : "Guardar nombre"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// MODAL TRANSFERIR CERTIFICADO — CS
+// ─────────────────────────────────────────────────────────────
+function TransferirModal(props) {
+  var c = props.cliente;
+  var [paso,       setPaso]       = useState(1);
+  var [firstName,  setFirstName]  = useState("");
+  var [lastName,   setLastName]   = useState("");
+  var [edad,       setEdad]       = useState("");
+  var [tel,        setTel]        = useState("");
+  var [email,      setEmail]      = useState("");
+  var [conPareja,  setConPareja]  = useState(false);
+  var [pFirstName, setPFirstName] = useState("");
+  var [pLastName,  setPLastName]  = useState("");
+  var [pEdad,      setPEdad]      = useState("");
+  var [pTel,       setPTel]       = useState("");
+  var [motivo,     setMotivo]     = useState("");
+  var [saving,     setSaving]     = useState(false);
+  var [err,        setErr]        = useState("");
+
+  var edadN = parseInt(edad) || 0;
+  var edadP = parseInt(pEdad) || 0;
+
+  var resultados = (c.destinos || []).map(function(d) {
+    var razones = [];
+    if (edadN < 21) razones.push("Nuevo titular menor de 21 años");
+    if (edadN > 70) razones.push("Nuevo titular mayor de 70 años");
+    if (conPareja && edadP < 21) razones.push("Co-propietario menor de 21 años");
+    return { destino: d, ok: razones.length === 0, razones: razones };
+  });
+
+  var todosCalifican = resultados.every(function(r){ return r.ok; });
+  var okPaso1 = firstName.trim() && lastName.trim() && edad && tel.trim() && email.trim() && motivo.trim();
+  var okPareja = !conPareja || (pFirstName.trim() && pEdad && pTel.trim());
+
+  function handleConfirmar() {
+    setSaving(true); setErr("");
+    var nombreNuevo = (firstName.trim() + " " + lastName.trim()).trim();
+    SB.from("leads").select("expediente").eq("id", c.id).single()
+    .then(function(res2) {
+      var expActual = (res2.data && res2.data.expediente) ? Object.assign({}, res2.data.expediente) : {};
+      var expNuevo = Object.assign({}, expActual, {
+        tFirstName: firstName.trim(), tLastName: lastName.trim(),
+        tPhone: tel, tEmail: email, edad: edadN,
+        hasPartner: conPareja,
+        pFirstName: conPareja ? pFirstName.trim() : "",
+        pLastName:  conPareja ? pLastName.trim()  : "",
+        pPhone:     conPareja ? pTel               : "",
+        pEdad:      conPareja ? edadP              : null,
+      });
+      var destFiltrados = (c.destinos || []).filter(function(_, i){ return resultados[i].ok; });
+      return SB.from("leads").update({
+        nombre:     nombreNuevo,
+        whatsapp:   tel,
+        email:      email,
+        expediente: expNuevo,
+        destinos:   destFiltrados.map(function(d){ return { destId: d.leadDestId || d.nombre, noches: d.noches, tipo: d.tipo, regalo: d.regalo || null }; }),
+      }).eq("id", c.id);
+    })
+    .then(function(res) {
+      setSaving(false);
+      if (res && res.error) { setErr("Error al guardar: " + res.error.message); return; }
+      props.onSave();
+    });
+  }
+
+  var PASOS = ["Nuevo titular", "Recalificación", "Confirmar"];
+
+  return (
+    <div style={S.modal} onClick={props.onClose}>
+      <div style={Object.assign({}, S.mbox, {maxWidth: 600})} onClick={function(e){ e.stopPropagation(); }}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <div style={{fontSize:16,fontWeight:700,color:"#1a1f2e"}}>Transferir certificado</div>
+          <button onClick={props.onClose} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#9ca3af"}}>✕</button>
+        </div>
+        <div style={{fontSize:12,color:"#9ca3af",marginBottom:4}}>{c.nombre} · {c.folio}</div>
+        <div style={{height:3,borderRadius:2,background:INDIGO,marginBottom:16}}/>
+
+        {/* STEPPER */}
+        <div style={{display:"flex",marginBottom:20}}>
+          {PASOS.map(function(p, i){
+            var active = paso === i+1;
+            var done   = paso > i+1;
+            return (
+              <div key={i} style={{flex:1,display:"flex",alignItems:"center"}}>
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",flex:1}}>
+                  <div style={{width:28,height:28,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",
+                    fontSize:12,fontWeight:800,
+                    background:done?GREEN:active?BLUE:"#f2f3f6",
+                    color:done||active?"#fff":"#9ca3af",
+                    border:"2px solid "+(done?GREEN:active?BLUE:"#e3e6ea")}}>
+                    {done ? "✓" : i+1}
+                  </div>
+                  <div style={{fontSize:10,color:active?BLUE:"#9ca3af",marginTop:3,fontWeight:active?700:400}}>{p}</div>
+                </div>
+                {i < PASOS.length-1 && <div style={{height:2,flex:1,maxWidth:32,background:done?"rgba(26,127,60,0.4)":"#f2f3f6",marginBottom:14}}/>}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* PASO 1 */}
+        {paso === 1 && (
+          <div>
+            <div style={S.stit}>Datos del nuevo titular</div>
+            <div style={S.g2}>
+              <div><label style={S.label}>Nombre(s)</label><input style={S.input} value={firstName} onChange={function(e){ setFirstName(e.target.value); }} placeholder="Nombre"/></div>
+              <div><label style={S.label}>Apellido(s)</label><input style={S.input} value={lastName} onChange={function(e){ setLastName(e.target.value); }} placeholder="Apellido"/></div>
+              <div><label style={S.label}>Edad</label><input style={S.input} type="number" value={edad} onChange={function(e){ setEdad(e.target.value); }} placeholder="Edad"/></div>
+              <div><label style={S.label}>Teléfono / WhatsApp</label><input style={S.input} value={tel} onChange={function(e){ setTel(e.target.value); }} placeholder="+1 555-000-0000"/></div>
+              <div style={{gridColumn:"1/-1"}}><label style={S.label}>Email</label><input style={S.input} type="email" value={email} onChange={function(e){ setEmail(e.target.value); }} placeholder="correo@ejemplo.com"/></div>
+            </div>
+            <div onClick={function(){ setConPareja(function(p){ return !p; }); }}
+              style={{display:"flex",alignItems:"center",gap:8,margin:"12px 0",cursor:"pointer",userSelect:"none"}}>
+              <div style={{width:16,height:16,borderRadius:4,border:"2px solid "+(conPareja?BLUE:"#9ca3af"),background:conPareja?BLUE:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                {conPareja && <span style={{color:"#fff",fontSize:11,fontWeight:900}}>✓</span>}
+              </div>
+              <span style={{fontSize:12,color:"#6b7280"}}>Incluye co-propietario</span>
+            </div>
+            {conPareja && (
+              <div style={S.g2}>
+                <div><label style={S.label}>Nombre co-prop.</label><input style={S.input} value={pFirstName} onChange={function(e){ setPFirstName(e.target.value); }} placeholder="Nombre"/></div>
+                <div><label style={S.label}>Apellido</label><input style={S.input} value={pLastName} onChange={function(e){ setPLastName(e.target.value); }} placeholder="Apellido"/></div>
+                <div><label style={S.label}>Edad</label><input style={S.input} type="number" value={pEdad} onChange={function(e){ setPEdad(e.target.value); }} placeholder="Edad"/></div>
+                <div><label style={S.label}>Teléfono</label><input style={S.input} value={pTel} onChange={function(e){ setPTel(e.target.value); }} placeholder="+1 555-000-0000"/></div>
+              </div>
+            )}
+            <div style={{marginTop:12}}>
+              <label style={S.label}>Motivo de la transferencia</label>
+              <textarea style={Object.assign({},S.textarea,{marginTop:4,minHeight:60})} value={motivo} onChange={function(e){ setMotivo(e.target.value); }} placeholder="Razón de la transferencia..."/>
+            </div>
+            <div style={{display:"flex",justifyContent:"flex-end",marginTop:16}}>
+              <button style={S.btn("primary")} onClick={function(){ setPaso(2); }} disabled={!okPaso1||!okPareja}>Siguiente →</button>
+            </div>
+          </div>
+        )}
+
+        {/* PASO 2 */}
+        {paso === 2 && (
+          <div>
+            <div style={S.stit}>Recalificación de destinos</div>
+            <div style={{fontSize:12,color:"#6b7280",marginBottom:12}}>Verificando si el nuevo titular califica para cada destino del paquete:</div>
+            {resultados.map(function(r, i){
+              return (
+                <div key={i} style={Object.assign({}, S.card, {borderColor:r.ok?"rgba(26,127,60,0.3)":"rgba(185,28,28,0.2)",marginBottom:8})}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:600,color:"#1a1f2e"}}>{r.destino.nombre}</div>
+                      <div style={{fontSize:11,color:"#9ca3af"}}>{r.destino.noches} noches · {(r.destino.tipo||"").toUpperCase()}</div>
+                    </div>
+                    <span style={{fontSize:13,fontWeight:700,color:r.ok?GREEN:RED}}>{r.ok?"✅ Califica":"❌ No califica"}</span>
+                  </div>
+                  {r.razones.length > 0 && r.razones.map(function(rz, j){
+                    return <div key={j} style={{fontSize:11,color:RED,marginTop:3}}>- {rz}</div>;
+                  })}
+                </div>
+              );
+            })}
+            {!todosCalifican && (
+              <div style={{padding:"10px 12px",borderRadius:8,background:"#fef9e7",border:"1px solid #f0d080",fontSize:12,color:AMBER,marginTop:8}}>
+                ⚠️ Los destinos donde no califica serán removidos del paquete al confirmar la transferencia.
+              </div>
+            )}
+            <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:16}}>
+              <button style={S.btn("ghost")} onClick={function(){ setPaso(1); }}>← Atrás</button>
+              <button style={S.btn("primary")} onClick={function(){ setPaso(3); }}>Continuar →</button>
+            </div>
+          </div>
+        )}
+
+        {/* PASO 3 */}
+        {paso === 3 && (
+          <div>
+            <div style={S.stit}>Confirmar transferencia</div>
+            <div style={Object.assign({}, S.card, {marginBottom:12})}>
+              <div style={S.g2}>
+                <div><label style={S.label}>Titular actual</label><div style={{fontSize:13,color:"#1a1f2e",fontWeight:600}}>{c.nombre}</div></div>
+                <div><label style={S.label}>Nuevo titular</label><div style={{fontSize:13,color:GREEN,fontWeight:700}}>{(firstName+" "+lastName).trim()}</div></div>
+                <div><label style={S.label}>Folio</label><div style={{fontSize:13,color:"#1a1f2e"}}>{c.folio}</div></div>
+                <div><label style={S.label}>Destinos elegibles</label><div style={{fontSize:13,color:"#1a1f2e"}}>{resultados.filter(function(r){return r.ok;}).length} de {resultados.length}</div></div>
+              </div>
+              {motivo && <div style={{fontSize:12,color:"#6b7280",marginTop:10,fontStyle:"italic"}}>{motivo}</div>}
+            </div>
+            {err && <div style={{fontSize:12,color:RED,marginBottom:10}}>⚠️ {err}</div>}
+            <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+              <button style={S.btn("ghost")} onClick={function(){ setPaso(2); }}>← Atrás</button>
+              <button style={S.btn("danger")} onClick={handleConfirmar} disabled={saving}>
+                {saving ? "Procesando..." : "Confirmar transferencia"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // MODAL EDITAR CONTACTO — CS
 // ─────────────────────────────────────────────────────────────
@@ -972,6 +1230,8 @@ function FichaMiembro(props) {
   var MEMBCOLOR={Silver:"#6b7280",Gold:AMBER,Platinum:VIOLET};
   var [editDestinos,  setEditDestinos]  = useState(false);
   var [editContacto,  setEditContacto]  = useState(false);
+  var [editNombre,    setEditNombre]    = useState(false);
+  var [transferir,    setTransferir]    = useState(false);
 
   var TABS=[
     {id:"contacto",  label:"📞 Contacto",                         show:perms.verContacto},
@@ -1231,6 +1491,8 @@ function FichaMiembro(props) {
         )}
 
       </div>
+    {editNombre   && <EditNombreModal    cliente={c} onClose={function(){ setEditNombre(false);  }} onSave={function(){ setEditNombre(false);  if(props.onNombreGuardado)   props.onNombreGuardado();   }}/>}
+    {transferir    && <TransferirModal     cliente={c} onClose={function(){ setTransferir(false);  }} onSave={function(){ setTransferir(false);  if(props.onTransferencia)    props.onTransferencia();    }}/>}
     {editContacto && <EditContactoModal cliente={c} onClose={function(){ setEditContacto(false); }} onSave={function(nuevos){ setEditContacto(false); if(props.onContactoGuardado) props.onContactoGuardado(nuevos); }}/>}
     {editDestinos && <EditDestinosModal cliente={c} catalog={props.destCatalogMap||{}} onClose={function(){ setEditDestinos(false); }} onSave={function(){ setEditDestinos(false); if(props.onDestinosGuardados) props.onDestinosGuardados(); }}/>}
     </div>
@@ -1472,6 +1734,8 @@ export default function CsReservasV3() {
     },
     onDestinosGuardados:function(){ cargarMiembros(); },
     onContactoGuardado:function(){ cargarMiembros(); },
+    onNombreGuardado:function(){ cargarMiembros(); },
+    onTransferencia:function(){ cargarMiembros(); },
     destCatalogMap:destCatalogMap,
     onUpdatePagos:handleUpdatePagos,
   };
