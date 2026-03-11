@@ -842,7 +842,7 @@ export default function ReservacionesModule(){
   var [formModal,setFormModal]= useState(null);
   var [vloModal, setVloModal] = useState(null);
   var [toast,    setToast]    = useState(null);
-  var currentUser = { nombre:"Agente", rol:"agente" };
+  var currentUser = props.currentUser || { nombre:"Agente", rol:"agente", id:null };
   var comm = useCommPanel();
 
   function notify(m){ setToast(m); setTimeout(function(){ setToast(null); }, 3000); }
@@ -1000,13 +1000,16 @@ export default function ReservacionesModule(){
   var vloQ=res.filter(function(r){return r.status==="solicitud"||r.status==="solicitada"||r.status==="vlo_proceso";});
   var rechQ=res.filter(function(r){return r.status==="rechazado_hotel";});
 
+  var esSupervisor = currentUser.rol === "supervisor" || currentUser.rol === "admin" || rol === "vlo" || rol === "supervisor";
   var filtered=res.filter(function(r){
-    if(fStatus!=="all"&&r.status!==fStatus) return false;
+    // Solo mis reservas, a menos que sea supervisor/vlo
+    if (!esSupervisor && r.agente && currentUser.nombre && r.agente !== currentUser.nombre) return false;
+    if(fStatus!=="all"&&r.status!==fStatus&&r.status!==(fStatus==="solicitud"?"solicitada":fStatus)) return false;
     if(fDest!=="all"&&r.destino!==fDest) return false;
     if(fTipo!=="all"&&r.tipo!==fTipo) return false;
     if(search){
       var s=search.toLowerCase();
-      if(r.cliente.toLowerCase().indexOf(s)<0&&r.id.toLowerCase().indexOf(s)<0&&r.hotel.toLowerCase().indexOf(s)<0) return false;
+      if(r.cliente.toLowerCase().indexOf(s)<0&&(r.folio||"").toLowerCase().indexOf(s)<0&&r.hotel.toLowerCase().indexOf(s)<0) return false;
     }
     return true;
   });
@@ -1071,131 +1074,120 @@ export default function ReservacionesModule(){
 
       {mainTab==="reservaciones"&&view==="lista"&&(
         <div style={{display:"flex",height:"calc(100vh - 50px)"}}>
-          <div style={{width:"300px",flexShrink:0,borderRight:"1px solid #e3e6ea",display:"flex",flexDirection:"column",overflow:"hidden"}}>
-            <div style={{padding:"10px",borderBottom:"1px solid #e8eaed"}}>
-              <input style={Object.assign({},S.inp,{marginBottom:"7px"})} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Buscar cliente, folio, hotel..."/>
-              <div style={{display:"flex",gap:"3px",flexWrap:"wrap",marginBottom:"6px"}}>
-                {["all","solicitud","vlo_proceso","confirmada","rechazado_hotel","cancelada","completada"].map(function(k){
-                  var lbl=k==="all"?"Todos":(STATUS[k]?STATUS[k].label:k);
-                  var cnt=k==="all"?res.length:(cnts[k]||0);
-                  var col=k!=="all"?STATUS[k].c:undefined;
-                  return (
-                    <button key={k} style={Object.assign({},tabS(fStatus===k,col),{fontSize:"10px",padding:"3px 7px"})} onClick={function(){setFStatus(k);}}>
-                      {lbl}{cnt>0?" ("+cnt+")":""}
-                    </button>
-                  );
-                })}
-              </div>
-              <div style={{display:"flex",gap:"5px"}}>
-                <select style={Object.assign({},S.sel,{fontSize:"11px",padding:"5px 7px"})} value={fDest} onChange={function(e){setFDest(e.target.value);}}>
-                  <option value="all">Todos destinos</option>
-                  {DESTINOS.map(function(d){return <option key={d} value={d}>{d}</option>;})}
-                </select>
-                <select style={Object.assign({},S.sel,{fontSize:"11px",padding:"5px 7px"})} value={fTipo} onChange={function(e){setFTipo(e.target.value);}}>
-                  <option value="all">QC + NQ</option>
-                  <option value="qc">QC</option>
-                  <option value="nq">NQ</option>
-                </select>
-              </div>
-            </div>
 
-            {rol==="vlo"&&vloQ.length>0&&(
-              <div style={{padding:"8px 10px",background:"rgba(245,158,11,0.06)",borderBottom:"1px solid rgba(245,158,11,0.15)"}}>
-                <div style={{fontSize:"10px",fontWeight:"700",color:AMBER,marginBottom:"5px"}}>Cola VLO ({vloQ.length})</div>
-                {vloQ.map(function(r){
-                  var sc=STATUS[r.status];
-                  return (
-                    <div key={r.id} onClick={function(){setVloModal(r);}} style={{background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:"8px",padding:"7px 9px",marginBottom:"5px",cursor:"pointer"}}>
-                      <div style={{fontSize:"12px",fontWeight:"600",color:"#3d4554"}}>{r.cliente}</div>
-                      <div style={{fontSize:"10px",color:"#9ca3af"}}>{r.destino} - {fmtDate(r.checkin)}</div>
-                      <span style={stBdg(r.status)}>{sc.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {rol==="agente"&&rechQ.length>0&&(
-              <div style={{padding:"8px 10px",background:"rgba(249,115,22,0.06)",borderBottom:"1px solid rgba(249,115,22,0.15)"}}>
-                <div style={{fontSize:"10px",fontWeight:"700",color:CORAL,marginBottom:"5px"}}>Rechazadas - Accion requerida ({rechQ.length})</div>
-                {rechQ.map(function(r){
-                  return (
-                    <div key={r.id} onClick={function(){setFormModal(r);}} style={{background:"rgba(249,115,22,0.05)",border:"1px solid rgba(249,115,22,0.2)",borderRadius:"8px",padding:"7px 9px",marginBottom:"5px",cursor:"pointer"}}>
-                      <div style={{fontSize:"12px",fontWeight:"600",color:"#3d4554"}}>{r.cliente}</div>
-                      <div style={{fontSize:"10px",color:CORAL}}>{r.notasHotel||"Sin disponibilidad"}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <div style={{flex:1,overflowY:"auto",padding:"7px 8px"}}>
-              {filtered.length===0&&<div style={{textAlign:"center",padding:"28px",color:"#9ca3af",fontSize:"12px"}}>Sin resultados</div>}
-              {filtered.map(function(r){
-                return <ResCard key={r.id} res={r} sel={sel} onClick={function(){setSel(r);if(rol==="vlo")setVloModal(r);}}/>;
-              })}
-            </div>
-          </div>
-
-          <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-            {!sel&&(
-              <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:"12px",color:"#b0b8c4"}}>
-                <div style={{fontSize:"40px"}}>&#128197;</div>
-                <div style={{fontSize:"13px"}}>Selecciona una reserva para ver el detalle</div>
+          {/* ─── COLUMNA IZQUIERDA: kanban por status ─── */}
+          {!sel&&(
+            <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+              <div style={{padding:"10px 14px",borderBottom:"1px solid #e3e6ea",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",background:"#ffffff"}}>
+                <input style={Object.assign({},S.inp,{maxWidth:260})} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Buscar cliente, folio..."/>
+                <div style={{flex:1}}/>
                 <button style={btn("teal")} onClick={function(){setFormModal("nueva");}}>+ Nueva reserva</button>
               </div>
-            )}
-            {sel&&(
+              <div style={{flex:1,overflowY:"auto",padding:"14px 16px"}}>
+                {[
+                  {k:"solicitada",  l:"Solicitud",       c:"#f59e0b", bg:"rgba(245,158,11,0.08)"},
+                  {k:"vlo_proceso", l:"VLO en proceso",  c:INDIGO,    bg:"#ebeffe"},
+                  {k:"confirmada",  l:"Confirmada",       c:GREEN,     bg:"#eaf5ec"},
+                  {k:"rechazado_hotel",l:"Rechazado hotel",c:CORAL,   bg:"rgba(249,115,22,0.08)"},
+                  {k:"cancelada",   l:"Cancelada",        c:RED,       bg:"#fef0f0"},
+                  {k:"completada",  l:"Completada",       c:"#9ca3af", bg:"#f4f5f7"},
+                ].map(function(col){
+                  var items = filtered.filter(function(r){ return r.status===col.k||(col.k==="solicitada"&&r.status==="solicitud"); });
+                  if (items.length===0) return null;
+                  return (
+                    <div key={col.k} style={{marginBottom:18}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                        <span style={{width:9,height:9,borderRadius:"50%",background:col.c,display:"inline-block",flexShrink:0}}/>
+                        <span style={{fontSize:11,fontWeight:700,color:col.c,textTransform:"uppercase",letterSpacing:"0.08em"}}>{col.l}</span>
+                        <span style={{background:col.bg,color:col.c,border:"1px solid "+col.c+"44",borderRadius:10,padding:"1px 7px",fontSize:10,fontWeight:700}}>{items.length}</span>
+                      </div>
+                      {items.map(function(r){
+                        var sc = STATUS[r.status]||STATUS.solicitada;
+                        var noches = nbDays(r.checkin, r.checkout);
+                        return (
+                          <div key={r.id} onClick={function(){setSel(r);}}
+                            style={{background:"#ffffff",border:"1px solid #e3e6ea",borderLeft:"3px solid "+col.c,borderRadius:9,padding:"10px 14px",marginBottom:7,cursor:"pointer",transition:"box-shadow 0.15s"}}>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+                              <div style={{fontWeight:700,fontSize:13,color:"#1a1f2e"}}>{r.cliente||"Sin nombre"}</div>
+                              <span style={{fontSize:10,color:"#9ca3af",fontWeight:500}}>{r.folio}</span>
+                            </div>
+                            <div style={{display:"flex",gap:10,fontSize:11,color:"#6b7280",flexWrap:"wrap"}}>
+                              <span>&#127944; {r.destino||"--"}</span>
+                              {r.checkin&&<span>&#128197; {fmtDate(r.checkin)}</span>}
+                              {noches>0&&<span>{noches}n</span>}
+                              {r.adultos>0&&<span>{r.adultos} adulto{r.adultos>1?"s":""}{r.ninos>0?", "+r.ninos+" nino"+(r.ninos>1?"s":""):""}</span>}
+                            </div>
+                            {r.notasAgente&&<div style={{fontSize:10,color:"#9ca3af",marginTop:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.notasAgente}</div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+                {filtered.length===0&&(
+                  <div style={{textAlign:"center",padding:"48px 0",color:"#9ca3af"}}>
+                    <div style={{fontSize:32,marginBottom:10}}>&#128197;</div>
+                    <div style={{fontSize:13}}>No hay reservas asignadas</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ─── DETALLE derecha ─── */}
+          {sel&&(
+            <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+              <div style={{padding:"10px 16px",background:"#ffffff",borderBottom:"1px solid #e3e6ea",display:"flex",alignItems:"center",gap:8}}>
+                <button style={btn("ghost")} onClick={function(){setSel(null);}}>&#8592; Reservas</button>
+                <div style={{flex:1}}/>
+                <CommPanelTrigger
+                  cliente={{folio:sel.cFolio||sel.id,nombre:sel.cliente,membresia:sel.tipo||"",tel:"",whatsapp:"",email:""}}
+                  onOpen={comm.open}
+                />
+                {(sel.status==="solicitada"||sel.status==="solicitud"||sel.status==="vlo_proceso")&&<button style={btn("indigo")} onClick={function(){setVloModal(sel);}}>Panel VLO</button>}
+                {(sel.status==="solicitada"||sel.status==="solicitud"||sel.status==="rechazado_hotel")&&<button style={btn("warn")} onClick={function(){onEnviarVLO(sel);}}>Enviar a VLO</button>}
+                {(sel.status==="solicitada"||sel.status==="solicitud"||sel.status==="rechazado_hotel")&&<button style={btn("teal")} onClick={function(){setFormModal(sel);}}>Modificar</button>}
+              </div>
               <div style={{flex:1,overflowY:"auto",padding:"20px 24px"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"14px"}}>
-                  <div>
-                    <div style={{fontSize:"18px",fontWeight:"800",color:"#3d4554"}}>{sel.cliente}</div>
-                    <div style={{fontSize:"11px",color:"#9ca3af"}}>{sel.id} - {sel.cFolio}</div>
-                  </div>
-                  <div style={{display:"flex",gap:"5px",flexWrap:"wrap",alignItems:"center"}}>
-                    <CommPanelTrigger
-                      cliente={{folio:sel.cFolio||sel.id,nombre:sel.cliente,membresia:sel.tipo||"",tel:"",whatsapp:"",email:""}}
-                      onOpen={comm.open}
-                    />
-                    {(sel.status==="solicitud"||sel.status==="vlo_proceso")&&<button style={btn("indigo")} onClick={function(){setVloModal(sel);}}>Panel VLO</button>}
-                    {sel.status==="solicitud"&&<button style={btn("warn")} onClick={function(){onEnviarVLO(sel);}}>Enviar a VLO</button>}
-                    {(sel.status==="solicitud"||sel.status==="rechazado_hotel")&&<button style={btn("teal")} onClick={function(){setFormModal(sel);}}>Modificar</button>}
-                    <button style={btn("ghost")} onClick={function(){setFormModal("nueva");}}>+ Nueva</button>
-                  </div>
+                <div style={{marginBottom:14}}>
+                  <div style={{fontSize:18,fontWeight:800,color:"#1a1f2e"}}>{sel.cliente||"Sin nombre"}</div>
+                  <div style={{fontSize:11,color:"#9ca3af"}}>{sel.folio}</div>
                 </div>
                 <Stepper status={sel.status}/>
                 <CostRow r={sel}/>
                 <div style={S.g2}>
                   <div style={S.card}>
                     <div style={S.stit}>Estancia</div>
-                    {[["Destino",sel.destino],["Hotel",sel.hotel],["Habitacion",sel.hab],["Regimen",sel.reg],["Personas",String(sel.pax)],["Tipo",sel.tipo.toUpperCase()]].map(function(row){
-                      return <div key={row[0]} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #edf0f3"}}><span style={{fontSize:"11px",color:"#9ca3af"}}>{row[0]}</span><span style={{fontSize:"12px",fontWeight:"600",color:"#3d4554"}}>{row[1]}</span></div>;
+                    {[["Destino",sel.destino],["Hotel",sel.hotel],["Habitacion",sel.hab],["Regimen",sel.reg],["Adultos",String(sel.adultos||sel.pax||0)],["Ninos",String(sel.ninos||0)],["Tipo",(sel.tipo||"").toUpperCase()]].map(function(row){
+                      if(!row[1]) return null;
+                      return <div key={row[0]} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #edf0f3"}}><span style={{fontSize:11,color:"#9ca3af"}}>{row[0]}</span><span style={{fontSize:12,fontWeight:600,color:"#1a1f2e"}}>{row[1]}</span></div>;
                     })}
                   </div>
                   <div style={S.card}>
                     <div style={S.stit}>Fechas</div>
                     {[["Check-in",fmtDate(sel.checkin)],["Check-out",fmtDate(sel.checkout)],["Noches",String(nbDays(sel.checkin,sel.checkout))],["Agente",sel.agente],["Creada",fmtDate(sel.creado)]].map(function(row){
-                      return <div key={row[0]} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #edf0f3"}}><span style={{fontSize:"11px",color:"#9ca3af"}}>{row[0]}</span><span style={{fontSize:"12px",fontWeight:"600",color:"#3d4554"}}>{row[1]}</span></div>;
+                      return <div key={row[0]} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #edf0f3"}}><span style={{fontSize:11,color:"#9ca3af"}}>{row[0]}</span><span style={{fontSize:12,fontWeight:600,color:"#1a1f2e"}}>{row[1]}</span></div>;
                     })}
                   </div>
                 </div>
-                {sel.conf&&<div style={{padding:"9px 14px",borderRadius:"9px",background:"rgba(74,222,128,0.07)",border:"1px solid rgba(74,222,128,0.25)",marginBottom:"8px",display:"flex",justifyContent:"space-between"}}><span style={{fontSize:"11px",color:"#9ca3af"}}>No. confirmacion:</span><span style={{fontSize:"14px",fontWeight:"800",color:GREEN}}>{sel.conf}</span></div>}
-                {sel.notasAgente&&<div style={Object.assign({},S.card,{borderColor:"rgba(245,158,11,0.2)"})}><div style={S.lbl}>Notas agente</div><div style={{fontSize:"12px",color:"#3d4554"}}>{sel.notasAgente}</div></div>}
-                {sel.status==="rechazado_hotel"&&sel.notasHotel&&<div style={{padding:"9px 14px",borderRadius:"9px",background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.25)",marginBottom:"8px"}}><div style={S.lbl}>Motivo rechazo hotel</div><div style={{fontSize:"12px",color:CORAL}}>{sel.notasHotel}</div></div>}
+                {sel.conf&&<div style={{padding:"9px 14px",borderRadius:9,background:"rgba(26,127,60,0.07)",border:"1px solid rgba(26,127,60,0.25)",marginBottom:8,display:"flex",justifyContent:"space-between"}}><span style={{fontSize:11,color:"#9ca3af"}}>No. confirmacion:</span><span style={{fontSize:14,fontWeight:800,color:GREEN}}>{sel.conf}</span></div>}
+                {sel.notasAgente&&<div style={Object.assign({},S.card,{borderColor:"rgba(245,158,11,0.2)"})}><div style={S.lbl}>Notas</div><div style={{fontSize:12,color:"#1a1f2e"}}>{sel.notasAgente}</div></div>}
+                {sel.status==="rechazado_hotel"&&sel.notasHotel&&<div style={{padding:"9px 14px",borderRadius:9,background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.25)",marginBottom:8}}><div style={S.lbl}>Motivo rechazo</div><div style={{fontSize:12,color:CORAL}}>{sel.notasHotel}</div></div>}
                 <div style={S.card}>
                   <div style={S.stit}>Historial</div>
                   {(sel.hist||[]).map(function(h,i){
-                    return <div key={i} style={{display:"flex",gap:"10px",padding:"4px 0",borderBottom:"1px solid #edf0f3"}}><div style={{fontSize:"10px",color:"#9ca3af",width:"88px",flexShrink:0}}>{fmtDate(h.f)}</div><div style={{fontSize:"11px",color:"#3d4554",flex:1}}>{h.t}</div><div style={{fontSize:"10px",color:"#9ca3af"}}>{h.a}</div></div>;
+                    return <div key={i} style={{display:"flex",gap:10,padding:"4px 0",borderBottom:"1px solid #edf0f3"}}><div style={{fontSize:10,color:"#9ca3af",width:88,flexShrink:0}}>{fmtDate(h.f)}</div><div style={{fontSize:11,color:"#1a1f2e",flex:1}}>{h.t}</div><div style={{fontSize:10,color:"#9ca3af"}}>{h.a}</div></div>;
                   })}
                 </div>
                 {sel.status!=="cancelada"&&sel.status!=="completada"&&(
-                  <div style={{marginTop:"8px",textAlign:"right"}}>
+                  <div style={{marginTop:8,textAlign:"right"}}>
                     <button style={btn("danger")} onClick={function(){onCancelar(sel);}}>Cancelar reserva</button>
                   </div>
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
         </div>
       )}
     </div>
