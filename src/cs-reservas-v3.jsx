@@ -213,6 +213,10 @@ function leadToMiembro(r) {
       firma_firmada_at:  r.firma_firmada_at  || (r.verificacion ? r.verificacion.firma_firmada_at  : null),
       firma_enviada_at:  r.firma_enviada_at  || (r.verificacion ? r.verificacion.firma_enviada_at  : null),
     }) : (r.firma_enviada_at ? { firma_enviada_at: r.firma_enviada_at, firma_firmada_at: r.firma_firmada_at || null } : null),
+    zohoPaymentMethodId: r.zoho_payment_method_id || "",
+    zohoCustomerId:      r.zoho_customer_id       || "",
+    tarjetaLast4:        r.tarjeta_last4           || "",
+    tarjetaBrand:        r.tarjeta_brand           || "",
   };
 }
 
@@ -497,11 +501,11 @@ function PagoAbonoCS(props) {
   var [err,            setErr]            = useState("");
   var [zohoError,      setZohoError]      = useState("");
 
-  var tieneGuardada = !usarOtra && c.verificacion && c.verificacion.zoho_payment_method_id;
-  var last4  = (c.verificacion && c.verificacion.tarjeta_last4)  || "";
-  var brand  = (c.verificacion && c.verificacion.tarjeta_brand)  || "Tarjeta";
-  var custId = (c.verificacion && c.verificacion.zoho_customer_id) || "";
-  var pmId   = (c.verificacion && c.verificacion.zoho_payment_method_id) || "";
+  var pmId   = c.zohoPaymentMethodId || "";
+  var custId = c.zohoCustomerId      || "";
+  var last4  = c.tarjetaLast4        || "";
+  var brand  = c.tarjetaBrand        || "Tarjeta";
+  var tieneGuardada = !usarOtra && !!pmId;
 
   useEffect(function() {
     if (window.ZPayments) return;
