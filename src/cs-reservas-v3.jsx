@@ -1254,7 +1254,10 @@ function FichaMiembro(props) {
               {c.nombre.charAt(0).toUpperCase()}
             </div>
             <div>
-              <div style={{fontSize:16,fontWeight:700,color:"#1a1f2e"}}>{c.nombre}{c.coProp?" + "+c.coProp:""}</div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <div style={{fontSize:16,fontWeight:700,color:"#1a1f2e"}}>{c.nombre}{c.coProp?" + "+c.coProp:""}</div>
+                <button onClick={function(){ setEditNombre(true); }} style={{background:"none",border:"1px solid #e3e6ea",borderRadius:6,padding:"2px 7px",cursor:"pointer",fontSize:11,color:"#6b7280"}}>✏️</button>
+              </div>
               <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>
                 {c.folio}
                 {c.estadoCivil?" · "+c.estadoCivil:""}
@@ -1291,6 +1294,7 @@ function FichaMiembro(props) {
           {perms.iniciarRetencion&&c.statusCliente==="activo"&&(
             <button style={S.btn("danger")} onClick={function(){props.onRetencion(c);}}>Retención</button>
           )}
+          <button style={S.btn("indigo")} onClick={function(){ setTransferir(true); }}>Transferir</button>
         </div>
       </div>
 
