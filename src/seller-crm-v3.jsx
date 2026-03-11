@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase as SB } from "./supabase.js";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
 
@@ -283,65 +283,17 @@ function PaqueteTab({ draft, set }) {
           </div>
         </div>
 
-        {/* Info tarjeta - temporal, se borra al verificar o 24h */}
         {draft.metodoPago === "tarjeta" && (
-          <div style={{ padding:"14px 16px", borderRadius:"10px", background:"rgba(129,140,248,0.06)", border:"1px solid rgba(129,140,248,0.25)", marginBottom:"10px" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"12px" }}>
-              <span style={{ fontSize:"18px" }}></span>
-              <div>
-                <div style={{ fontSize:"12px", fontWeight:"700", color:"#1565c0" }}>Datos de tarjeta - Uso unico</div>
-                <div style={{ fontSize:"11px", color:"#6366f1" }}>Se eliminan automaticamente al verificar o en 24 horas</div>
-              </div>
-            </div>
-            <div style={{ marginBottom:"8px" }}>
-              <div style={S.label}>Numero de tarjeta</div>
-              <input style={{ ...S.input, letterSpacing:"0.15em", fontWeight:"600" }}
-                placeholder="   " maxLength={19}
-                value={draft.tarjetaNumero || ""}
-                onChange={e => {
-                  const v = e.target.value.replace(/\D/g,"").slice(0,16);
-                  set("tarjetaNumero", v.match(/.{1,4}/g)?.join(" ") || v);
-                }} />
-            </div>
-            <div style={{ marginBottom:"8px" }}>
-              <div style={S.label}>Nombre en tarjeta</div>
-              <input style={{ ...S.input, textTransform:"uppercase" }} placeholder="NOMBRE APELLIDO"
-                value={draft.tarjetaNombre || ""}
-                onChange={e => set("tarjetaNombre", e.target.value.toUpperCase())} />
-            </div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"8px", marginBottom:"8px" }}>
-              <div>
-                <div style={S.label}>Vencimiento</div>
-                <input style={S.input} placeholder="MM/AA" maxLength={5}
-                  value={draft.tarjetaVence || ""}
-                  onChange={e => {
-                    const v = e.target.value.replace(/\D/g,"").slice(0,4);
-                    set("tarjetaVence", v.length > 2 ? v.slice(0,2)+"/"+v.slice(2) : v);
-                  }} />
-              </div>
-              <div>
-                <div style={S.label}>CVV</div>
-                <input style={S.input} placeholder="" maxLength={4} type="password"
-                  value={draft.tarjetaCVV || ""}
-                  onChange={e => set("tarjetaCVV", e.target.value.replace(/\D/g,"").slice(0,4))} />
-              </div>
-              <div>
-                <div style={S.label}>Tipo</div>
-                <select style={S.select} value={draft.tarjetaTipo || ""} onChange={e => set("tarjetaTipo", e.target.value)}>
-                  <option value="">- -</option>
-                  <option value="credito">Credito</option>
-                  <option value="debito">Debito</option>
-                </select>
-              </div>
-            </div>
-            {/* Timestamp de captura para control de borrado */}
-            {!draft.tarjetaCapturaTs && draft.tarjetaNumero && (
-              <div style={{ display:"none" }}>{set("tarjetaCapturaTs", new Date().toISOString())}</div>
-            )}
-            <div style={{ padding:"8px 12px", borderRadius:"8px", background:"rgba(248,113,113,0.08)", border:"1px solid rgba(248,113,113,0.2)", fontSize:"11px", color:"#b91c1c", lineHeight:1.6 }}>
-               <strong>Datos sensibles - acceso restringido.</strong> Solo visible para el verificador asignado. Se eliminan automaticamente tras la verificacion o a las 24 horas de captura.
-            </div>
-          </div>
+          <ZohoCardCapture
+            lead={draft}
+            onSaved={function(pmId, custId, last4, brand) {
+              set("zohoPaymentMethodId", pmId);
+              set("zohoCustomerId", custId);
+              set("tarjetaLast4", last4);
+              set("tarjetaBrand", brand);
+              set("tarjetaCapturaTs", new Date().toISOString());
+            }}
+          />
         )}
         {draft.salePrice > 0 && (
           <div style={{ display:"flex", gap:"12px", padding:"10px 12px", borderRadius:"9px", background:"#fffce5", border:"1px solid rgba(251,191,36,0.15)", flexWrap:"wrap", marginTop:"10px" }}>
@@ -1565,6 +1517,10 @@ function dbToLead(r) {
     tarjetaCVV:          r.tarjeta_cvv         || null,
     tarjetaTipo:         r.tarjeta_tipo        || null,
     tarjetaCapturaTs:    r.tarjeta_captura_ts  || null,
+    zohoPaymentMethodId: r.zoho_payment_method_id || null,
+    zohoCustomerId:      r.zoho_customer_id       || null,
+    tarjetaLast4:        r.tarjeta_last4          || null,
+    tarjetaBrand:        r.tarjeta_brand          || null,
   };
 }
 
@@ -1600,13 +1556,147 @@ function leadToDb(l) {
     destinos:            l.destinos            || [],
     notas:               l.notas               || [],
     fecha:               l.fecha               || TODAY,
-    tarjeta_numero:      l.tarjetaNumero       || null,
-    tarjeta_nombre:      l.tarjetaNombre       || null,
-    tarjeta_vence:       l.tarjetaVence        || null,
-    tarjeta_cvv:         l.tarjetaCVV          || null,
-    tarjeta_tipo:        l.tarjetaTipo         || null,
+    tarjeta_numero:      null,
+    tarjeta_nombre:      null,
+    tarjeta_vence:       null,
+    tarjeta_cvv:         null,
+    tarjeta_tipo:        null,
     tarjeta_captura_ts:  l.tarjetaCapturaTs    || null,
+    zoho_payment_method_id: l.zohoPaymentMethodId || null,
+    zoho_customer_id:       l.zohoCustomerId      || null,
+    tarjeta_last4:          l.tarjetaLast4        || null,
+    tarjeta_brand:          l.tarjetaBrand        || null,
   };
+}
+
+
+// =====================================================
+// ZohoCardCapture - Widget de Zoho para guardar tarjeta
+// =====================================================
+var ZOHO_ACCOUNT_ID_SELLER = "874101637";
+var ZOHO_API_KEY_SELLER     = "1003.afb484f19b10b5674c7e6f7c0c0ee5f5.89f010a430837bed480829a015a88641";
+var EDGE_URL_SELLER         = "https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/zoho-payments";
+
+function ZohoCardCapture({ lead, onSaved }) {
+  var [loading,    setLoading]    = useState(false);
+  var [error,      setError]      = useState(null);
+  var [zohoReady,  setZohoReady]  = useState(false);
+  var yaTiene = lead && lead.zohoPaymentMethodId;
+
+  useEffect(function() {
+    if (window.ZPayments) { setZohoReady(true); return; }
+    var existing = document.getElementById("zpayments-sdk");
+    if (existing) {
+      existing.addEventListener("load", function() { setZohoReady(true); });
+      return;
+    }
+    var script = document.createElement("script");
+    script.id      = "zpayments-sdk";
+    script.src     = "https://static.zohocdn.com/zpay/zpay-js/v1/zpayments.js";
+    script.onload  = function() { setZohoReady(true); };
+    script.onerror = function() { setError("No se pudo cargar el SDK de Zoho Payments"); };
+    document.head.appendChild(script);
+  }, []);
+
+  var handleGuardar = function() {
+    if (!zohoReady || !window.ZPayments) { setError("SDK no disponible"); return; }
+    setLoading(true);
+    setError(null);
+
+    fetch(EDGE_URL_SELLER + "/create-customer-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nombre: (lead.nombre || "") + " " + (lead.apellido || ""),
+        email:  lead.email  || "",
+        phone:  lead.tel    || "",
+      }),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) throw new Error(data.error);
+      var customerId = data.customer_id;
+      var sessionId  = data.payment_method_session_id;
+
+      var config = {
+        account_id: ZOHO_ACCOUNT_ID_SELLER,
+        domain:     "US",
+        otherOptions: { api_key: ZOHO_API_KEY_SELLER },
+      };
+      var instance = new window.ZPayments(config);
+
+      var options = {
+        payment_method:           "card",
+        transaction_type:         "add",
+        customer_id:              customerId,
+        payment_method_session_id: sessionId,
+        address: {
+          name:  (lead.nombre || "") + " " + (lead.apellido || ""),
+          email: lead.email || "",
+        },
+      };
+
+      instance.requestPaymentMethod(options)
+        .then(function(result) {
+          setLoading(false);
+          instance.close();
+          var pmId  = result.payment_method_id || result.paymentMethodId || "";
+          var last4 = result.card ? result.card.last_four_digits || "" : "";
+          var brand = result.card ? result.card.brand || "" : "";
+          onSaved(pmId, customerId, last4, brand);
+        })
+        .catch(function(err) {
+          setLoading(false);
+          instance.close();
+          if (err.code !== "widget_closed") {
+            setError("Error: " + (err.message || JSON.stringify(err)));
+          }
+        });
+    })
+    .catch(function(err) {
+      setLoading(false);
+      setError("Error creando sesion: " + err.message);
+    });
+  };
+
+  return (
+    <div style={{ padding:"14px 16px", borderRadius:"10px", background:"rgba(129,140,248,0.06)", border:"1px solid rgba(129,140,248,0.25)", marginBottom:"10px" }}>
+      <div style={{ fontSize:"12px", fontWeight:"700", color:"#1565c0", marginBottom:"10px" }}>Tarjeta de pago - Zoho Payments</div>
+
+      {yaTiene ? (
+        <div>
+          <div style={{ padding:"10px 14px", borderRadius:"9px", background:"#edf7ee", border:"1px solid #a3d9a5", marginBottom:"10px" }}>
+            <div style={{ fontSize:"13px", fontWeight:"700", color:"#1a7f3c" }}>Tarjeta guardada de forma segura</div>
+            <div style={{ fontSize:"12px", color:"#6b7280", marginTop:"3px" }}>
+              {lead.tarjetaBrand ? lead.tarjetaBrand + " " : ""}
+              {lead.tarjetaLast4 ? "**** " + lead.tarjetaLast4 : ""}
+            </div>
+          </div>
+          <button style={{ padding:"8px 16px", borderRadius:"8px", background:"#f4f5f7", border:"1px solid #e3e6ea", fontSize:"12px", color:"#6b7280", cursor:"pointer" }}
+            onClick={handleGuardar} disabled={loading || !zohoReady}>
+            Cambiar tarjeta
+          </button>
+        </div>
+      ) : (
+        <div>
+          <div style={{ padding:"9px 12px", borderRadius:"8px", background:"#f4f5f7", border:"1px solid #e3e6ea", fontSize:"12px", color:"#6b7280", marginBottom:"10px" }}>
+            La tarjeta se guarda de forma segura en Zoho Payments. Nunca se almacenan datos completos en nuestra base de datos.
+          </div>
+          {error && (
+            <div style={{ padding:"8px 12px", borderRadius:"8px", background:"#fef2f2", border:"1px solid #f5b8b8", fontSize:"12px", color:"#b91c1c", marginBottom:"10px" }}>
+              {error}
+            </div>
+          )}
+          <button
+            style={{ width:"100%", padding:"11px 16px", borderRadius:"9px", background:"#1a385a", border:"none", color:"#fff", fontSize:"13px", fontWeight:"700", cursor:loading||!zohoReady?"not-allowed":"pointer", opacity:loading||!zohoReady?0.6:1 }}
+            disabled={loading || !zohoReady}
+            onClick={handleGuardar}>
+            {loading ? "Abriendo Zoho Payments..." : !zohoReady ? "Cargando SDK..." : "Guardar tarjeta del cliente"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // 
