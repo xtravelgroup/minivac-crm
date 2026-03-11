@@ -331,7 +331,7 @@ function ReservaFormModal(props) {
       </div>
       <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
         <button style={S.btn("ghost")} onClick={props.onClose}>Cancelar</button>
-        <button style={S.btn("teal")} onClick={function(){ props.onSave({destino:destino,checkin:checkin,checkout:checkout,adultos:parseInt(adultos)||2,ninos:parseInt(ninos)||0,nochesIncluidas:nBase,nochesExtra:nExtra,tipo:tipoDestino,notasInternas:notas,agente:props.autor||"Agente",status:"solicitud"}); props.onClose(); }} disabled={!ok}>
+        <button style={S.btn("teal")} onClick={function(){ props.onSave({destino:destino,checkin:checkin,checkout:checkout,adultos:parseInt(adultos)||2,ninos:parseInt(ninos)||0,nochesIncluidas:nBase,nochesExtra:nExtra,tipo:tipoDestino,notasInternas:notas,agente:props.autor||"Agente",status:"solicitada"}); props.onClose(); }} disabled={!ok}>
           {isEdit?"Guardar cambios":"Enviar solicitud"}
         </button>
       </div>
@@ -1718,7 +1718,7 @@ export default function CsReservasV3() {
       noches_extra:  datos.nochesExtra || 0,
       notas_agente:  datos.notasInternas || "",
       agente_nombre: datos.agente || rolCfg.label,
-      status:        "solicitud",
+      status:        "solicitada",
     };
 
     if (esEdit) {
