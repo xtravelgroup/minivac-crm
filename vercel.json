@@ -5,7 +5,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.zohocdn.com https://*.zoho.com https://payments.zoho.com; style-src 'self' 'unsafe-inline' https://*.zoho.com https://static.zohocdn.com; frame-src https://*.zoho.com https://payments.zoho.com https://static.zohocdn.com; connect-src 'self' https://*.zoho.com https://payments.zoho.com https://static.zohocdn.com https://*.supabase.co; img-src 'self' data: https://*.zoho.com https://static.zohocdn.com; font-src 'self' https://static.zohocdn.com;"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.zohocdn.com https://*.zoho.com https://payments.zoho.com https://maps.googleapis.com https://maps.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com https://*.google.com; connect-src 'self' https://*.supabase.co https://*.zoho.com https://maps.googleapis.com; frame-src 'self' https://*.zoho.com;"
         }
       ]
     }
