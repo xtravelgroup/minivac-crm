@@ -91,15 +91,20 @@ async function createPaymentSession(token: string, body: {
 
 // ---- Crear Customer en Zoho ----
 async function createCustomer(token: string, nombre: string, email: string, phone: string) {
+  const body: Record<string, string> = { name: nombre || "Cliente" };
+  if (email && email.includes("@")) body.email = email;
+  if (phone) body.phone = phone.replace(/[^0-9+\-\s()]/g, "").trim();
+
   const res = await fetch(
     `https://payments.zoho.com/api/v1/customers?account_id=${ZOHO_ACCOUNT_ID}`,
     {
       method: "POST",
       headers: { "Authorization": "Zoho-oauthtoken " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ display_name: nombre, email: email || undefined, phone: phone || undefined }),
+      body: JSON.stringify(body),
     }
   );
   const data = await res.json();
+  console.log("createCustomer response:", JSON.stringify(data));
   if (!data.customer) throw new Error("Error creando customer: " + JSON.stringify(data));
   return data.customer;
 }

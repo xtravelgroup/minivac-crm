@@ -1605,7 +1605,10 @@ function ZohoCardCapture({ lead, onSaved }) {
 
     fetch(EDGE_URL_SELLER + "/create-customer-session", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA",
+      },
       body: JSON.stringify({
         nombre: (lead.nombre || "") + " " + (lead.apellido || ""),
         email:  lead.email  || "",
