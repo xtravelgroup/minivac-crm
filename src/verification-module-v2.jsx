@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase as SB } from "./supabase.js";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
-import { registrarEvento, TablaHistorial } from "./useHistorial.js";
+import { registrarEvento, TablaHistorial } from "./useHistorial.jsx";
 
 const TODAY = new Date().toISOString().split("T")[0];
 

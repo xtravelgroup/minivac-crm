@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
 import { supabase as SB } from "./supabase.js";
-import { TablaHistorial } from "./useHistorial.js";
+import { TablaHistorial } from "./useHistorial.jsx";
 
 // ─────────────────────────────────────────────────────────────
 // TEMA ZOHO CLARO — igual que seller / verificador
