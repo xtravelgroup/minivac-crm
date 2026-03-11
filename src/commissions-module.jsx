@@ -846,6 +846,8 @@ export default function CommissionsModule({ currentUser: shellUser }) {
           var mapped = res.data.map(function(u) {
             return {
               id:       u.auth_id || u.id,
+              db_id:    u.id,
+              auth_id:  u.auth_id,
               name:     u.nombre || "",
               nombre:   u.nombre || "",
               role:     u.rol || "vendedor",
