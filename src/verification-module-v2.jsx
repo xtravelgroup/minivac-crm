@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase as SB } from "./supabase.js";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
+import { registrarEvento, TablaHistorial } from "./useHistorial.js";
 
 const TODAY = new Date().toISOString().split("T")[0];
 
@@ -1306,6 +1307,12 @@ function DetailView({ lead, onBack, onUpdate }) {
         </div>
       </div>
 
+      {/* HISTORIAL */}
+      <div style={{padding:"0 20px 20px"}}>
+        <div style={{...S.sTitle, marginBottom:10}}>🕒 Historial del lead</div>
+        <TablaHistorial leadId={lead.id} />
+      </div>
+
       {editModal   && <EditExpedienteModal exp={exp} onClose={() => setEditModal(false)} onSave={handleSaveExp} />}
       
       {sendModal   && <SendDocsModal lead={{ ...lead, exp }} onClose={() => setSendModal(false)} onSent={handleDocsSent} />}
@@ -1485,24 +1492,37 @@ export default function VerificationModule() {
   }, []);
 
   const updateLead = function(u) {
-    // Determinar status correcto
+    var prev = leads.find(function(l){ return l.id === u.id; });
     var newStatus = u.status;
     if (u.verificacion && u.verificacion.result === "venta") newStatus = "venta";
     if (u.verificacion && u.verificacion.paymentStatus === "approved" && !u.verificacion.result) newStatus = "venta";
 
-    var dbUpdate = {
-      verificacion: u.verificacion,
-      status: newStatus,
-    };
-    console.log("updateLead guardando:", JSON.stringify(dbUpdate));
+    var dbUpdate = { verificacion: u.verificacion, status: newStatus };
     SB.from("leads").update(dbUpdate).eq("id", u.id).then(function(res) {
-      console.log("updateLead resultado:", JSON.stringify(res.error || "ok"), "status:", newStatus);
       if (res.error) {
         notify("Error al guardar: " + res.error.message, false);
       } else {
         var updated = Object.assign({}, u, { status: newStatus });
         setLeads(function(p){ return p.map(function(l){ return l.id === u.id ? updated : l; }); });
         notify("Expediente actualizado", true);
+        // ── Registrar eventos de historial
+        var v = u.verificacion || {};
+        var pv = (prev && prev.verificacion) ? prev.verificacion : {};
+        if (prev && prev.status !== newStatus) {
+          registrarEvento(u.id, "status", "Status: " + (prev.status||"?") + " → " + newStatus, null, { nombre: "Verificador" });
+        }
+        if (v.result && v.result !== pv.result) {
+          registrarEvento(u.id, "verif", "Resultado verificación: " + v.result + (v.notes ? " — " + v.notes : ""), { result: v.result }, { nombre: "Verificador" });
+        }
+        if (v.paymentStatus === "approved" && pv.paymentStatus !== "approved") {
+          registrarEvento(u.id, "cobro", "Cobro aprobado", { paymentStatus: "approved" }, { nombre: "Verificador" });
+        }
+        if (v.paymentStatus === "declined" && pv.paymentStatus !== "declined") {
+          registrarEvento(u.id, "cobro", "Cobro rechazado", { paymentStatus: "declined" }, { nombre: "Verificador" });
+        }
+        if (v.docsSent && !pv.docsSent) {
+          registrarEvento(u.id, "firma", "Travel Certificate enviado al cliente", null, { nombre: "Verificador" });
+        }
       }
     });
   };

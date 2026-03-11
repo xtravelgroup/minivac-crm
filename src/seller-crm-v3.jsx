@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase as SB } from "./supabase.js";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
+import { registrarEvento, TablaHistorial } from "./useHistorial.js";
 
 // 
 // HELPERS
@@ -598,6 +599,7 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
           {tabBtn("seguimiento", `📝 Seguim.${(draft.notas||[]).length>0?" ("+draft.notas.length+")":""}`, "#925c0a")}
           {canSeePaquete && tabBtn("destinos", "🗺️ Destinos", "#1a7f3c")}
           {canSeePaquete && tabBtn("pago",     "💳 Pago",     "#1565c0")}
+          {tabBtn("historial", "🕒 Historial", "#6b7280")}
           {isSupervisor  && tabBtn("admin",    "⚙️ Admin",    "#b91c1c")}
         </div>
 
@@ -717,6 +719,16 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
         {/* TAB: PAGO */}
         {tab === "pago" && canSeePaquete && (
           <PagoTab draft={draft} set={set} onSave={onSave} />
+        )}
+
+        {/* TAB: HISTORIAL */}
+        {tab === "historial" && (
+          <div>
+            <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}}>
+              🕒 Historial del lead
+            </div>
+            <TablaHistorial leadId={lead.id} />
+          </div>
         )}
 
         {/* TAB: ADMIN */}
@@ -1823,24 +1835,47 @@ export default function SellerCRMv3({ currentUser: shellUser }) {
     var prev = leads.find(function(l){ return l.id === u.id; });
     var recienVerificado = ["verificacion","venta"].includes(u.status) && !["verificacion","venta"].includes(prev ? prev.status : "");
     var final = recienVerificado ? limpiarTarjeta(u) : u;
-    // Actualizar estado local inmediatamente (optimistic)
     setLeads(function(p){ return p.map(function(l){ return l.id === final.id ? final : l; }); });
-    // Persistir en Supabase
     SB.from("leads").update(leadToDb(final)).eq("id", final.id).then(function(res) {
       if (res.error) {
         notify("Error al guardar: " + res.error.message, false);
-        cargarLeads(); // revertir
+        cargarLeads();
       } else {
         if (recienVerificado && u.tarjetaNumero) notify("Datos de tarjeta eliminados al pasar a " + u.status);
         else notify("Lead actualizado");
+        // ── Registrar eventos de historial
+        var usr = mappedUser;
+        if (prev && prev.status !== u.status) {
+          registrarEvento(u.id, "status",
+            "Status: " + (prev.status||"nuevo") + " → " + u.status,
+            { de: prev.status, a: u.status }, usr);
+        }
+        if (prev && JSON.stringify(prev.destinos) !== JSON.stringify(u.destinos)) {
+          var nombres = (u.destinos||[]).map(function(d){ return d.destId + " (" + d.tipo + ")"; }).join(", ") || "ninguno";
+          registrarEvento(u.id, "destino", "Destinos: " + nombres, { destinos: u.destinos }, usr);
+        }
+        if (prev && (prev.salePrice !== u.salePrice || prev.pagoInicial !== u.pagoInicial || prev.metodoPago !== u.metodoPago)) {
+          registrarEvento(u.id, "pago",
+            "Precio $" + (u.salePrice||0) + " · Pago hoy $" + (u.pagoInicial||0) + (u.metodoPago ? " · " + u.metodoPago : ""),
+            { salePrice: u.salePrice, pagoInicial: u.pagoInicial, metodoPago: u.metodoPago }, usr);
+        }
+        if (prev && (prev.nombre !== u.nombre || prev.edad !== u.edad || prev.estadoCivil !== u.estadoCivil ||
+            prev.email !== u.email || prev.whatsapp !== u.whatsapp)) {
+          registrarEvento(u.id, "datos", "Datos actualizados: " + u.nombre, null, usr);
+        }
+        // Notas nuevas
+        var prevNotas = (prev && prev.notas) ? prev.notas.length : 0;
+        var newNotas  = (u.notas||[]).length;
+        if (newNotas > prevNotas) {
+          var ultimaNota = u.notas[u.notas.length-1];
+          registrarEvento(u.id, "nota", "Nota: " + (ultimaNota.texto||ultimaNota.text||""), null, usr);
+        }
       }
     });
   };
 
-  // ---- Insertar nuevo lead en Supabase ----
   const handleAddLead = function(l) {
     var dbRow = leadToDb(l);
-    // Asignar vendedor_id al auth_id real del usuario logueado
     if (!isSup && myAuthId) dbRow.vendedor_id = myAuthId;
     SB.from("leads").insert(dbRow).select().then(function(res) {
       if (res.error) {
@@ -1849,6 +1884,7 @@ export default function SellerCRMv3({ currentUser: shellUser }) {
         var nuevo = dbToLead(res.data[0]);
         setLeads(function(p){ return [nuevo, ...p]; });
         notify("Lead agregado - " + nuevo.nombre);
+        registrarEvento(nuevo.id, "status", "Lead creado · status: " + (nuevo.status||"nuevo"), null, mappedUser);
       }
     });
   };

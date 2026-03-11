@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
+import { supabase as SB } from "./supabase.js";
+import { TablaHistorial } from "./useHistorial.js";
 
 var CHAT_KEY="minivac_chats";
 
@@ -1086,13 +1088,22 @@ function FichaCliente(props){
 
         {tab==="historial"&&(
           <div>
-            {historial.length===0&&<div style={{textAlign:"center",padding:"40px",color:"#9ca3af"}}>Sin interacciones registradas</div>}
-            {historial.map(function(item){
-              var ev = EVENTO_LABELS[item.tipo]||item.tipo;
-              var cols = {compra:GREEN,pago:GREEN,reserva_creada:TEAL,reserva_confirmada:GREEN,reserva_cancelada:RED,reserva_modificada:AMBER,checkout:GREEN,nota:"#9ca3af",caso:INDIGO,operacion:AMBER,retencion:RED,retencion_ganada:GREEN,email_enviado:VIOLET,whatsapp:GREEN,survey:AMBER};
-              var col = cols[item.tipo]||"#9ca3af";
-              return <Dot key={item.id} tipo={item.tipo} canal={item.canal} texto={item.texto} fecha={item.fecha} autor={item.autor} col={col}/>;
-            })}
+            {/* Historial CRM desde Supabase */}
+            <HistorialCRM clienteNombre={c.nombre} />
+            {/* Interacciones CS locales */}
+            {historial.length > 0 && (
+              <div style={{marginTop:16}}>
+                <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>
+                  Interacciones CS
+                </div>
+                {historial.map(function(item){
+                  var cols = {compra:GREEN,pago:GREEN,reserva_creada:TEAL,reserva_confirmada:GREEN,reserva_cancelada:RED,reserva_modificada:AMBER,checkout:GREEN,nota:"#9ca3af",caso:INDIGO,operacion:AMBER,retencion:RED,retencion_ganada:GREEN,email_enviado:VIOLET,whatsapp:GREEN,survey:AMBER};
+                  var col = cols[item.tipo]||"#9ca3af";
+                  return <Dot key={item.id} tipo={item.tipo} canal={item.canal} texto={item.texto} fecha={item.fecha} autor={item.autor} col={col}/>;
+                })}
+              </div>
+            )}
+            {historial.length===0&&<div style={{textAlign:"center",padding:"24px",color:"#9ca3af",fontSize:12}}>Sin interacciones CS registradas</div>}
           </div>
         )}
 
@@ -1661,6 +1672,42 @@ function NuevoCasoRetModal(props){
           <button style={S.btn("danger")} disabled={!motivo.trim()||!cli} onClick={handleSave}>Agregar al queue</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// HISTORIAL CRM — busca el lead por nombre y muestra historial
+// ─────────────────────────────────────────────────────────────
+function HistorialCRM({ clienteNombre }) {
+  var [leadId, setLeadId] = useState(null);
+  var [buscando, setBuscando] = useState(true);
+
+  useEffect(function() {
+    if (!clienteNombre) { setBuscando(false); return; }
+    setBuscando(true);
+    SB.from("leads")
+      .select("id, nombre")
+      .ilike("nombre", "%" + clienteNombre.split(" ")[0] + "%")
+      .limit(1)
+      .then(function(res) {
+        setBuscando(false);
+        if (res.data && res.data[0]) setLeadId(res.data[0].id);
+        else setLeadId(null);
+      });
+  }, [clienteNombre]);
+
+  var S2 = {
+    title: { fontSize:10, fontWeight:700, color:"#9ca3af", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 },
+    empty: { padding:"14px", borderRadius:10, background:"#f4f5f7", border:"1px solid #e3e6ea", fontSize:12, color:"#9ca3af", textAlign:"center" },
+  };
+
+  return (
+    <div style={{marginBottom:14}}>
+      <div style={S2.title}>Historial CRM (Ventas)</div>
+      {buscando && <div style={S2.empty}>Buscando historial...</div>}
+      {!buscando && !leadId && <div style={S2.empty}>Sin historial CRM para este cliente</div>}
+      {!buscando && leadId && <TablaHistorial leadId={leadId} />}
     </div>
   );
 }
