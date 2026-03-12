@@ -606,7 +606,7 @@ function ReservaModal(props){
   var [notas,   setNotas]   = useState(r.notas_agente  || "");
   var [numRes,  setNumRes]  = useState(r.conf || "");
   var [agentes, setAgentes] = useState([]);
-  React.useEffect(function(){
+  useEffect(function(){
     SB.from("profiles").select("id, nombre, rol").then(function(res){
       if(!res.error){
         var lista = (res.data||[]).filter(function(u){
