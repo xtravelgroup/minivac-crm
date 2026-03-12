@@ -94,19 +94,22 @@ export default function ExecutiveSuite() {
     Promise.all([
       SB.from("leads").select("id, nombre, estado_civil, verificacion, membresia, vigencia, saldo_pendiente, paquete, created_at"),
       SB.from("reservaciones").select("id, folio, status, total, fee, checkin, checkout, agente_nombre, created_at, destino_nombre, hotel"),
-      SB.from("radio_spots").select("id, emisora_id, costo, talento, fecha, dia_semana, hora, duracion, tipo, incidencia"),
+      SB.from("radio_spots").select("id, emisora_id, costo, talento, fecha, semana, dia_semana, hora, duracion, tipo, incidencia"),
       SB.from("emisoras").select("id, nombre"),
       SB.from("leads").select("id, nombre, paquete, emisora, emisora_id, created_at, verificacion"),
     ]).then(function(results){
-      var leads    = (!results[0].error && results[0].data) ? results[0].data : [];
-      var reservas = (!results[1].error && results[1].data) ? results[1].data : [];
-      var spots    = (!results[2].error && results[2].data) ? results[2].data : [];
-      var emisoras = (!results[3].error && results[3].data) ? results[3].data : [];
+      var leads      = (!results[0].error && results[0].data) ? results[0].data : [];
+      var reservas   = (!results[1].error && results[1].data) ? results[1].data : [];
+      var spots      = (!results[2].error && results[2].data) ? results[2].data : [];
+      var emisoras   = (!results[3].error && results[3].data) ? results[3].data : [];
       var leadsRadio = (!results[4].error && results[4].data) ? results[4].data : [];
+      if(results[2].error) console.error("radio_spots error:", results[2].error.message);
+      if(results[3].error) console.error("emisoras error:", results[3].error.message);
       setData({ leads: leads, reservas: reservas, profiles: [], spots: spots, emisoras: emisoras, leadsRadio: leadsRadio });
       setLoading(false);
-    }).catch(function(){
-      setData({ leads:[], reservas:[], profiles:[] });
+    }).catch(function(err){
+      console.error("Dashboard error:", err);
+      setData({ leads:[], reservas:[], profiles:[], spots:[], emisoras:[], leadsRadio:[] });
       setLoading(false);
     });
   },[]);
