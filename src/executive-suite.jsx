@@ -94,7 +94,7 @@ export default function ExecutiveSuite() {
     Promise.all([
       SB.from("leads").select("id, nombre, estado_civil, status, emisora_id, emisora, created_at, sale_price, pago_inicial, vendedor_id, usuarios(nombre)"),
       SB.from("reservaciones").select("id, folio, status, total, fee, checkin, checkout, agente_nombre, created_at, destino_nombre, hotel"),
-      SB.from("radio_spots").select("id, emisora_id, costo, talento, fecha, semana, dia_semana, hora, duracion, tipo, incidencia"),
+      SB.from("radio_spots").select("id, emisora_id, costo, talento, precio_equipo, fecha, semana, dia_semana, hora, duracion, tipo, incidencia"),
       SB.from("emisoras").select("id, nombre"),
       SB.from("leads").select("id, nombre, emisora, emisora_id, created_at, status, sale_price"),
     ]).then(function(results){
@@ -511,7 +511,7 @@ function TabRadios(props){
 
   var fmtUSD = function(n){ return "$"+Number(n||0).toLocaleString("en-US",{minimumFractionDigits:0}); };
   function roiColor(r){ return r>100?"#1a7f3c":r>0?"#1565c0":"#b91c1c"; }
-  function invSpot(s){ return (Number(s.costo||0)*1.15)+Number(s.talento||0); }
+  function invSpot(s){ return s.precio_equipo != null ? Number(s.precio_equipo) : (Number(s.costo||0)*1.15)+Number(s.talento||0); }
 
   var emMap = {};
   emisoras.forEach(function(em){ emMap[em.id]=em.nombre; });
