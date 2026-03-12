@@ -249,35 +249,35 @@ function EditExpedienteModal({ exp, onClose, onSave }) {
         </div>
 
         {/* CO-PROPIETARIO */}
+        {(function(){
+          var showCoProp = ["Casado","Cohabitante","Union libre"].includes(d.tEstadoCivil);
+          if (!showCoProp) return null;
+          return (
         <div style={{marginBottom:16}}>
-          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+          <div style={{marginBottom:10}}>
             <div style={S.sTitle}>Co-propietario</div>
-            <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",marginBottom:12}}>
-              <input type="checkbox" checked={!!d.hasPartner} onChange={function(e){ set("hasPartner",e.target.checked); }} />
-              <span style={{fontSize:12,color:"#9ca3af"}}>Incluir</span>
-            </label>
           </div>
-          {d.hasPartner && (
-            <div style={S.g3}>
-              <div><div style={S.label}>Nombre</div><input style={S.input} value={d.pFirstName||""} onChange={function(e){ set("pFirstName",e.target.value); }} /></div>
-              <div><div style={S.label}>Apellido</div><input style={S.input} value={d.pLastName||""} onChange={function(e){ set("pLastName",e.target.value); }} /></div>
-              <div>
-                <div style={S.label}>Fecha de nacimiento</div>
-                <input style={S.input} type="date" value={d.pFechaNac||""} onChange={function(e){ set("pFechaNac",e.target.value); }} max={TODAY} />
-                {d.pFechaNac && <div style={{fontSize:11,color:"#1a7f3c",marginTop:3,fontWeight:600}}>Edad: {edadLabel(d.pFechaNac)}</div>}
-              </div>
-              <div>
-                <div style={S.label}>Sexo</div>
-                <select style={S.select} value={d.pSexo||""} onChange={function(e){ set("pSexo",e.target.value); }}>
-                  <option value="">-- Seleccionar --</option>
-                  <option value="Hombre">Hombre</option>
-                  <option value="Mujer">Mujer</option>
-                </select>
+          <div style={S.g3}>
+            <div><div style={S.label}>Nombre</div><input style={S.input} value={d.pFirstName||""} onChange={function(e){ set("pFirstName",e.target.value); }} /></div>
+            <div><div style={S.label}>Apellido</div><input style={S.input} value={d.pLastName||""} onChange={function(e){ set("pLastName",e.target.value); }} /></div>
+            <div>
+              <div style={S.label}>Fecha de nacimiento</div>
+              <input style={S.input} type="date" value={d.pFechaNac||""} onChange={function(e){ set("pFechaNac",e.target.value); }} max={TODAY} />
+              {d.pFechaNac && <div style={{fontSize:11,color:"#1a7f3c",marginTop:3,fontWeight:600}}>Edad: {edadLabel(d.pFechaNac)}</div>}
+            </div>
+            <div>
+              <div style={S.label}>Sexo</div>
+              <select style={S.select} value={d.pSexo||""} onChange={function(e){ set("pSexo",e.target.value); }}>
+                <option value="">-- Seleccionar --</option>
+                <option value="Hombre">Hombre</option>
+                <option value="Mujer">Mujer</option>
+              </select>
               </div>
               <div><div style={S.label}>Teléfono</div><input style={S.input} value={d.pPhone||""} onChange={function(e){ set("pPhone",e.target.value); }} /></div>
             </div>
-          )}
         </div>
+          );
+        })()}
 
         {/* DIRECCIÓN */}
         <div style={{marginBottom:16}}>
@@ -1787,21 +1787,22 @@ function dbToVerifLead(r) {
     exp: {
       tFirstName:    r.nombre    || "",
       tLastName:     r.apellido  || "",
-      tFechaNac:     "",
+      tFechaNac:     r.fecha_nac || "",
       tSexo:         r.estado_civil === "Soltera mujer" ? "Mujer" : "Hombre",
       tPhone:        r.tel       || "",
       tEmail:        r.email     || "",
       tEstadoCivil:  r.estado_civil || "",
-      hasPartner:    ["Casado","Cohabitante"].includes(r.estado_civil),
-      pFirstName:    r.co_prop   ? r.co_prop.split(" ")[0] : "",
-      pLastName:     r.co_prop   ? r.co_prop.split(" ").slice(1).join(" ") : "",
-      pFechaNac:     "",
-      pSexo:         "",
-      pPhone:        r.co_prop_tel || "",
+      hasPartner:    ["Casado","Cohabitante","Union libre"].includes(r.estado_civil),
+      pFirstName:    r.co_prop         || "",
+      pLastName:     r.co_prop_apellido|| "",
+      pFechaNac:     r.co_prop_fecha_nac || "",
+      pSexo:         r.co_prop_sexo    || "",
+      pPhone:        r.co_prop_tel     || "",
+      pEmail:        r.co_prop_email   || "",
       address:       r.direccion || "",
       city:          r.ciudad    || "Miami",
       state:         r.estado_us || "FL",
-      zip:           "",
+      zip:           r.zip       || "",
       destinos:      r.destinos  || [],
       salePrice:     Number(r.sale_price)   || 0,
       pagoInicial:   Number(r.pago_inicial) || 0,
@@ -1885,7 +1886,24 @@ export default function VerificationModule() {
     if (u.verificacion && u.verificacion.result === "venta") newStatus = "venta";
     if (u.verificacion && u.verificacion.paymentStatus === "approved" && !u.verificacion.result) newStatus = "venta";
 
-    var dbUpdate = { verificacion: u.verificacion, status: newStatus };
+    var dbUpdate = {
+      verificacion:      u.verificacion,
+      status:            newStatus,
+      // Campos del expediente editables por el verificador
+      estado_civil:      u.exp.tEstadoCivil    || null,
+      fecha_nac:         u.exp.tFechaNac       || null,
+      co_prop:           u.exp.pFirstName      || null,
+      co_prop_apellido:  u.exp.pLastName       || null,
+      co_prop_fecha_nac: u.exp.pFechaNac       || null,
+      co_prop_sexo:      u.exp.pSexo           || null,
+      co_prop_tel:       u.exp.pPhone          || null,
+      co_prop_email:     u.exp.pEmail          || null,
+      destinos:          u.exp.destinos        || [],
+      direccion:         u.exp.address         || null,
+      ciudad:            u.exp.city            || null,
+      estado_us:         u.exp.state           || null,
+      zip:               u.exp.zip             || null,
+    };
     SB.from("leads").update(dbUpdate).eq("id", u.id).then(function(res) {
       if (res.error) {
         notify("Error al guardar: " + res.error.message, false);
