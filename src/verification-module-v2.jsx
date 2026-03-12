@@ -1891,19 +1891,20 @@ export default function VerificationModule() {
       status:            newStatus,
       // Campos del expediente editables por el verificador
       estado_civil:      u.exp.tEstadoCivil    || null,
-      fecha_nac:         u.exp.tFechaNac       || null,
       co_prop:           u.exp.pFirstName      || null,
-      co_prop_apellido:  u.exp.pLastName       || null,
-      co_prop_fecha_nac: u.exp.pFechaNac       || null,
-      co_prop_sexo:      u.exp.pSexo           || null,
       co_prop_tel:       u.exp.pPhone          || null,
-      co_prop_email:     u.exp.pEmail          || null,
       destinos:          u.exp.destinos        || [],
       direccion:         u.exp.address         || null,
-      ciudad:            u.exp.city            || null,
-      estado_us:         u.exp.state           || null,
-      zip:               u.exp.zip             || null,
     };
+    // Campos que requieren la migración SQL — solo incluir si tienen valor
+    if (u.exp.tFechaNac)      dbUpdate.fecha_nac          = u.exp.tFechaNac;
+    if (u.exp.pLastName)      dbUpdate.co_prop_apellido   = u.exp.pLastName;
+    if (u.exp.pFechaNac)      dbUpdate.co_prop_fecha_nac  = u.exp.pFechaNac;
+    if (u.exp.pSexo)          dbUpdate.co_prop_sexo       = u.exp.pSexo;
+    if (u.exp.pEmail)         dbUpdate.co_prop_email      = u.exp.pEmail;
+    if (u.exp.city)           dbUpdate.ciudad             = u.exp.city;
+    if (u.exp.state)          dbUpdate.estado_us          = u.exp.state;
+    if (u.exp.zip)            dbUpdate.zip                = u.exp.zip;
     SB.from("leads").update(dbUpdate).eq("id", u.id).then(function(res) {
       if (res.error) {
         notify("Error al guardar: " + res.error.message, false);
