@@ -145,9 +145,9 @@ function TabResumen(props){
   var leads    = props.data.leads;
   var reservas = props.data.reservas;
 
-  var ventas       = leads.filter(function(l){ return l.verificacion && l.verificacion.firma_firmada_at||l.verificacion && l.verificacion.tFirstName; });
+  var ventas       = leads.filter(function(l){ return l.status==="venta"||l.status==="verificacion"; });
   var totalIngPag  = leads.reduce(function(s,l){
-    var ph = l.pagos||[]||[];
+    var ph = []||[];
     return s + ph.reduce(function(a,p){ return a+(p.monto||0); },0);
   },0);
   var totalPaq     = totalIngPag;
@@ -237,16 +237,16 @@ function TabVentas(props){
   var leads = props.data.leads;
   var porEstado = ["nuevo","contactado","interesado","cita","verificacion","venta","no_interesado"].map(function(k){
     var items = leads.filter(function(l){ return l.status===k; });
-    var ingresos = items.reduce(function(s,l){ var ph=l.pagos||[]||[]; return s+ph.reduce(function(a,p){return a+(p.monto||0);},0); },0);
+    var ingresos = items.reduce(function(s,l){ var ph=[]||[]; return s+ph.reduce(function(a,p){return a+(p.monto||0);},0); },0);
     return {k:k, items:items, ingresos:ingresos};
   });
-  var totalPag = leads.reduce(function(s,l){ var ph=l.pagos||[]||[]; return s+ph.reduce(function(a,p){return a+(p.monto||0);},0); },0);
-  var totalPaq = leads.reduce(function(s,l){ var p=l.paquete||{}; return s+(p.precio||0); },0);
+  var totalPag = leads.reduce(function(s,l){ var ph=[]||[]; return s+ph.reduce(function(a,p){return a+(p.monto||0);},0); },0);
+  var totalPaq = leads.reduce(function(s,l){ return s+(Number(l.sale_price)||0); },0);
 
   return React.createElement("div", {style:S.page}, [
     React.createElement("div", {key:"kpis", style:{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12}}, [
       React.createElement(KpiCard, {key:"a", label:"Total Leads", value:leads.length, color:C.indigo}),
-      React.createElement(KpiCard, {key:"b", label:"Ventas Cerradas", value:leads.filter(function(l){return l.verificacion && l.verificacion.firma_firmada_at;}).length, color:C.green}),
+      React.createElement(KpiCard, {key:"b", label:"Ventas Cerradas", value:leads.filter(function(l){return l.status==="venta";}).length, color:C.green}),
       React.createElement(KpiCard, {key:"c", label:"Ingresos Cobrados", value:fmtUSD(totalPag), color:C.green}),
       React.createElement(KpiCard, {key:"d", label:"Valor Total Contratos", value:fmtUSD(totalPaq), color:C.violet}),
     ]),
@@ -284,13 +284,12 @@ function TabVentas(props){
         React.createElement("tbody", {key:"b"},
           leads.slice(0,15).map(function(l){
             var cfg = STATUS_CFG[l.estado]||{l:l.estado,c:C.muted,bg:"#f4f5f7"};
-            var pagado = (l.pagos||[]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
-            var paq = l.paquete||{};
+            var pagado = ([]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
             return React.createElement("tr", {key:l.id}, [
               React.createElement("td",{key:"n",style:S.td},React.createElement("span",{style:{fontWeight:600}},l.nombre||"--")),
-              React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.nombre_vendedor||""||"--")),
+              React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.emisora||"--")),
               React.createElement("td",{key:"e",style:S.td},React.createElement("span",{style:S.bdg(cfg.c,cfg.bg)},cfg.l)),
-              React.createElement("td",{key:"p",style:S.tdc},paq.precio?React.createElement("span",{style:{color:C.violet}},fmtUSD(paq.precio)):"--"),
+              React.createElement("td",{key:"p",style:S.tdc},l.sale_price?React.createElement("span",{style:{color:C.violet}},fmtUSD(l.sale_price)):"--"),
               React.createElement("td",{key:"m",style:S.tdc},pagado>0?React.createElement("span",{style:{color:C.green,fontWeight:700}},fmtUSD(pagado)):"--"),
               React.createElement("td",{key:"f",style:S.tdc},React.createElement("span",{style:{fontSize:11,color:C.muted}},(l.created_at||"").split("T")[0]||"--")),
             ]);
@@ -349,13 +348,12 @@ function TabCobranza(props){
   var leads = props.data.leads;
   // Leads con saldo pendiente
   var conSaldo = leads.filter(function(l){
-    var ph = l.pagos||[]||[];
+    var ph = []||[];
     var pagado = ph.reduce(function(s,p){return s+(p.monto||0);},0);
-    var paq = l.paquete||{};
-    return paq.precio && pagado < paq.precio;
+    return l.sale_price && pagado < l.sale_price;
   });
-  var totalPagado = leads.reduce(function(s,l){ return s+(l.pagos||[]||[]).reduce(function(a,p){return a+(p.monto||0);},0); },0);
-  var totalContratos = leads.reduce(function(s,l){ return s+((l.paquete||{}).precio||0); },0);
+  var totalPagado = leads.reduce(function(s,l){ return s+([]||[]).reduce(function(a,p){return a+(p.monto||0);},0); },0);
+  var totalContratos = leads.reduce(function(s,l){ return s+(l.sale_price||0); },0);
   var totalPendiente = totalContratos - totalPagado;
 
   return React.createElement("div", {style:S.page}, [
@@ -386,14 +384,13 @@ function TabCobranza(props){
             )),
             React.createElement("tbody",{key:"b"},
               conSaldo.map(function(l){
-                var pagado = (l.pagos||[]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
-                var paq = l.paquete||{};
-                var pendiente = (paq.precio||0) - pagado;
-                var pct2 = paq.precio>0 ? Math.round((pagado/paq.precio)*100) : 0;
+                var pagado = ([]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
+                var pendiente = (l.sale_price||0) - pagado;
+                var pct2 = l.sale_price>0 ? Math.round((pagado/l.sale_price)*100) : 0;
                 return React.createElement("tr",{key:l.id},[
                   React.createElement("td",{key:"n",style:S.td},React.createElement("span",{style:{fontWeight:600}},l.nombre||"--")),
-                  React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.nombre_vendedor||""||"--")),
-                  React.createElement("td",{key:"p",style:S.tdc},paq.precio?React.createElement("span",{style:{color:C.violet}},fmtUSD(paq.precio)):"--"),
+                  React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.emisora||"--")),
+                  React.createElement("td",{key:"p",style:S.tdc},l.sale_price?React.createElement("span",{style:{color:C.violet}},fmtUSD(l.sale_price)):"--"),
                   React.createElement("td",{key:"c",style:S.tdc},React.createElement("span",{style:{color:C.green,fontWeight:700}},fmtUSD(pagado))),
                   React.createElement("td",{key:"pe",style:S.tdc},React.createElement("span",{style:{color:C.red,fontWeight:700}},fmtUSD(pendiente))),
                   React.createElement("td",{key:"pc",style:S.tdc},[
@@ -418,11 +415,11 @@ function TabVendedores(props){
   // Agrupar leads por vendedor
   var vendedores = {};
   leads.forEach(function(l){
-    var v = l.nombre_vendedor||"" || "Sin asignar";
+    var v = l.emisora || "Sin asignar";
     if(!vendedores[v]) vendedores[v] = {nombre:v, leads:[], ventas:0, pagado:0};
     vendedores[v].leads.push(l);
-    if(l.verificacion && l.verificacion.firma_firmada_at||l.verificacion && l.verificacion.tFirstName) vendedores[v].ventas++;
-    vendedores[v].pagado += (l.pagos||[]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
+    if(l.status==="venta"||l.status==="verificacion") vendedores[v].ventas++;
+    vendedores[v].pagado += ([]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
   });
   var vList = Object.values(vendedores).sort(function(a,b){return b.ventas-a.ventas;});
 
@@ -529,8 +526,7 @@ function TabRadios(props){
     var eid=l.emisora_id||"?";
     if(semRows[eid]){
       semRows[eid].leads+=1;
-      var verif=l.verificacion||{};
-      if(verif.firma_firmada_at){ semRows[eid].ventas+=1; semRows[eid].ingresos+=Number((l.paquete||{}).precio||0); }
+      if(l.status==="venta"){ semRows[eid].ventas+=1; semRows[eid].ingresos+=Number(l.sale_price||0); }
     }
   });
   var rowsSem = Object.values(semRows);
