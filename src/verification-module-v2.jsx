@@ -174,9 +174,12 @@ const S = {
   g3: { display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"12px" },
 };
 
-function EditExpedienteModal({ exp, onClose, onSave }) {
+function EditExpedienteModal({ exp, destCatalog, destMap, onClose, onSave }) {
+  var catalog = destCatalog || DESTINOS_CATALOG;
+  var dmap    = destMap    || DEST_MAP;
   var [d, setD] = useState(Object.assign({}, exp, {
     destinos: (exp.destinos||[]).map(function(x){ return Object.assign({},x); }),
+    tEstadoCivil: exp.tEstadoCivil || exp.estadoCivil || "",
   }));
   function set(k,v){ setD(function(p){ return Object.assign({},p,{[k]:v}); }); }
   function setRegalo(i, regalo) {
@@ -199,7 +202,7 @@ function EditExpedienteModal({ exp, onClose, onSave }) {
 
   // Calificar destinos con catálogo dinámico
   var destQC = []; var destNQ = [];
-  DESTINOS_CATALOG.filter(function(dest){ return dest.activo !== false; }).forEach(function(dest) {
+  catalog.filter(function(dest){ return dest.activo !== false; }).forEach(function(dest) {
     var qc = dest.qc || {};
     if (selIds.includes(dest.id)) return; // ya agregado
     if (edad > 0 && ec) {
@@ -295,7 +298,7 @@ function EditExpedienteModal({ exp, onClose, onSave }) {
 
           {/* Destinos ya seleccionados */}
           {d.destinos.map(function(dest, i) {
-            var cat = DEST_MAP[dest.destId];
+            var cat = dmap[dest.destId];
             if (!cat) return null;
             var regalos = cat.regalosDisponibles || [];
             return (
@@ -1578,7 +1581,7 @@ function DetailView({ lead, onBack, onUpdate }) {
     onUpdate({ ...lead, exp:newExp, verificacion:newVerif, ...(extra||{}) });
   };
 
-  const handleSaveExp    = (newExp) => { setExp(newExp); pushUpdate(newExp, verif, null); setEditModal(false); };
+  const handleSaveExp    = (newExp) => { setExp(newExp); pushUpdate(newExp, verif, null); };
 
   const handleChargeResult = (result) => {
     const attempt = { ts:new Date().toISOString(), amount:exp.pagoInicial, status:result==="approved"?"approved":"rejected" };
@@ -1700,7 +1703,7 @@ function DetailView({ lead, onBack, onUpdate }) {
         <TablaHistorial leadId={lead.id} />
       </div>
 
-      {editModal   && <EditExpedienteModal exp={exp} onClose={() => setEditModal(false)} onSave={handleSaveExp} />}
+      {editModal   && <EditExpedienteModal exp={exp} destCatalog={DESTINOS_CATALOG} destMap={DEST_MAP} onClose={() => setEditModal(false)} onSave={handleSaveExp} />}
       
       {sendModal   && <SendDocsModal lead={{ ...lead, exp }} onClose={() => setSendModal(false)} onSent={handleDocsSent} />}
       {finishModal && <FinishModal defaultResult={finishModal.defaultResult} onClose={() => setFinishModal(null)} onFinish={handleFinish} />}
