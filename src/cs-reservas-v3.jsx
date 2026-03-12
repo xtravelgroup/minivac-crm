@@ -697,7 +697,14 @@ function EditNombreModal(props) {
     .then(function(res) {
       setSaving(false);
       if (res && res.error) { setErr("Error al guardar: " + res.error.message); return; }
-      props.onSave({ nombre: (firstName.trim() + " " + lastName.trim()).trim() });
+      props.onSave({
+        nombre:     (firstName.trim() + " " + lastName.trim()).trim(),
+        tFechaNac:  tFechaNac,
+        hasPartner: hasPartner,
+        pFirstName: hasPartner ? pFirstName.trim() : "",
+        pLastName:  hasPartner ? pLastName.trim()  : "",
+        pFechaNac:  hasPartner ? pFechaNac : "",
+      });
     });
   }
 
@@ -1538,7 +1545,22 @@ function FichaMiembro(props) {
         )}
 
       </div>
-    {editNombre   && <EditNombreModal    cliente={c} onClose={function(){ setEditNombre(false);  }} onSave={function(){ setEditNombre(false);  if(props.onNombreGuardado)   props.onNombreGuardado();   }}/>}
+    {editNombre   && <EditNombreModal    cliente={c} onClose={function(){ setEditNombre(false);  }} onSave={function(upd){
+        setEditNombre(false);
+        // Actualizar _exp en memoria para reflejar cambios sin recargar
+        var expActual = c._exp || {};
+        var expNuevo = Object.assign({}, expActual, {
+          tFirstName: (upd.nombre||"").split(" ")[0],
+          tLastName:  (upd.nombre||"").split(" ").slice(1).join(" "),
+          tFechaNac:  upd.tFechaNac  || expActual.tFechaNac  || "",
+          hasPartner: upd.hasPartner,
+          pFirstName: upd.pFirstName || "",
+          pLastName:  upd.pLastName  || "",
+          pFechaNac:  upd.pFechaNac  || "",
+        });
+        if(props.onExpUpdate) props.onExpUpdate(expNuevo, upd.nombre);
+        if(props.onNombreGuardado) props.onNombreGuardado();
+      }}/>}
     {transferir    && <TransferirModal     cliente={c} onClose={function(){ setTransferir(false);  }} onSave={function(){ setTransferir(false);  if(props.onTransferencia)    props.onTransferencia();    }}/>}
     {editContacto && <EditContactoModal cliente={c} onClose={function(){ setEditContacto(false); }} onSave={function(nuevos){ setEditContacto(false); if(props.onContactoGuardado) props.onContactoGuardado(nuevos); }}/>}
     {editDestinos && <EditDestinosModal cliente={c} catalog={props.destCatalogMap||{}} onClose={function(){ setEditDestinos(false); }} onSave={function(){ setEditDestinos(false); if(props.onDestinosGuardados) props.onDestinosGuardados(); }}/>}
@@ -1861,6 +1883,18 @@ export default function CsReservasV3() {
     onDestinosGuardados:function(){ cargarMiembros(); },
     onContactoGuardado:function(){ cargarMiembros(); },
     onNombreGuardado:function(){ cargarMiembros(); },
+    onExpUpdate:function(expNuevo, nombreNuevo){
+      // Actualizar _exp del cliente seleccionado en memoria sin recargar toda la lista
+      setMiembros(function(prev){
+        return prev.map(function(m){
+          if(m.id !== sel) return m;
+          return Object.assign({}, m, {
+            nombre: nombreNuevo || m.nombre,
+            _exp: expNuevo,
+          });
+        });
+      });
+    },
     onTransferencia:function(){ cargarMiembros(); },
     destCatalogMap:destCatalogMap,
     onUpdatePagos:handleUpdatePagos,
