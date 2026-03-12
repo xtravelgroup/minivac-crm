@@ -1786,9 +1786,11 @@ export default function SellerCRMv3({ currentUser: shellUser }) {
   // ---- Cargar leads desde Supabase ----
   function cargarLeads() {
     var query = SB.from("leads").select("*").order("created_at", {ascending:false});
-    // Vendedor solo ve los suyos (RLS lo filtra tambien, pero filtramos en cliente por seguridad)
+    // Para vendedor, buscar su dbId correcto
     if (!isSup && myAuthId) {
-      query = query.eq("vendedor_id", myAuthId);
+      var meEnSb = sbUsers.find(function(u){ return u.authId === myAuthId || u.id === myAuthId; });
+      var miDbId = meEnSb ? meEnSb.dbId : myAuthId;
+      query = query.eq("vendedor_id", miDbId);
     }
     query.then(function(res) {
       setLoading(false);
@@ -1833,9 +1835,30 @@ export default function SellerCRMv3({ currentUser: shellUser }) {
 
   // Cargar al montar y polling cada 30 segundos
   useEffect(function() {
-    cargarLeads();
     cargarDestinos();
-    cargarUsuarios();
+    // Cargar usuarios primero, luego leads
+    SB.from("usuarios").select("id,nombre,rol,auth_id,activo")
+      .in("rol", ["vendedor","supervisor","admin","director"])
+      .eq("activo", true)
+      .order("nombre")
+      .then(function(res) {
+        if (res.data) {
+          var mapped = res.data.map(function(u) {
+            return { id: u.auth_id || u.id, dbId: u.id, authId: u.auth_id, name: u.nombre, role: u.rol, supervisorId: null };
+          });
+          setSbUsers(mapped);
+          // Ahora cargar leads con los usuarios ya cargados
+          var query = SB.from("leads").select("*").order("created_at", {ascending:false});
+          if (!isSup && myAuthId) {
+            var me = mapped.find(function(u){ return u.authId === myAuthId || u.id === myAuthId; });
+            if (me && me.dbId) query = query.eq("vendedor_id", me.dbId);
+          }
+          query.then(function(res2) {
+            setLoading(false);
+            if (res2.data) setLeads(res2.data.map(dbToLead));
+          });
+        }
+      });
     var interval = setInterval(function() { cargarLeads(); }, 30000);
     return function() { clearInterval(interval); };
   }, []);
