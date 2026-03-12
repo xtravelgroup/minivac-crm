@@ -55,11 +55,15 @@ var REGIMENES = ["Solo habitacion","Desayuno incluido","Media pension","Todo inc
 var AGENTES = ["Jorge P.","Maria R.","Carlos V.","Ana L."];
 
 // Hoteles se cargan desde Supabase en FormModal
+function limpiarDest(d){
+  if(!d) return "";
+  return d.replace(/[^a-zA-Z0-9 \u00C0-\u024F,.()'\-]/g,"").trim();
+}
 function sbHotelesToMap(rows){
   // Convierte array de hoteles de Supabase a mapa por destino
   var map = {};
   (rows||[]).forEach(function(h){
-    var dest = h.destino || "";
+    var dest = limpiarDest(h.destino);
     if(!map[dest]) map[dest] = [];
     var regs = (h.plan) ? [h.plan] : ["Solo habitacion","Desayuno incluido","Todo incluido"];
     var habs = (h.habitaciones||[]).map(function(hab){
@@ -252,9 +256,7 @@ function FormModal(props){
   useEffect(function(){
     SB.from("hoteles").select("*").eq("activo",true).then(function(r){
       if(!r.error){
-        console.log("Hoteles Supabase:", r.data);
-        var mapped = sbHotelesToMap(r.data);
-        console.log("Hoteles mapeados:", mapped);
+          var mapped = sbHotelesToMap(r.data);
         setHotelesDB(mapped);
       } else {
         console.error("Error hoteles:", r.error);
@@ -296,8 +298,8 @@ function FormModal(props){
   var [profCo,    setProfCo]    = useState(ex?ex.profCo||"":"");
 
   var tipoFiltro=tipo;
-  console.log("dest actual:", JSON.stringify(dest), "| tipo:", tipo, "| keys:", Object.keys(hotelesDB));
-  var hoteles=(hotelesDB[dest]||[]).filter(function(h){
+  var destClean = limpiarDest(dest);
+  var hoteles=(hotelesDB[destClean]||[]).filter(function(h){
     // Si el hotel no tiene tipos definidos, mostrar siempre
     if(h.tipos&&h.tipos.length>0&&h.tipos.indexOf(tipoFiltro)<0) return false;
     // Solo aplicar calificacion si hay cliente seleccionado y tiene datos de edad/EC
@@ -306,7 +308,7 @@ function FormModal(props){
     }
     return true;
   });
-  var hotelesNoCalif=(hotelesDB[dest]||[]).filter(function(h){
+  var hotelesNoCalif=(hotelesDB[destClean]||[]).filter(function(h){
     if(h.tipos&&h.tipos.length>0&&h.tipos.indexOf(tipoFiltro)<0) return true;
     if(clienteSel&&(clienteSel.edad||clienteSel.estadoCivil)){
       var cal=calificaHotel(h,clienteSel); return !cal.ok;
