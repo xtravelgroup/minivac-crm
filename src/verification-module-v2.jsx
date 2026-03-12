@@ -177,7 +177,9 @@ const S = {
 function EditExpedienteModal({ exp, destCatalog, destMap, onClose, onSave }) {
   var catalog = destCatalog || DESTINOS_CATALOG;
   var dmap    = destMap    || DEST_MAP;
-  console.log("EditExpedienteModal exp:", JSON.stringify({ tEstadoCivil: exp.tEstadoCivil, destinos: exp.destinos, pFirstName: exp.pFirstName }));
+  console.log("EditExpedienteModal exp.destinos:", JSON.stringify(exp.destinos));
+  console.log("EditExpedienteModal catalog ids:", catalog.map(function(x){ return x.id; }));
+  console.log("EditExpedienteModal dmap keys:", Object.keys(dmap));
   var [d, setD] = useState(Object.assign({}, exp, {
     destinos: (exp.destinos||[]).map(function(x){ return Object.assign({},x); }),
     tEstadoCivil: exp.tEstadoCivil || exp.estadoCivil || "",
@@ -359,6 +361,11 @@ function EditExpedienteModal({ exp, destCatalog, destMap, onClose, onSave }) {
           })}
 
           {/* Agregar destinos — calificados */}
+          {catalog.length === 0 && (
+            <div style={{padding:"10px 14px",borderRadius:9,background:"#fffbe0",border:"1px solid #f3d88c",fontSize:12,color:"#925c0a",marginTop:8}}>
+              ⏳ Cargando catálogo de destinos...
+            </div>
+          )}
           {destQC.length > 0 && (
             <div style={{marginTop:10,marginBottom:8}}>
               <div style={{fontSize:10,fontWeight:700,color:"#1a7f3c",textTransform:"uppercase",marginBottom:6}}>⭐ Agregar QC</div>
@@ -1149,7 +1156,8 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
   );
 }
 
-function SectionPaquete({ exp, onEdit }) {
+function SectionPaquete({ exp, destMap: dm, onEdit }) {
+  var dmap = dm || DEST_MAP;
   const saldo = (exp.salePrice||0) - (exp.pagoInicial||0);
   return (
     <div style={S.card}>
@@ -1159,7 +1167,7 @@ function SectionPaquete({ exp, onEdit }) {
       </div>
       <div style={{ marginBottom:"14px" }}>
         {(exp.destinos||[]).map((d,i) => {
-          const cat = DEST_MAP[d.destId];
+          const cat = dmap[d.destId];
           if (!cat) return null;
           return (
             <div key={i} style={{ padding:"10px 14px", borderRadius:"10px", background:"rgba(21,101,192,0.05)", border:"1px solid rgba(21,101,192,0.2)", marginBottom:"6px" }}>
@@ -1558,7 +1566,7 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
   );
 }
 
-function DetailView({ lead, onBack, onUpdate }) {
+function DetailView({ lead, destCatalog, destMap, onBack, onUpdate }) {
   console.log("DetailView lead:", JSON.stringify({ zohoPaymentMethodId: lead.zohoPaymentMethodId, expZoho: lead.exp && lead.exp.zohoPaymentMethodId, tarjetaLast4: lead.exp && lead.exp.tarjetaLast4 }));
   const [exp,         setExp]         = useState({ ...lead.exp });
   const [verif,       setVerif]       = useState(lead.verificacion||null);
@@ -1653,7 +1661,7 @@ function DetailView({ lead, onBack, onUpdate }) {
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px", alignItems:"start" }}>
         <div>
           <SectionPersonal exp={exp} />
-          <SectionPaquete exp={exp} onEdit={() => setEditModal(true)} />
+          <SectionPaquete exp={exp} destMap={destMap||DEST_MAP} onEdit={() => setEditModal(true)} />
           <SectionPagos lead={lead} exp={exp}
             onAbonoGuardado={function(nuevosAbonos){
               var newExp = Object.assign({},exp,{pagosHistorial:nuevosAbonos});
@@ -1704,7 +1712,7 @@ function DetailView({ lead, onBack, onUpdate }) {
         <TablaHistorial leadId={lead.id} />
       </div>
 
-      {editModal   && <EditExpedienteModal exp={exp} destCatalog={DESTINOS_CATALOG} destMap={DEST_MAP} onClose={() => setEditModal(false)} onSave={handleSaveExp} />}
+      {editModal   && <EditExpedienteModal exp={exp} destCatalog={destCatalog||DESTINOS_CATALOG} destMap={destMap||DEST_MAP} onClose={() => setEditModal(false)} onSave={handleSaveExp} />}
       
       {sendModal   && <SendDocsModal lead={{ ...lead, exp }} onClose={() => setSendModal(false)} onSent={handleDocsSent} />}
       {finishModal && <FinishModal defaultResult={finishModal.defaultResult} onClose={() => setFinishModal(null)} onFinish={handleFinish} />}
@@ -1831,10 +1839,12 @@ function dbToVerifLead(r) {
 }
 
 export default function VerificationModule() {
-  const [leads,   setLeads]   = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [detail,  setDetail]  = useState(null);
-  const [toast,   setToast]   = useState(null);
+  const [leads,        setLeads]        = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [detail,       setDetail]       = useState(null);
+  const [toast,        setToast]        = useState(null);
+  const [destCatalog,  setDestCatalog]  = useState([]);
+  const [destMap,      setDestMap]      = useState({});
 
   const notify = function(msg, ok) { setToast({ msg, ok:ok!==false }); setTimeout(function(){ setToast(null); }, 3200); };
 
@@ -1847,8 +1857,12 @@ export default function VerificationModule() {
       .then(function(res) {
         if (res.data) {
           var mapped = res.data.map(dbToDestinoVerif);
+          // Mantener globals para compatibilidad con componentes que aún los usan
           DESTINOS_CATALOG = mapped;
           DEST_MAP = Object.fromEntries(mapped.map(function(d){ return [d.id, d]; }));
+          // Actualizar state para forzar re-render
+          setDestCatalog(mapped);
+          setDestMap(DEST_MAP);
         }
       });
   }
@@ -1966,7 +1980,7 @@ export default function VerificationModule() {
       ) : (
         <div style={{ padding:"24px 28px", maxWidth:"1200px", margin:"0 auto" }}>
           {detail && detailLead ? (
-            <DetailView lead={detailLead} onBack={function(){ setDetail(null); }} onUpdate={updateLead} />
+            <DetailView lead={detailLead} destCatalog={destCatalog} destMap={destMap} onBack={function(){ setDetail(null); }} onUpdate={updateLead} />
           ) : (
             <div>
               <div style={{ display:"flex", gap:"12px", marginBottom:"24px", flexWrap:"wrap" }}>
