@@ -683,26 +683,22 @@ function TabRadios(props){
             React.createElement("thead",{key:"th"},React.createElement("tr",{},[
               React.createElement("th",{key:"n",style:thS},"Emisora"),
               React.createElement("th",{key:"s",style:Object.assign({},thS,{textAlign:"right"})},"Spots"),
-              React.createElement("th",{key:"i",style:Object.assign({},thS,{textAlign:"right"})},"Inversion"),
+              React.createElement("th",{key:"i",style:Object.assign({},thS,{textAlign:"right"})},"Costo"),
               React.createElement("th",{key:"l",style:Object.assign({},thS,{textAlign:"right"})},"Leads"),
               React.createElement("th",{key:"v",style:Object.assign({},thS,{textAlign:"right"})},"Ventas"),
-              React.createElement("th",{key:"c",style:Object.assign({},thS,{textAlign:"right"})},"Costo/Venta"),
-              React.createElement("th",{key:"ing",style:Object.assign({},thS,{textAlign:"right"})},"Ingresos"),
-              React.createElement("th",{key:"r",style:Object.assign({},thS,{textAlign:"right"})},"ROI"),
+              React.createElement("th",{key:"mc",style:Object.assign({},thS,{textAlign:"right"})},"% Mkt Cost"),
             ])),
             React.createElement("tbody",{key:"tb"},[
               rowsSem.map(function(r,i){
-                var roi=r.inversion>0?((r.ingresos-r.inversion)/r.inversion)*100:0;
-                var cpv=r.ventas>0?r.inversion/r.ventas:null;
+                var mktCost = r.ingresos>0 ? (r.inversion/r.ingresos)*100 : null;
+                var mktColor = mktCost===null?"--":mktCost<35?C.green:mktCost<=45?C.amber:"#b91c1c";
                 return React.createElement("tr",{key:i,style:{background:i%2===0?"#fff":"#f9fafb"}},[
                   React.createElement("td",{key:"n",style:tdS(null)},r.nombre),
                   React.createElement("td",{key:"s",style:tdS(C.muted,true)},r.spots),
                   React.createElement("td",{key:"i",style:tdS("#b91c1c",true)},fmtUSD(r.inversion)),
                   React.createElement("td",{key:"l",style:tdS(C.indigo,true)},r.leads),
                   React.createElement("td",{key:"v",style:tdS(C.green,true)},r.ventas),
-                  React.createElement("td",{key:"c",style:tdS(C.muted,true)},cpv?fmtUSD(cpv):"--"),
-                  React.createElement("td",{key:"ing",style:tdS(C.green,true)},r.ingresos>0?fmtUSD(r.ingresos):"$0"),
-                  React.createElement("td",{key:"r",style:Object.assign({},tdS(null,true),{fontWeight:700,color:roiColor(roi)})},r.inversion>0?roi.toFixed(1)+"%":"--"),
+                  React.createElement("td",{key:"mc",style:Object.assign({},tdS(null,true),{fontWeight:700,color:mktCost!==null?mktColor:C.muted})},mktCost!==null?mktCost.toFixed(1)+"%":"--"),
                 ]);
               }),
               React.createElement("tr",{key:"tot",style:{background:"#f0f2f5",fontWeight:700}},[
@@ -711,9 +707,7 @@ function TabRadios(props){
                 React.createElement("td",{key:"i",style:tdS("#b91c1c",true)},fmtUSD(totInvS)),
                 React.createElement("td",{key:"l",style:tdS(C.indigo,true)},totLeadsS),
                 React.createElement("td",{key:"v",style:tdS(C.green,true)},totVentasS),
-                React.createElement("td",{key:"c",style:tdS(null,true)},totVentasS>0?fmtUSD(totInvS/totVentasS):"--"),
-                React.createElement("td",{key:"ing",style:tdS(C.green,true)},fmtUSD(totIngS)),
-                React.createElement("td",{key:"r",style:Object.assign({},tdS(null,true),{color:roiColor(roiS)})},roiS.toFixed(1)+"%"),
+                React.createElement("td",{key:"mc",style:Object.assign({},tdS(null,true),{fontWeight:700,color:totIngS>0?(totInvS/totIngS)*100<35?C.green:(totInvS/totIngS)*100<=45?C.amber:"#b91c1c":C.muted})},totIngS>0?((totInvS/totIngS)*100).toFixed(1)+"%":"--"),
               ]),
             ]),
           ]),
