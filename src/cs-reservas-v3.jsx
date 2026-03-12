@@ -1558,7 +1558,7 @@ function FichaMiembro(props) {
           pLastName:  upd.pLastName  || "",
           pFechaNac:  upd.pFechaNac  || "",
         });
-        if(props.onExpUpdate) props.onExpUpdate(expNuevo, upd.nombre);
+        if(props.onExpUpdate) props.onExpUpdate(expNuevo, upd.nombre, c.id);
         if(props.onNombreGuardado) props.onNombreGuardado();
       }}/>}
     {transferir    && <TransferirModal     cliente={c} onClose={function(){ setTransferir(false);  }} onSave={function(){ setTransferir(false);  if(props.onTransferencia)    props.onTransferencia();    }}/>}
@@ -1883,15 +1883,22 @@ export default function CsReservasV3() {
     onDestinosGuardados:function(){ cargarMiembros(); },
     onContactoGuardado:function(){ cargarMiembros(); },
     onNombreGuardado:function(){ cargarMiembros(); },
-    onExpUpdate:function(expNuevo, nombreNuevo){
-      // Actualizar _exp del cliente seleccionado en memoria sin recargar toda la lista
+    onExpUpdate:function(expNuevo, nombreNuevo, clienteId){
+      // Actualizar _exp del cliente en memoria sin recargar toda la lista
       setMiembros(function(prev){
         return prev.map(function(m){
-          if(m.id !== sel) return m;
+          if(m.id !== clienteId) return m;
           return Object.assign({}, m, {
             nombre: nombreNuevo || m.nombre,
             _exp: expNuevo,
           });
+        });
+      });
+      setSelected(function(prev){
+        if(!prev || prev.id !== clienteId) return prev;
+        return Object.assign({}, prev, {
+          nombre: nombreNuevo || prev.nombre,
+          _exp: expNuevo,
         });
       });
     },
