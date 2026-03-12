@@ -606,9 +606,9 @@ function ReservaModal(props){
   var [notas,   setNotas]   = useState(r.notas_agente  || "");
 
   // Calificacion
-  var [ingresos,  setIngresos]  = useState(r.ingresos   || "");
-  var [profTit,   setProfTit]   = useState(r.profTit    || "");
-  var [profCo,    setProfCo]    = useState(r.profCo     || "");
+  var [ingresos,  setIngresos]  = useState(r.ingresosAnuales || r.ingresos || "");
+  var [profTit,   setProfTit]   = useState(r.profesionTitular || r.profTit || "");
+  var [profCo,    setProfCo]    = useState(r.profesionCoprop  || r.profCo  || "");
 
   // Pasajeros
   // Inicializar pasajeros siempre segun adultos+ninos de la reserva
@@ -937,6 +937,30 @@ function VLOModal(props){
           </div>
         </div>
       )}
+      {/* Pasajeros en VLO */}
+      {r.pasajeros&&r.pasajeros.length>0&&(
+        <div style={Object.assign({},S.card,{marginBottom:"10px"})}>
+          <div style={S.stit}>Pasajeros</div>
+          {r.pasajeros.map(function(p,i){
+            return (
+              <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #edf0f3"}}>
+                <span style={{fontSize:12,color:"#1a1f2e",fontWeight:600}}>{p.nombre||"--"}</span>
+                <span style={{fontSize:11,color:"#9ca3af"}}>{p.tipo==="nino"?"Nino":"Adulto"}{p.fechaNac?" · "+p.fechaNac:""}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {/* Calificacion en VLO */}
+      {(r.profesionTitular||r.ingresosAnuales)&&(
+        <div style={Object.assign({},S.card,{marginBottom:"10px"})}>
+          <div style={S.stit}>Calificacion del cliente</div>
+          {[["Profesion titular",r.profesionTitular],["Profesion co-prop",r.profesionCoprop],["Ingresos anuales",r.ingresosAnuales],["Estado civil",r.estado_civil],["Edad titular",r.edad_titular?String(r.edad_titular)+" anos":""],["Edad co-prop",r.edad_coprop?String(r.edad_coprop)+" anos":""]].map(function(row){
+            if(!row[1]) return null;
+            return <div key={row[0]} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #edf0f3"}}><span style={{fontSize:11,color:"#9ca3af"}}>{row[0]}</span><span style={{fontSize:12,fontWeight:600,color:"#1a1f2e"}}>{row[1]}</span></div>;
+          })}
+        </div>
+      )}
       <div style={S.card}>
         <div style={S.stit}>Historial</div>
         {(r.hist||[]).map(function(h,i){
@@ -1259,9 +1283,13 @@ export default function ReservacionesModule(props){
       notasHotel:  rv.notas_hotel  || "",
       hist:        rv.historial || [{f: rv.created_at ? rv.created_at.split("T")[0] : TODAY, t:"Reserva creada", a: rv.agente_nombre||"Sistema"}],
       lead_id:     rv.lead_id,
-      ingresos:    rv.ingresos_anuales  || "",
-      profTit:     rv.profesion_titular || "",
-      profCo:      rv.profesion_coprop  || "",
+      ingresosAnuales:  rv.ingresos_anuales  || "",
+      profesionTitular: rv.profesion_titular || "",
+      profesionCoprop:  rv.profesion_coprop  || "",
+      pasajeros:        rv.pasajeros         || [],
+      estado_civil:     rv.estado_civil      || "",
+      edad_titular:     rv.edad_titular      || "",
+      edad_coprop:      rv.edad_coprop       || "",
     };
   }
 
@@ -1490,54 +1518,49 @@ export default function ReservacionesModule(props){
                 <div style={{flex:1}}/>
                 <button style={btn("teal")} onClick={function(){setFormModal("nueva");}}>+ Nueva reserva</button>
               </div>
-              <div style={{flex:1,overflowY:"auto",padding:"14px 16px"}}>
+              <div style={{flex:1,overflowX:"auto",overflowY:"hidden",display:"flex",gap:0,padding:0}}>
                 {[
-                  {k:"solicitada",  l:"Solicitud",      c:"#f59e0b", bg:"rgba(245,158,11,0.08)"},
-                  {k:"en_reserva",  l:"En Reserva",     c:INDIGO,    bg:"#ebeffe"},
-                  {k:"vlo_proceso", l:"VLO",            c:VIOLET,    bg:"rgba(139,92,246,0.08)"},
-                  {k:"confirmada",  l:"Confirmada",     c:GREEN,     bg:"#eaf5ec"},
-                  {k:"rechazado_hotel",l:"Rechazado",   c:CORAL,    bg:"rgba(249,115,22,0.08)"},
-                  {k:"cancelada",   l:"Cancelada",      c:RED,       bg:"#fef0f0"},
-                  {k:"completada",  l:"Completada",     c:"#9ca3af", bg:"#f4f5f7"},
+                  {k:"solicitada",     l:"Solicitud",  c:"#f59e0b", bg:"rgba(245,158,11,0.08)"},
+                  {k:"en_reserva",     l:"En Reserva", c:INDIGO,    bg:"#ebeffe"},
+                  {k:"vlo_proceso",    l:"VLO",        c:VIOLET,    bg:"rgba(139,92,246,0.08)"},
+                  {k:"confirmada",     l:"Confirmada", c:GREEN,     bg:"#eaf5ec"},
+                  {k:"rechazado_hotel",l:"Rechazado",  c:CORAL,     bg:"rgba(249,115,22,0.08)"},
+                  {k:"cancelada",      l:"Cancelada",  c:RED,       bg:"#fef0f0"},
+                  {k:"completada",     l:"Completada", c:"#9ca3af", bg:"#f4f5f7"},
                 ].map(function(col){
                   var items = filtered.filter(function(r){ return r.status===col.k||(col.k==="solicitada"&&r.status==="solicitud")||(col.k==="en_reserva"&&r.status==="en_proceso"); });
-                  if (items.length===0) return null;
                   return (
-                    <div key={col.k} style={{marginBottom:18}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                        <span style={{width:9,height:9,borderRadius:"50%",background:col.c,display:"inline-block",flexShrink:0}}/>
-                        <span style={{fontSize:11,fontWeight:700,color:col.c,textTransform:"uppercase",letterSpacing:"0.08em"}}>{col.l}</span>
+                    <div key={col.k} style={{minWidth:220,width:220,flexShrink:0,display:"flex",flexDirection:"column",borderRight:"1px solid #e3e6ea",background:col.bg,height:"100%"}}>
+                      {/* Header columna */}
+                      <div style={{padding:"10px 12px",borderBottom:"1px solid "+col.c+"33",display:"flex",alignItems:"center",gap:7,background:"#fff",borderTop:"3px solid "+col.c}}>
+                        <span style={{fontSize:11,fontWeight:700,color:col.c,textTransform:"uppercase",letterSpacing:"0.08em",flex:1}}>{col.l}</span>
                         <span style={{background:col.bg,color:col.c,border:"1px solid "+col.c+"44",borderRadius:10,padding:"1px 7px",fontSize:10,fontWeight:700}}>{items.length}</span>
                       </div>
-                      {items.map(function(r){
-                        var sc = STATUS[r.status]||STATUS.solicitada;
-                        var noches = nbDays(r.checkin, r.checkout);
-                        return (
-                          <div key={r.id} onClick={function(){setSel(r);}}
-                            style={{background:"#ffffff",border:"1px solid #e3e6ea",borderLeft:"3px solid "+col.c,borderRadius:9,padding:"10px 14px",marginBottom:7,cursor:"pointer",transition:"box-shadow 0.15s"}}>
-                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
-                              <div style={{fontWeight:700,fontSize:13,color:"#1a1f2e"}}>{r.cliente||"Sin nombre"}</div>
-                              <span style={{fontSize:10,color:"#9ca3af",fontWeight:500}}>{r.folio}</span>
+                      {/* Cards */}
+                      <div style={{flex:1,overflowY:"auto",padding:"10px 8px"}}>
+                        {items.length===0&&(
+                          <div style={{textAlign:"center",padding:"24px 8px",color:col.c+"88",fontSize:11}}>Sin reservas</div>
+                        )}
+                        {items.map(function(r){
+                          var noches = nbDays(r.checkin, r.checkout);
+                          return (
+                            <div key={r.id} onClick={function(){setSel(r);}}
+                              style={{background:"#ffffff",border:"1px solid #e3e6ea",borderLeft:"3px solid "+col.c,borderRadius:8,padding:"9px 11px",marginBottom:7,cursor:"pointer",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+                              <div style={{fontWeight:700,fontSize:12,color:"#1a1f2e",marginBottom:3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.cliente||"Sin nombre"}</div>
+                              <div style={{fontSize:10,color:"#9ca3af",marginBottom:5}}>{r.folio}</div>
+                              <div style={{fontSize:11,color:"#6b7280",display:"flex",flexDirection:"column",gap:2}}>
+                                <span>&#127944; {r.destino||"--"}</span>
+                                {r.checkin&&<span>&#128197; {fmtDate(r.checkin)}{noches>0?" · "+noches+"n":""}</span>}
+                                {r.adultos>0&&<span>&#128101; {r.adultos}A{r.ninos>0?"+"+r.ninos+"N":""}</span>}
+                              </div>
+                              {r.notasAgente&&<div style={{fontSize:10,color:"#9ca3af",marginTop:5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",borderTop:"1px solid #f0f0f0",paddingTop:4}}>{r.notasAgente}</div>}
                             </div>
-                            <div style={{display:"flex",gap:10,fontSize:11,color:"#6b7280",flexWrap:"wrap"}}>
-                              <span>&#127944; {r.destino||"--"}</span>
-                              {r.checkin&&<span>&#128197; {fmtDate(r.checkin)}</span>}
-                              {noches>0&&<span>{noches}n</span>}
-                              {r.adultos>0&&<span>{r.adultos} adulto{r.adultos>1?"s":""}{r.ninos>0?", "+r.ninos+" nino"+(r.ninos>1?"s":""):""}</span>}
-                            </div>
-                            {r.notasAgente&&<div style={{fontSize:10,color:"#9ca3af",marginTop:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.notasAgente}</div>}
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
                   );
                 })}
-                {filtered.length===0&&(
-                  <div style={{textAlign:"center",padding:"48px 0",color:"#9ca3af"}}>
-                    <div style={{fontSize:32,marginBottom:10}}>&#128197;</div>
-                    <div style={{fontSize:13}}>No hay reservas asignadas</div>
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -1592,6 +1615,30 @@ export default function ReservacionesModule(props){
                   </div>
                 </div>
                 {sel.conf&&<div style={{padding:"9px 14px",borderRadius:9,background:"rgba(26,127,60,0.07)",border:"1px solid rgba(26,127,60,0.25)",marginBottom:8,display:"flex",justifyContent:"space-between"}}><span style={{fontSize:11,color:"#9ca3af"}}>No. confirmacion:</span><span style={{fontSize:14,fontWeight:800,color:GREEN}}>{sel.conf}</span></div>}
+                {/* Pasajeros */}
+                {sel.pasajeros&&sel.pasajeros.length>0&&(
+                  <div style={Object.assign({},S.card,{marginBottom:8})}>
+                    <div style={S.stit}>Pasajeros</div>
+                    {sel.pasajeros.map(function(p,i){
+                      return (
+                        <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #edf0f3"}}>
+                          <span style={{fontSize:12,color:"#1a1f2e",fontWeight:600}}>{p.nombre||"--"}</span>
+                          <span style={{fontSize:11,color:"#9ca3af"}}>{p.tipo==="nino"?"Nino":"Adulto"}{p.fechaNac?" · "+p.fechaNac:""}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {/* Calificacion */}
+                {(sel.profesionTitular||sel.ingresosAnuales)&&(
+                  <div style={Object.assign({},S.card,{marginBottom:8})}>
+                    <div style={S.stit}>Calificacion</div>
+                    {[["Profesion titular",sel.profesionTitular],["Profesion co-prop",sel.profesionCoprop],["Ingresos anuales",sel.ingresosAnuales]].map(function(row){
+                      if(!row[1]) return null;
+                      return <div key={row[0]} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #edf0f3"}}><span style={{fontSize:11,color:"#9ca3af"}}>{row[0]}</span><span style={{fontSize:12,fontWeight:600,color:"#1a1f2e"}}>{row[1]}</span></div>;
+                    })}
+                  </div>
+                )}
                 {sel.notasAgente&&<div style={Object.assign({},S.card,{borderColor:"rgba(245,158,11,0.2)"})}><div style={S.lbl}>Notas</div><div style={{fontSize:12,color:"#1a1f2e"}}>{sel.notasAgente}</div></div>}
                 {sel.status==="rechazado_hotel"&&sel.notasHotel&&<div style={{padding:"9px 14px",borderRadius:9,background:"rgba(249,115,22,0.07)",border:"1px solid rgba(249,115,22,0.25)",marginBottom:8}}><div style={S.lbl}>Motivo rechazo</div><div style={{fontSize:12,color:CORAL}}>{sel.notasHotel}</div></div>}
                 <div style={S.card}>
