@@ -1521,7 +1521,7 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
         <div style={{marginBottom:14}}>
           <div style={S.label}>Método de cobro</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-            {[["tarjeta","💳 Tarjeta"],["transferencia","🏦 Transferencia/Zelle"],["efectivo","💵 Efectivo"],["otro","✏️ Otro"]].map(function(op){
+            {[["tarjeta","💳 Tarjeta"],["transferencia","🏦 Transferencia/Zelle"],["otro","✏️ Otro"]].map(function(op){
               return (
                 <button key={op[0]} onClick={function(){ setMetodoCobro(op[0]); setError(null); }}
                   style={{padding:"6px 12px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,
