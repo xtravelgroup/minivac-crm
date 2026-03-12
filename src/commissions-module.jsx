@@ -229,18 +229,22 @@ function VendedorCard({ user, ventas, pagos, numeros, week, isAdmin, onConfig })
   const numHoy       = numeros.filter(n => n.vendedorId===user.id && n.fecha===TODAY).reduce((a,b) => a+b.count, 0);
   const numSem       = numeros.filter(n => n.vendedorId===user.id && inWeek(n.fecha, week)).reduce((a,b) => a+b.count, 0);
 
-  // IDs de clientes de las ventas del vendedor
-  const clienteIdsSem = ventasSem.map(v => v.clienteId).filter(Boolean);
-  const clienteIdsHoy = ventasHoy.map(v => v.clienteId).filter(Boolean);
-
-  // Cobrado hoy = enganche de ventas cerradas hoy + abonos de hoy de sus clientes
+  // Cobrado hoy = enganche de ventas cerradas hoy + abonos registrados hoy en cualquier venta del vendedor
   const engancheHoy  = ventasHoy.reduce((a,v) => a + v.pagoInicial, 0);
-  const abonosHoy    = (pagos||[]).filter(p => p.fecha===TODAY && clienteIdsSem.includes(p.cliente_id)).reduce((a,p) => a+Number(p.monto||0), 0);
+  const abonosHoy    = ventasSem.reduce((a,v) => {
+    var hist = v.pagosHistorial || [];
+    return a + hist.filter(p => (p.fecha||"").slice(0,10) === TODAY)
+                   .reduce((s,p) => s + Number(p.monto||0), 0);
+  }, 0);
   const cobradoHoy   = engancheHoy + abonosHoy;
 
-  // Cobrado semana = enganches de ventas semana + abonos de la semana de sus clientes
+  // Cobrado semana = enganches semana + todos los abonos de la semana
   const engancheSem  = ventasSem.reduce((a,v) => a + v.pagoInicial, 0);
-  const abonosSem    = (pagos||[]).filter(p => inWeek(p.fecha, week) && clienteIdsSem.includes(p.cliente_id)).reduce((a,p) => a+Number(p.monto||0), 0);
+  const abonosSem    = ventasSem.reduce((a,v) => {
+    var hist = v.pagosHistorial || [];
+    return a + hist.filter(p => inWeek((p.fecha||"").slice(0,10), week))
+                   .reduce((s,p) => s + Number(p.monto||0), 0);
+  }, 0);
   const cobradoSem   = engancheSem + abonosSem;
 
   const commHoy      = cobradoHoy * user.commPct / 100;
@@ -827,40 +831,30 @@ export default function CommissionsModule({ currentUser: shellUser }) {
 
   // Cargar ventas reales de Supabase
   function cargarVentas() {
-    Promise.all([
-      SB.from("leads")
-        .select("*, vendedor:vendedor_id(id, nombre)")
-        .eq("status", "venta")
-        .order("updated_at", { ascending: false }),
-      SB.from("pagos")
-        .select("*")
-        .eq("status", "aprobado")
-        .order("fecha", { ascending: false }),
-    ]).then(function(results) {
-      var leadsData = (!results[0].error && results[0].data) ? results[0].data : [];
-      var pagosData = (!results[1].error && results[1].data) ? results[1].data : [];
-
-      // Mapear ventas — la comisión base es sobre pago_inicial (enganche del día de venta)
-      var mapped = leadsData.map(function(r) {
-        return {
-          id:               r.id,
-          folio:            r.folio || r.id.slice(0,8),
-          cliente:          (r.nombre || "") + " " + (r.apellido || ""),
-          vendedorId:       r.vendedor_id || "",
-          verificadorId:    "",
-          fechaVenta:       (r.updated_at || r.created_at || TODAY).split("T")[0],
-          salePrice:        Number(r.sale_price) || 0,
-          pagoInicial:      Number(r.pago_inicial) || 0,  // enganche día de venta
-          clienteId:        r.cliente_id || null,
-          cancelada:        false,
-          fechaCancelacion: null,
-        };
+    SB.from("leads")
+      .select("*, vendedor:vendedor_id(id, nombre)")
+      .eq("status", "venta")
+      .order("updated_at", { ascending: false })
+      .then(function(res) {
+        if (!res.error && res.data) {
+          var mapped = res.data.map(function(r) {
+            return {
+              id:               r.id,
+              folio:            r.folio || r.id.slice(0,8),
+              cliente:          (r.nombre || "") + " " + (r.apellido || ""),
+              vendedorId:       r.vendedor_id || "",
+              verificadorId:    "",
+              fechaVenta:       (r.updated_at || r.created_at || TODAY).split("T")[0],
+              salePrice:        Number(r.sale_price) || 0,
+              pagoInicial:      Number(r.pago_inicial) || 0,
+              pagosHistorial:   Array.isArray(r.pagos_historial) ? r.pagos_historial : [],
+              cancelada:        false,
+              fechaCancelacion: null,
+            };
+          });
+          setVentas(mapped);
+        }
       });
-
-      // Agregar abonos como entradas de comisión por día
-      setPagos(pagosData);
-      setVentas(mapped);
-    });
   }
 
   // Cargar usuarios reales de Supabase
