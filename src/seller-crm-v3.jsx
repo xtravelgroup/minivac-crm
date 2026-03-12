@@ -559,8 +559,11 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
     setNewNota("");
   };
 
+  const [saved, setSaved] = useState(false);
   const handleSave = () => {
     onSave(draft);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
   };
 
   const tabBtn = (key, label, c="#1565c0") => (
@@ -781,9 +784,9 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
         <div style={{ display:"flex", gap:"8px", marginTop:"16px" }}>
           <button style={{ ...S.btn("ghost"), flex:1 }} onClick={onClose}>Cerrar</button>
           {canEdit && (
-            <button style={{ ...S.btn("success"), flex:2, justifyContent:"center" }}
+            <button style={{ ...S.btn(saved?"primary":"success"), flex:2, justifyContent:"center", background: saved?"#1a7f3c":undefined, color: saved?"#fff":undefined }}
               onClick={handleSave}>
-               Guardar
+              {saved ? "✓ Guardado" : " Guardar"}
             </button>
           )}
         </div>
@@ -1217,7 +1220,7 @@ function VendedorView({ leads, users, currentUser, destCatalog, onUpdateLead }) 
         </>
       )}
       {sel && <LeadModal lead={sel} users={users} currentUser={currentUser} isSupervisor={false} destCatalog={destCatalog}
-        onClose={()=>setSel(null)} onSave={u=>{onUpdateLead(u);setSel(null);}} onBlock={()=>{}} onUnblock={()=>{}} />}
+        onClose={()=>setSel(null)} onSave={u=>{onUpdateLead(u);}} onBlock={()=>{}} onUnblock={()=>{}} />}
       {aiLead && <LeadAIPanel lead={aiLead} onClose={()=>setAiLead(null)} />}
     </div>
   );
@@ -1486,7 +1489,7 @@ function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, 
 
       {selLead && (
         <LeadModal lead={selLead} users={users} currentUser={currentUser} isSupervisor={true} destCatalog={destCatalog}
-          onClose={()=>setSelLead(null)} onSave={u=>{onUpdateLead(u);setSelLead(null);}}
+          onClose={()=>setSelLead(null)} onSave={u=>{onUpdateLead(u);}}
           onBlock={handleBlock} onUnblock={handleUnblock} />
       )}
 
