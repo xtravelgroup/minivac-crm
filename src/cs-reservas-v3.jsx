@@ -754,9 +754,9 @@ function EditNombreModal(props) {
           <div style={{marginTop:8}}>
             <div style={{fontSize:11,color:"#1565c0",fontWeight:600,margin:"8px 0 8px"}}>Co-propietario / Pareja</div>
             <div style={S.g2}>
-              <div><label style={S.label}>Fecha de nacimiento</label><input style={S.input} type="date" value={pFechaNac} onChange={function(e){ setPFechaNac(e.target.value); }} max={TODAY}/></div>
-              <div><label style={S.label}>Telefono / WhatsApp</label><input style={S.input} value={pTel} onChange={function(e){ setPTel(e.target.value); }} placeholder="+1 555-000-0000"/></div>
-              <div style={{gridColumn:"1/-1"}}><label style={S.label}>Email</label><input style={S.input} type="email" value={pEmail} onChange={function(e){ setPEmail(e.target.value); }} placeholder="correo@ejemplo.com"/></div>
+              <div><label style={S.label}>Nombre</label><input style={S.input} value={pFirstName} onChange={function(e){ setPFirstName(e.target.value); }} placeholder="Nombre"/></div>
+              <div><label style={S.label}>Apellido</label><input style={S.input} value={pLastName} onChange={function(e){ setPLastName(e.target.value); }} placeholder="Apellido"/></div>
+              <div style={{gridColumn:"1/-1"}}><label style={S.label}>Fecha de nacimiento</label><input style={S.input} type="date" value={pFechaNac} onChange={function(e){ setPFechaNac(e.target.value); }} max={TODAY}/></div>
             </div>
           </div>
         )}
