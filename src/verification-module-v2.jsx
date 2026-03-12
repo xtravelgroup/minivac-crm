@@ -338,9 +338,6 @@ function EditExpedienteModal({ exp, destCatalog, destMap, onClose, onSave }) {
                     </div>
                     <button onClick={function(){ removeDest(i); }}
                       style={{background:"#fef2f2",border:"1px solid #f5b8b8",color:"#b91c1c",borderRadius:7,padding:"4px 8px",cursor:"pointer",fontSize:14,fontWeight:700}}>✕</button>
-                    </div>
-                    <button onClick={function(){ removeDest(i); }}
-                      style={{background:"#fef2f2",border:"1px solid #f5b8b8",color:"#b91c1c",borderRadius:7,padding:"4px 8px",cursor:"pointer",fontSize:14,fontWeight:700}}>✕</button>
                   </div>
                 </div>
                 {regalos.length > 0 && (
