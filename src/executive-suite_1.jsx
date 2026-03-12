@@ -92,11 +92,11 @@ export default function ExecutiveSuite() {
   useEffect(function(){
     // Cargar datos en paralelo
     Promise.all([
-      SB.from("leads").select("id, nombre, estado_civil, verificacion, membresia, vigencia, saldo_pendiente, paquete, created_at"),
+      SB.from("leads").select("id, nombre, estado_civil, status, emisora_id, emisora, created_at, sale_price, pago_inicial"),
       SB.from("reservaciones").select("id, folio, status, total, fee, checkin, checkout, agente_nombre, created_at, destino_nombre, hotel"),
       SB.from("radio_spots").select("id, emisora_id, costo, talento, fecha, semana, dia_semana, hora, duracion, tipo, incidencia"),
       SB.from("emisoras").select("id, nombre"),
-      SB.from("leads").select("id, nombre, paquete, emisora, emisora_id, created_at, verificacion"),
+      SB.from("leads").select("id, nombre, emisora, emisora_id, created_at, status, sale_price"),
     ]).then(function(results){
       var leads      = (!results[0].error && results[0].data) ? results[0].data : [];
       var reservas   = (!results[1].error && results[1].data) ? results[1].data : [];
@@ -150,7 +150,7 @@ function TabResumen(props){
     var ph = l.pagos||[]||[];
     return s + ph.reduce(function(a,p){ return a+(p.monto||0); },0);
   },0);
-  var totalPaq     = leads.reduce(function(s,l){ var p=l.paquete||{}; return s+(p.precio||0); },0);
+  var totalPaq     = totalIngPag;
   var resActivas   = reservas.filter(function(r){ return r.status==="en_reserva"||r.status==="vlo_proceso"||r.status==="confirmada"; });
   var resCompletadas = reservas.filter(function(r){ return r.status==="completada"; });
 
