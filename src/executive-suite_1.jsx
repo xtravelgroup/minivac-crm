@@ -94,7 +94,7 @@ export default function ExecutiveSuite() {
     Promise.all([
       SB.from("leads").select("id, nombre, estado_civil, verificacion, membresia, vigencia, saldo_pendiente, paquete, created_at"),
       SB.from("reservaciones").select("id, folio, status, total, fee, checkin, checkout, agente_nombre, created_at, destino_nombre, hotel"),
-      SB.from("radio_spots").select("id, emisora_id, costo, talento, fecha, semana, status"),
+      SB.from("radio_spots").select("id, emisora_id, costo, talento, fecha, dia_semana"),
       SB.from("emisoras").select("id, nombre"),
       SB.from("leads").select("id, nombre, paquete, emisora, emisora_id, created_at, verificacion"),
     ]).then(function(results){
@@ -510,7 +510,7 @@ function TabRadios(props){
   // Spots del dia seleccionado
   var spotsDia = spots.filter(function(s){ return s.fecha===diaActual; });
   // Spots de la semana
-  var spotsSemana = spots.filter(function(s){ return s.semana===lunes||lunesDe(s.fecha||"")===lunes; });
+  var spotsSemana = spots.filter(function(s){ var f=s.fecha||""; return f>=lunes&&f<=domingo; });
 
   // Helper: inversion de un spot
   function invSpot(s){ return (Number(s.costo||0)*1.15)+Number(s.talento||0); }
