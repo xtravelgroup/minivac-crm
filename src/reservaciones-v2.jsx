@@ -1263,7 +1263,7 @@ export default function ReservacionesModule(props){
   // ── Cargar desde Supabase
   function cargarReservas() {
     SB.from("reservaciones")
-      .select("*, leads(nombre, co_prop, verificacion)")
+      .select("*, leads(nombre, co_prop, verificacion, estado_civil, edad)")
       .order("created_at", { ascending: false })
       .then(function(r) {
         setLoading(false);
@@ -1273,6 +1273,10 @@ export default function ReservacionesModule(props){
           if (rv.leads) {
             if (rv.leads.nombre) local.cliente = rv.leads.nombre;
             if (rv.leads.co_prop) local.co_prop = rv.leads.co_prop;
+            if (rv.leads.estado_civil) local.estado_civil = rv.leads.estado_civil;
+            if (rv.leads.edad) {
+              local.edad_titular = rv.leads.edad;
+            }
             var verif = rv.leads.verificacion;
             if (verif) {
               local.tNombre    = (verif.tFirstName||"") + " " + (verif.tLastName||"");
@@ -1280,6 +1284,10 @@ export default function ReservacionesModule(props){
               local.hasPartner = verif.hasPartner || false;
               local.pNombre    = verif.hasPartner ? ((verif.pFirstName||"") + " " + (verif.pLastName||"")) : "";
               local.pFechaNac  = verif.hasPartner ? (verif.pFechaNac || "") : "";
+              // Calcular edades desde fechas de nacimiento
+              if(verif.tFechaNac) local.edad_titular = Math.floor((Date.now()-new Date(verif.tFechaNac).getTime())/31557600000);
+              if(verif.pFechaNac) local.edad_coprop  = Math.floor((Date.now()-new Date(verif.pFechaNac).getTime())/31557600000);
+              if(verif.tEstadoCivil) local.estado_civil = verif.tEstadoCivil;
             }
           }
           return local;
