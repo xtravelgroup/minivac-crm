@@ -1007,9 +1007,8 @@ function EditContactoModal(props) {
       tel:          d.tel,
       whatsapp:     d.whatsapp,
       email:        d.email,
-      direccion:    d.direccion,
       ciudad:       d.ciudad,
-      zip:          d.zip,
+      estado_us:    d.estado,
       co_prop:      d.coProp,
       co_prop_tel:  d.coPropTel,
     }).eq("id", c.id)
