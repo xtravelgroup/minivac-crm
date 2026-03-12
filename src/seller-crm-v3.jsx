@@ -257,7 +257,7 @@ function DestinosTab({ draft, set, destCatalog }) {
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
                       <div style={{fontSize:9,color:"#9ca3af",marginBottom:2}}>Noches</div>
-                      <input style={{...S.input,width:52,textAlign:"center",padding:"4px",fontSize:13,fontWeight:700}}
+                      <input style={{...S.input,width:52,textAlign:"center",padding:"4px",fontSize:13,fontWeight:700,MozAppearance:"textfield",WebkitAppearance:"none"}}
                         type="number" min="1" max="14" value={d.noches}
                         onChange={function(e){
                           var nd = (draft.destinos||[]).map(function(x,j){ return j===i?Object.assign({},x,{noches:Number(e.target.value)||1}):x; });

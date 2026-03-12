@@ -334,8 +334,9 @@ function EditExpedienteModal({ exp, destCatalog, destMap, onClose, onSave }) {
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
                       <div style={{fontSize:9,color:"#9ca3af",marginBottom:2}}>Noches</div>
-                      <input style={{...S.input,width:54,textAlign:"center",padding:"5px 4px",fontSize:13,fontWeight:700}}
+                      <input style={{...S.input,width:48,textAlign:"center",padding:"5px 4px",fontSize:13,fontWeight:700,MozAppearance:"textfield",WebkitAppearance:"none"}}
                         type="number" min="1" max="14" value={dest.noches}
+                        style={{...S.input,width:48,textAlign:"center",padding:"5px 4px",fontSize:13,fontWeight:700,MozAppearance:"textfield",WebkitAppearance:"none"}}
                         onChange={function(e){
                           setD(function(p){ return Object.assign({},p,{destinos:p.destinos.map(function(x,j){ return j===i?Object.assign({},x,{noches:Number(e.target.value)}):x; })}); });
                         }} />
@@ -434,7 +435,7 @@ function EditExpedienteModal({ exp, destCatalog, destMap, onClose, onSave }) {
         </div>
 
         <div style={{display:"flex",gap:10}}>
-          <button style={{...S.btn("ghost"),flex:1}} onClick={onClose}>Cancelar</button>
+          <button style={{...S.btn("ghost"),flex:1}} g onClick={onClose}>Cerrar</button>
           <button style={{...S.btn("success"),flex:2,justifyContent:"center"}} onClick={function(){ onSave(d); }}>Guardar cambios</button>
         </div>
       </div>
@@ -477,7 +478,7 @@ function ChargeModal({ lead, onClose, onResult }) {
               </div>
             </div>
             <div style={{ display:"flex", gap:"10px" }}>
-              <button style={{ ...S.btn("ghost"), flex:1 }} onClick={onClose}>Cancelar</button>
+              <button style={{ ...S.btn("ghost"), flex:1 }} g onClick={onClose}>Cerrar</button>
               <button style={{ ...S.btn("success"), flex:2, justifyContent:"center" }} onClick={() => doCharge(null)}>Procesar Cobro</button>
             </div>
             <div style={{ textAlign:"center", marginTop:"10px" }}>
@@ -691,7 +692,7 @@ function FinishModal({ defaultResult, onClose, onFinish }) {
           <textarea style={{ ...S.textarea, marginTop:"5px" }} placeholder="Motivo, acuerdos, comentarios..." value={notes} onChange={e => setNotes(e.target.value)} />
         </div>
         <div style={{ display:"flex", gap:"10px" }}>
-          <button style={{ ...S.btn("ghost"), flex:1 }} onClick={onClose}>Cancelar</button>
+          <button style={{ ...S.btn("ghost"), flex:1 }} g onClick={onClose}>Cerrar</button>
           <button disabled={!result}
             style={{ ...S.btn(result==="venta" ? "success" : (result==="tarjeta_rechazada"||result==="cliente_no_interesado") ? "danger" : "warning"), flex:2, justifyContent:"center", opacity:!result?0.4:1 }}
             onClick={() => onFinish(result,notes)}>
