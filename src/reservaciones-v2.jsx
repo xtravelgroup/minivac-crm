@@ -625,6 +625,7 @@ function ReservaModal(props){
   // Pasajeros
   // Inicializar pasajeros siempre segun adultos+ninos de la reserva
   function buildPasajeros(nAdultos, nNinos){
+    if(!nAdultos && !nNinos) return r.pasajeros||[];
     var lista = [];
     var total = (parseInt(nAdultos)||0) + (parseInt(nNinos)||0);
     // Usar pasajeros guardados si el numero coincide exactamente
@@ -652,7 +653,7 @@ function ReservaModal(props){
 
   var destClean = limpiarDest(dest);
   // Datos del cliente para filtrar
-  var clienteEdad    = r.edad_titular ? parseInt(r.edad_titular) : 0;
+  var clienteEdad    = parseInt(r.edad_titular) || 0;
   var clienteEC      = (r.estado_civil || "").toLowerCase();
   var clienteHasP    = clienteEC === "casado" || clienteEC === "cohabitante";
   // Filtrar hoteles segun restricciones del cliente
@@ -859,7 +860,7 @@ function ReservaModal(props){
             <div><label style={S.lbl}>Ninos</label><input style={S.inp} type="number" min="0" max="4" value={ninos} onChange={function(e){setNinos(e.target.value);}}/></div>
           </div>
           {pasajeros.length===0&&<div style={{textAlign:"center",padding:24,color:"#9ca3af",fontSize:12}}>Ajusta adultos y ninos arriba para generar los campos</div>}
-          {pasajeros.map(function(p,i){
+          {(pasajeros||[]).map(function(p,i){
             return (
               <div key={i} style={{background:"#f8f9fb",border:"1px solid #e3e6ea",borderRadius:10,padding:"12px 14px",marginBottom:8}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
@@ -980,7 +981,7 @@ function VLOModal(props){
         </div>
       )}
       {/* Pasajeros en VLO */}
-      {r.pasajeros&&r.pasajeros.length>0&&(
+      {r.pasajeros&&Array.isArray(r.pasajeros)&&r.pasajeros.length>0&&(
         <div style={Object.assign({},S.card,{marginBottom:"10px"})}>
           <div style={S.stit}>Pasajeros</div>
           {r.pasajeros.map(function(p,i){
@@ -1658,7 +1659,7 @@ export default function ReservacionesModule(props){
                 </div>
                 {sel.conf&&<div style={{padding:"9px 14px",borderRadius:9,background:"rgba(26,127,60,0.07)",border:"1px solid rgba(26,127,60,0.25)",marginBottom:8,display:"flex",justifyContent:"space-between"}}><span style={{fontSize:11,color:"#9ca3af"}}>No. confirmacion:</span><span style={{fontSize:14,fontWeight:800,color:GREEN}}>{sel.conf}</span></div>}
                 {/* Pasajeros */}
-                {sel.pasajeros&&sel.pasajeros.length>0&&(
+                {sel.pasajeros&&Array.isArray(sel.pasajeros)&&sel.pasajeros.length>0&&(
                   <div style={Object.assign({},S.card,{marginBottom:8})}>
                     <div style={S.stit}>Pasajeros</div>
                     {sel.pasajeros.map(function(p,i){
