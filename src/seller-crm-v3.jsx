@@ -1606,6 +1606,11 @@ function leadToDb(l) {
     pago_inicial:        l.pagoInicial         || null,
     metodo_pago:         l.metodoPago          || null,
     fecha:               l.fecha               || TODAY,
+    zoho_payment_method_id: l.zohoPaymentMethodId || null,
+    zoho_customer_id:       l.zohoCustomerId      || null,
+    tarjeta_last4:          l.tarjetaLast4        || null,
+    tarjeta_brand:          l.tarjetaBrand        || null,
+    tarjeta_captura_ts:     l.tarjetaCapturaTs    || null,
   };
 }
 
