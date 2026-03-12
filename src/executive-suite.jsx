@@ -1,17 +1,5 @@
 import React, { useState, useEffect } from "react";
-
-var SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
-var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA";
-
-function sbFetch(path) {
-  return fetch(SB_URL + "/rest/v1/" + path, {
-    headers: {
-      "apikey": SB_KEY,
-      "Authorization": "Bearer " + SB_KEY,
-      "Content-Type": "application/json",
-    }
-  }).then(function(r){ return r.json(); });
-}
+import { SB } from "./supabase.js";
 
 var fmtUSD = function(n){ return "$" + Number(n||0).toLocaleString("en-US", {minimumFractionDigits:0}); };
 var fmtPct = function(a,b){ return b>0 ? ((a/b)*100).toFixed(1)+"%" : "0%"; };
@@ -103,13 +91,13 @@ export default function ExecutiveSuite() {
   useEffect(function(){
     // Cargar datos en paralelo
     Promise.all([
-      sbFetch("leads?select=id,nombre,estado,vendedor_nombre,paquete,pagos_historial,created_at,estado_civil,edad,verificacion"),
-      sbFetch("reservaciones?select=id,folio,status,total,fee,checkin,checkout,agente_nombre,created_at,destino_nombre,hotel"),
-      sbFetch("profiles?select=id,nombre,rol"),
+      SB.from("leads").select("id, nombre, status, nombre_vendedor, paquete, created_at, estado_civil, verificacion, membresia, vigencia, saldo_pendiente"),
+      SB.from("reservaciones").select("id, folio, status, total, fee, checkin, checkout, agente_nombre, created_at, destino_nombre, hotel"),
+      SB.from("profiles").select("id, nombre, rol"),
     ]).then(function(results){
-      var leads = Array.isArray(results[0]) ? results[0] : [];
-      var reservas = Array.isArray(results[1]) ? results[1] : [];
-      var profiles = Array.isArray(results[2]) ? results[2] : [];
+      var leads    = (!results[0].error && results[0].data) ? results[0].data : [];
+      var reservas = (!results[1].error && results[1].data) ? results[1].data : [];
+      var profiles = (!results[2].error && results[2].data) ? results[2].data : [];
       setData({ leads: leads, reservas: reservas, profiles: profiles });
       setLoading(false);
     }).catch(function(){
@@ -148,9 +136,9 @@ function TabResumen(props){
   var leads    = props.data.leads;
   var reservas = props.data.reservas;
 
-  var ventas       = leads.filter(function(l){ return l.estado==="venta"||l.estado==="verificacion"; });
+  var ventas       = leads.filter(function(l){ return l.status==="venta"||l.status==="verificacion"; });
   var totalIngPag  = leads.reduce(function(s,l){
-    var ph = l.pagos_historial||[];
+    var ph = l.pagos||[]||[];
     return s + ph.reduce(function(a,p){ return a+(p.monto||0); },0);
   },0);
   var totalPaq     = leads.reduce(function(s,l){ var p=l.paquete||{}; return s+(p.precio||0); },0);
@@ -183,7 +171,7 @@ function TabResumen(props){
         React.createElement("div", {key:"t", style:S.ctit}, "Embudo de Ventas"),
         funnelKeys.map(function(k){
           var cfg = STATUS_CFG[k] || {l:k, c:C.muted};
-          var cnt = leads.filter(function(l){ return l.estado===k; }).length;
+          var cnt = leads.filter(function(l){ return l.status===k; }).length;
           return React.createElement(BarRow, {key:k, label:cfg.l, value:cnt, total:leads.length, display:String(cnt)+" ("+fmtPct(cnt,leads.length)+")", color:cfg.c});
         }),
       ]),
@@ -239,17 +227,17 @@ function TabResumen(props){
 function TabVentas(props){
   var leads = props.data.leads;
   var porEstado = ["nuevo","contactado","interesado","cita","verificacion","venta","no_interesado"].map(function(k){
-    var items = leads.filter(function(l){ return l.estado===k; });
-    var ingresos = items.reduce(function(s,l){ var ph=l.pagos_historial||[]; return s+ph.reduce(function(a,p){return a+(p.monto||0);},0); },0);
+    var items = leads.filter(function(l){ return l.status===k; });
+    var ingresos = items.reduce(function(s,l){ var ph=l.pagos||[]||[]; return s+ph.reduce(function(a,p){return a+(p.monto||0);},0); },0);
     return {k:k, items:items, ingresos:ingresos};
   });
-  var totalPag = leads.reduce(function(s,l){ var ph=l.pagos_historial||[]; return s+ph.reduce(function(a,p){return a+(p.monto||0);},0); },0);
+  var totalPag = leads.reduce(function(s,l){ var ph=l.pagos||[]||[]; return s+ph.reduce(function(a,p){return a+(p.monto||0);},0); },0);
   var totalPaq = leads.reduce(function(s,l){ var p=l.paquete||{}; return s+(p.precio||0); },0);
 
   return React.createElement("div", {style:S.page}, [
     React.createElement("div", {key:"kpis", style:{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12}}, [
       React.createElement(KpiCard, {key:"a", label:"Total Leads", value:leads.length, color:C.indigo}),
-      React.createElement(KpiCard, {key:"b", label:"Ventas Cerradas", value:leads.filter(function(l){return l.estado==="venta";}).length, color:C.green}),
+      React.createElement(KpiCard, {key:"b", label:"Ventas Cerradas", value:leads.filter(function(l){return l.status==="venta";}).length, color:C.green}),
       React.createElement(KpiCard, {key:"c", label:"Ingresos Cobrados", value:fmtUSD(totalPag), color:C.green}),
       React.createElement(KpiCard, {key:"d", label:"Valor Total Contratos", value:fmtUSD(totalPaq), color:C.violet}),
     ]),
@@ -287,11 +275,11 @@ function TabVentas(props){
         React.createElement("tbody", {key:"b"},
           leads.slice(0,15).map(function(l){
             var cfg = STATUS_CFG[l.estado]||{l:l.estado,c:C.muted,bg:"#f4f5f7"};
-            var pagado = (l.pagos_historial||[]).reduce(function(s,p){return s+(p.monto||0);},0);
+            var pagado = (l.pagos||[]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
             var paq = l.paquete||{};
             return React.createElement("tr", {key:l.id}, [
               React.createElement("td",{key:"n",style:S.td},React.createElement("span",{style:{fontWeight:600}},l.nombre||"--")),
-              React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.vendedor_nombre||"--")),
+              React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.nombre_vendedor||""||"--")),
               React.createElement("td",{key:"e",style:S.td},React.createElement("span",{style:S.bdg(cfg.c,cfg.bg)},cfg.l)),
               React.createElement("td",{key:"p",style:S.tdc},paq.precio?React.createElement("span",{style:{color:C.violet}},fmtUSD(paq.precio)):"--"),
               React.createElement("td",{key:"m",style:S.tdc},pagado>0?React.createElement("span",{style:{color:C.green,fontWeight:700}},fmtUSD(pagado)):"--"),
@@ -352,12 +340,12 @@ function TabCobranza(props){
   var leads = props.data.leads;
   // Leads con saldo pendiente
   var conSaldo = leads.filter(function(l){
-    var ph = l.pagos_historial||[];
+    var ph = l.pagos||[]||[];
     var pagado = ph.reduce(function(s,p){return s+(p.monto||0);},0);
     var paq = l.paquete||{};
     return paq.precio && pagado < paq.precio;
   });
-  var totalPagado = leads.reduce(function(s,l){ return s+(l.pagos_historial||[]).reduce(function(a,p){return a+(p.monto||0);},0); },0);
+  var totalPagado = leads.reduce(function(s,l){ return s+(l.pagos||[]||[]).reduce(function(a,p){return a+(p.monto||0);},0); },0);
   var totalContratos = leads.reduce(function(s,l){ return s+((l.paquete||{}).precio||0); },0);
   var totalPendiente = totalContratos - totalPagado;
 
@@ -389,13 +377,13 @@ function TabCobranza(props){
             )),
             React.createElement("tbody",{key:"b"},
               conSaldo.map(function(l){
-                var pagado = (l.pagos_historial||[]).reduce(function(s,p){return s+(p.monto||0);},0);
+                var pagado = (l.pagos||[]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
                 var paq = l.paquete||{};
                 var pendiente = (paq.precio||0) - pagado;
                 var pct2 = paq.precio>0 ? Math.round((pagado/paq.precio)*100) : 0;
                 return React.createElement("tr",{key:l.id},[
                   React.createElement("td",{key:"n",style:S.td},React.createElement("span",{style:{fontWeight:600}},l.nombre||"--")),
-                  React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.vendedor_nombre||"--")),
+                  React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.nombre_vendedor||""||"--")),
                   React.createElement("td",{key:"p",style:S.tdc},paq.precio?React.createElement("span",{style:{color:C.violet}},fmtUSD(paq.precio)):"--"),
                   React.createElement("td",{key:"c",style:S.tdc},React.createElement("span",{style:{color:C.green,fontWeight:700}},fmtUSD(pagado))),
                   React.createElement("td",{key:"pe",style:S.tdc},React.createElement("span",{style:{color:C.red,fontWeight:700}},fmtUSD(pendiente))),
@@ -421,11 +409,11 @@ function TabVendedores(props){
   // Agrupar leads por vendedor
   var vendedores = {};
   leads.forEach(function(l){
-    var v = l.vendedor_nombre || "Sin asignar";
+    var v = l.nombre_vendedor||"" || "Sin asignar";
     if(!vendedores[v]) vendedores[v] = {nombre:v, leads:[], ventas:0, pagado:0};
     vendedores[v].leads.push(l);
-    if(l.estado==="venta"||l.estado==="verificacion") vendedores[v].ventas++;
-    vendedores[v].pagado += (l.pagos_historial||[]).reduce(function(s,p){return s+(p.monto||0);},0);
+    if(l.status==="venta"||l.status==="verificacion") vendedores[v].ventas++;
+    vendedores[v].pagado += (l.pagos||[]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
   });
   var vList = Object.values(vendedores).sort(function(a,b){return b.ventas-a.ventas;});
 
