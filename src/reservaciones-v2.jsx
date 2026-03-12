@@ -296,6 +296,7 @@ function FormModal(props){
   var [profCo,    setProfCo]    = useState(ex?ex.profCo||"":"");
 
   var tipoFiltro=tipo;
+  console.log("dest actual:", JSON.stringify(dest), "| tipo:", tipo, "| keys:", Object.keys(hotelesDB));
   var hoteles=(hotelesDB[dest]||[]).filter(function(h){
     // Si el hotel no tiene tipos definidos, mostrar siempre
     if(h.tipos&&h.tipos.length>0&&h.tipos.indexOf(tipoFiltro)<0) return false;
