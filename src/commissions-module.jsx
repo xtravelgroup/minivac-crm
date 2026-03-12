@@ -222,17 +222,30 @@ function ConfigModal({ user, onClose, onSave }) {
 }
 
 // --- VENDEDOR CARD ---
-function VendedorCard({ user, ventas, numeros, week, isAdmin, onConfig }) {
+function VendedorCard({ user, ventas, pagos, numeros, week, isAdmin, onConfig }) {
   const ventasHoy    = ventas.filter(v => v.vendedorId===user.id && v.fechaVenta===TODAY && !v.cancelada);
   const ventasSem    = ventas.filter(v => v.vendedorId===user.id && inWeek(v.fechaVenta, week) && !v.cancelada);
   const cancelSem    = ventas.filter(v => v.vendedorId===user.id && v.cancelada && inWeek(v.fechaCancelacion||v.fechaVenta, week));
   const numHoy       = numeros.filter(n => n.vendedorId===user.id && n.fecha===TODAY).reduce((a,b) => a+b.count, 0);
   const numSem       = numeros.filter(n => n.vendedorId===user.id && inWeek(n.fecha, week)).reduce((a,b) => a+b.count, 0);
-  const montoHoy     = ventasHoy.reduce((a,v) => a+Number(v.salePrice), 0);
-  const montoSem     = ventasSem.reduce((a,v) => a+Number(v.salePrice), 0);
-  const commHoy      = montoHoy * user.commPct / 100;
-  const commSem      = montoSem * user.commPct / 100;
-  const descCancel   = cancelSem.reduce((a,v) => a+Number(v.salePrice)*user.commPct/100, 0);
+
+  // IDs de clientes de las ventas del vendedor
+  const clienteIdsSem = ventasSem.map(v => v.clienteId).filter(Boolean);
+  const clienteIdsHoy = ventasHoy.map(v => v.clienteId).filter(Boolean);
+
+  // Cobrado hoy = enganche de ventas cerradas hoy + abonos de hoy de sus clientes
+  const engancheHoy  = ventasHoy.reduce((a,v) => a + v.pagoInicial, 0);
+  const abonosHoy    = (pagos||[]).filter(p => p.fecha===TODAY && clienteIdsSem.includes(p.cliente_id)).reduce((a,p) => a+Number(p.monto||0), 0);
+  const cobradoHoy   = engancheHoy + abonosHoy;
+
+  // Cobrado semana = enganches de ventas semana + abonos de la semana de sus clientes
+  const engancheSem  = ventasSem.reduce((a,v) => a + v.pagoInicial, 0);
+  const abonosSem    = (pagos||[]).filter(p => inWeek(p.fecha, week) && clienteIdsSem.includes(p.cliente_id)).reduce((a,p) => a+Number(p.monto||0), 0);
+  const cobradoSem   = engancheSem + abonosSem;
+
+  const commHoy      = cobradoHoy * user.commPct / 100;
+  const commSem      = cobradoSem * user.commPct / 100;
+  const descCancel   = cancelSem.reduce((a,v) => a + v.pagoInicial * user.commPct/100, 0);
   const totalSem     = commSem - descCancel + (user.spiff||0);
   const cierreHoy    = numHoy > 0 ? (ventasHoy.length / numHoy * 100) : 0;
   const cierreSem    = numSem > 0 ? (ventasSem.length / numSem * 100) : 0;
@@ -257,7 +270,7 @@ function VendedorCard({ user, ventas, numeros, week, isAdmin, onConfig }) {
       <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:14 }}>
         <StatBox label="Numeros recibidos" today={numHoy}              week={numSem}             color="#1565c0" />
         <StatBox label="Ventas cerradas"   today={ventasHoy.length}    week={ventasSem.length}   color="#1a7f3c" />
-        <StatBox label="Monto vendido"     today={fmtUSD(montoHoy)}    week={fmtUSD(montoSem)}   color="#925c0a" />
+        <StatBox label="Cobrado"           today={fmtUSD(cobradoHoy)}  week={fmtUSD(cobradoSem)} color="#925c0a" />
       </div>
 
       <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:14 }}>
@@ -295,7 +308,7 @@ function VendedorCard({ user, ventas, numeros, week, isAdmin, onConfig }) {
         <div style={S.sTitle}>Comision semana ({fmtDate(week.mon)} - {fmtDate(week.sun)})</div>
         <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
           <div style={{ display:"flex", justifyContent:"space-between", fontSize:13 }}>
-            <span style={{ color:"#6b7280" }}>Base ({ventasSem.length} ventas x {user.commPct}%)</span>
+            <span style={{ color:"#6b7280" }}>Base (cobrado {fmtUSD(cobradoSem)} x {user.commPct}%)</span>
             <span style={{ color:"#1a7f3c", fontWeight:600 }}>{fmtUSD(commSem)}</span>
           </div>
           {descCancel > 0 && (
@@ -762,7 +775,7 @@ function TablaVentas({ ventas, users, week }) {
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
           <thead>
             <tr style={{ borderBottom:"1px solid #dde0e5" }}>
-              {["Fecha","Cliente","Vendedor","Verificador","Precio","Comis. Vend.","Comis. Verif.","Status"].map(h => (
+              {["Fecha","Cliente","Vendedor","Verificador","Precio venta","Enganche","Comis. Vend.","Comis. Verif.","Status"].map(h => (
                 <th key={h} style={{ padding:"8px 10px", textAlign:"left", color:"#9ca3af", fontWeight:600, fontSize:10, textTransform:"uppercase", letterSpacing:"0.06em", whiteSpace:"nowrap" }}>{h}</th>
               ))}
             </tr>
@@ -771,15 +784,16 @@ function TablaVentas({ ventas, users, week }) {
             {ventasFiltradas.map(v => {
               const vend  = getUser(v.vendedorId);
               const verif = getUser(v.verificadorId);
-              const commV = vend  ? Number(v.salePrice)*vend.commPct/100  : 0;
-              const commR = verif ? Number(v.salePrice)*verif.commPct/100 : 0;
+              const commV = vend  ? Number(v.pagoInicial||0)*vend.commPct/100  : 0;
+              const commR = verif ? Number(v.pagoInicial||0)*verif.commPct/100 : 0;
               return (
                 <tr key={v.id} style={{ borderBottom:"1px solid #edf0f3", opacity:v.cancelada?0.5:1 }}>
                   <td style={{ padding:"9px 10px", color:"#6b7280", whiteSpace:"nowrap" }}>{fmtDate(v.fechaVenta)}</td>
                   <td style={{ padding:"9px 10px", color:"#3d4554", fontWeight:500 }}>{v.cliente}</td>
                   <td style={{ padding:"9px 10px", color:"#6b7280" }}>{vend?.name||"--"}</td>
                   <td style={{ padding:"9px 10px", color:"#6b7280" }}>{verif?.name||"--"}</td>
-                  <td style={{ padding:"9px 10px", color:"#1a7f3c", fontWeight:600 }}>{fmtUSD(v.salePrice)}</td>
+                  <td style={{ padding:"9px 10px", color:"#1565c0", fontWeight:600 }}>{fmtUSD(v.salePrice)}</td>
+                  <td style={{ padding:"9px 10px", color:"#925c0a", fontWeight:600 }}>{fmtUSD(v.pagoInicial||0)}</td>
                   <td style={{ padding:"9px 10px", color:v.cancelada?"#b91c1c":"#925c0a", fontWeight:600 }}>{v.cancelada?"-":""}{fmtUSD(commV)}</td>
                   <td style={{ padding:"9px 10px", color:v.cancelada?"#b91c1c":"#1565c0", fontWeight:600 }}>{v.cancelada?"-":""}{fmtUSD(commR)}</td>
                   <td style={{ padding:"9px 10px" }}>
@@ -806,35 +820,47 @@ export default function CommissionsModule({ currentUser: shellUser }) {
   console.log("CommissionsModule montado, shellUser:", shellUser && shellUser.nombre);
   const [users,       setUsers]       = useState(SEED_USERS);
   const [ventas,      setVentas]      = useState([]);
+  const [pagos,       setPagos]       = useState([]);
   const [numeros,     setNumeros]     = useState(SEED_NUMEROS);
   const [configModal, setConfigModal] = useState(null);
   const [toast,       setToast]       = useState(null);
 
   // Cargar ventas reales de Supabase
   function cargarVentas() {
-    SB.from("leads")
-      .select("*, vendedor:vendedor_id(id, nombre, auth_id)")
-      .eq("status", "venta")
-      .order("updated_at", { ascending: false })
-      .then(function(res) {
-        if (res.data) {
-          var mapped = res.data.map(function(r) {
-            return {
-              id:            r.id,
-              folio:         r.folio || r.id.slice(0,8),
-              cliente:       (r.nombre || "") + " " + (r.apellido || ""),
-              vendedorId:    r.vendedor_id || "",
-              verificadorId: "",
-              fechaVenta:    (r.updated_at || r.created_at || TODAY).split("T")[0],
-              salePrice:     Number(r.sale_price) || 0,
-              cancelada:     false,
-              fechaCancelacion: null,
-            };
-          });
-          setVentas(mapped);
-          cargarVentasDebug(mapped);
-        }
+    Promise.all([
+      SB.from("leads")
+        .select("*, vendedor:vendedor_id(id, nombre)")
+        .eq("status", "venta")
+        .order("updated_at", { ascending: false }),
+      SB.from("pagos")
+        .select("*")
+        .eq("status", "aprobado")
+        .order("fecha", { ascending: false }),
+    ]).then(function(results) {
+      var leadsData = (!results[0].error && results[0].data) ? results[0].data : [];
+      var pagosData = (!results[1].error && results[1].data) ? results[1].data : [];
+
+      // Mapear ventas — la comisión base es sobre pago_inicial (enganche del día de venta)
+      var mapped = leadsData.map(function(r) {
+        return {
+          id:               r.id,
+          folio:            r.folio || r.id.slice(0,8),
+          cliente:          (r.nombre || "") + " " + (r.apellido || ""),
+          vendedorId:       r.vendedor_id || "",
+          verificadorId:    "",
+          fechaVenta:       (r.updated_at || r.created_at || TODAY).split("T")[0],
+          salePrice:        Number(r.sale_price) || 0,
+          pagoInicial:      Number(r.pago_inicial) || 0,  // enganche día de venta
+          clienteId:        r.cliente_id || null,
+          cancelada:        false,
+          fechaCancelacion: null,
+        };
       });
+
+      // Agregar abonos como entradas de comisión por día
+      setPagos(pagosData);
+      setVentas(mapped);
+    });
   }
 
   // Cargar usuarios reales de Supabase
@@ -957,8 +983,8 @@ export default function CommissionsModule({ currentUser: shellUser }) {
 
         {tab==="vendedores" && (
           isVend
-            ? <VendedorCard user={myVendCard} ventas={ventas} numeros={numeros} week={week} isAdmin={false} onConfig={function(){}} />
-            : vendedores.map(function(u){ return <VendedorCard key={u.id} user={u} ventas={ventas} numeros={numeros} week={week} isAdmin={isAdmin} onConfig={setConfigModal} />; })
+            ? <VendedorCard user={myVendCard} ventas={ventas} pagos={pagos} numeros={numeros} week={week} isAdmin={false} onConfig={function(){}} />
+            : vendedores.map(function(u){ return <VendedorCard key={u.id} user={u} ventas={ventas} pagos={pagos} numeros={numeros} week={week} isAdmin={isAdmin} onConfig={setConfigModal} />; })
         )}
 
         {tab==="verificadores" && (
