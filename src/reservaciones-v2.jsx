@@ -605,6 +605,17 @@ function ReservaModal(props){
   var [agente,  setAgente]  = useState(r.agente_nombre || r.agente || "");
   var [notas,   setNotas]   = useState(r.notas_agente  || "");
   var [numRes,  setNumRes]  = useState(r.conf || "");
+  var [agentes, setAgentes] = useState([]);
+  React.useEffect(function(){
+    SB.from("profiles").select("id, nombre, rol").then(function(res){
+      if(!res.error){
+        var lista = (res.data||[]).filter(function(u){
+          return u.rol==="agente_reservas" || u.rol==="supervisor" || u.rol==="admin";
+        });
+        setAgentes(lista);
+      }
+    });
+  },[]);
 
   // Calificacion
   var [ingresos,  setIngresos]  = useState(r.ingresosAnuales || r.ingresos || "");
@@ -640,7 +651,27 @@ function ReservaModal(props){
   var [saving, setSaving] = useState(false);
 
   var destClean = limpiarDest(dest);
-  var hotelesLista = hotelesDB[destClean] || [];
+  // Datos del cliente para filtrar
+  var clienteEdad    = r.edad_titular ? parseInt(r.edad_titular) : 0;
+  var clienteEC      = (r.estado_civil || "").toLowerCase();
+  var clienteHasP    = clienteEC === "casado" || clienteEC === "cohabitante";
+  // Filtrar hoteles segun restricciones del cliente
+  var hotelesLista = (hotelesDB[destClean] || []).filter(function(h){
+    // Filtro edad
+    if(clienteEdad > 0){
+      if(clienteEdad < h.ageMin || clienteEdad > h.ageMax) return false;
+    }
+    // Filtro estado civil
+    if(h.marital && h.marital.length > 0 && clienteEC){
+      var ecNorm = clienteEC.charAt(0).toUpperCase() + clienteEC.slice(1);
+      var match = h.marital.some(function(m){
+        var mn = (m||"").toLowerCase();
+        return mn === clienteEC || mn === "casado" && clienteHasP || mn === "soltero" && !clienteHasP;
+      });
+      if(!match) return false;
+    }
+    return true;
+  });
   var hotelObj = hotelesLista[hIdx] || hotelesLista.find(function(h){ return h.nombre === hotel; }) || null;
   var habs = hotelObj ? hotelObj.habs : [];
   var noches = (parseInt(nBase)||3) + (parseInt(nExtra)||0);
@@ -775,7 +806,15 @@ function ReservaModal(props){
               </select>
             </div>
             <div><label style={S.lbl}>Agente de reservas</label>
-              <input style={S.inp} value={agente} onChange={function(e){setAgente(e.target.value);}} placeholder="Nombre del agente"/>
+              <select style={S.inp} value={agente} onChange={function(e){setAgente(e.target.value);}}>
+                <option value="">-- Seleccionar agente --</option>
+                {agentes.map(function(u){
+                  return <option key={u.id} value={u.nombre}>{u.nombre}</option>;
+                })}
+                {agente&&!agentes.find(function(u){return u.nombre===agente;})&&(
+                  <option value={agente}>{agente}</option>
+                )}
+              </select>
             </div>
           </div>
 
