@@ -657,17 +657,15 @@ function ReservaModal(props){
   var clienteHasP    = clienteEC === "casado" || clienteEC === "cohabitante";
   // Filtrar hoteles segun restricciones del cliente
   var hotelesLista = (hotelesDB[destClean] || []).filter(function(h){
-    // Filtro edad
     if(clienteEdad > 0){
       if(clienteEdad < h.ageMin || clienteEdad > h.ageMax) return false;
     }
-    // Filtro estado civil
     if(h.marital && h.marital.length > 0 && clienteEC){
-      var ecNorm = clienteEC.charAt(0).toUpperCase() + clienteEC.slice(1);
-      var match = h.marital.some(function(m){
-        var mn = (m||"").toLowerCase();
-        return mn === clienteEC || mn === "casado" && clienteHasP || mn === "soltero" && !clienteHasP;
-      });
+      var match = false;
+      for(var mi=0;mi<h.marital.length;mi++){
+        var mn=(h.marital[mi]||"").toLowerCase();
+        if(mn===clienteEC || (mn==="casado"&&clienteHasP) || (mn==="soltero"&&!clienteHasP)){ match=true; break; }
+      }
       if(!match) return false;
     }
     return true;
@@ -707,7 +705,7 @@ function ReservaModal(props){
   // Pasajeros helpers
   function setPax(i,k,v){
     var arr = pasajeros.slice();
-    arr[i] = Object.assign({},arr[i],{[k]:v});
+    var patch={}; patch[k]=v; arr[i] = Object.assign({},arr[i],patch);
     setPasajeros(arr);
   }
   function addPax(){
