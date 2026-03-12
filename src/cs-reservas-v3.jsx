@@ -194,6 +194,8 @@ function leadToMiembro(r) {
     nombre:         nombre,
     coProp:         r.co_prop      || coProp,
     coPropTel:      r.co_prop_tel  || exp.pPhone || null,
+    tFechaNac:      exp.tFechaNac  || "",
+    pFechaNac:      exp.pFechaNac  || "",
     estadoCivil:    r.estado_civil || exp.tEstadoCivil || "",
     edad:           edad,
     tel:            r.tel          || exp.tPhone || r.whatsapp || "",
@@ -1425,10 +1427,28 @@ function FichaMiembro(props) {
                   <div style={{fontSize:13,color:"#1a1f2e",padding:"4px 0"}}>{c[f[1]]||"—"}</div>
                 </div>;
               })}
+              {c.tFechaNac&&(
+                <div>
+                  <label style={S.label}>Fecha nac. titular</label>
+                  <div style={{fontSize:13,color:"#1a1f2e",padding:"4px 0"}}>{c.tFechaNac}</div>
+                </div>
+              )}
+              {c.coProp&&c.pFechaNac&&(
+                <div>
+                  <label style={S.label}>Fecha nac. co-prop</label>
+                  <div style={{fontSize:13,color:"#1a1f2e",padding:"4px 0"}}>{c.pFechaNac}</div>
+                </div>
+              )}
               {c.coProp&&(
                 <div>
                   <label style={S.label}>👥 Co-propietario</label>
-                  <div style={{fontSize:13,color:"#1a1f2e",padding:"4px 0"}}>{c.coProp}{c.coPropTel?" · "+c.coPropTel:""}</div>
+                  <div style={{fontSize:13,color:"#1a1f2e",padding:"4px 0"}}>{c.coProp}</div>
+                </div>
+              )}
+              {c.coPropTel&&(
+                <div>
+                  <label style={S.label}>Tel. co-propietario</label>
+                  <div style={{fontSize:13,color:"#1a1f2e",padding:"4px 0"}}>{c.coPropTel}</div>
                 </div>
               )}
             </div>
