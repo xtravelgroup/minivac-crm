@@ -689,11 +689,13 @@ function ReservaModal(props){
     setPasajeros(buildPasajeros(adultos, ninos));
   }
 
-  function save(){
+  function save(statusDestino){
     setSaving(true);
-    var hist = (r.hist||r.historial||[]).concat([{f:TODAY,t:"Reserva procesada - Hotel: "+(hotelObj?hotelObj.nombre:""),a:agente}]);
+    var st = statusDestino || "en_reserva";
+    var histMsg = st==="vlo_proceso" ? "Enviada a VLO - Hotel: "+(hotelObj?hotelObj.nombre:"") : "Reserva procesada - Hotel: "+(hotelObj?hotelObj.nombre:"");
+    var hist = (r.hist||r.historial||[]).concat([{f:TODAY,t:histMsg,a:agente}]);
     var updates = {
-      status:          "en_reserva",
+      status:          st,
       hotel:           hotelObj ? hotelObj.nombre : hotel,
       hab:             habNom || (habs[0]?habs[0].nombre:""),
       reg:             reg,
@@ -871,8 +873,11 @@ function ReservaModal(props){
         </div>
         <div style={{display:"flex",gap:8}}>
           <button style={btn("ghost")} onClick={props.onClose}>Cerrar</button>
-          <button style={btn("indigo")} onClick={save} disabled={saving||!hotelObj}>
-            {saving?"Guardando...":"Guardar y enviar a VLO"}
+          <button style={btn("teal")} onClick={function(){save("en_reserva");}} disabled={saving||!hotelObj}>
+            {saving?"Guardando...":"Guardar"}
+          </button>
+          <button style={btn("indigo")} onClick={function(){save("vlo_proceso");}} disabled={saving||!hotelObj}>
+            {saving?"Enviando...":"Enviar a VLO"}
           </button>
         </div>
       </div>
@@ -1400,10 +1405,11 @@ export default function ReservacionesModule(props){
   var vloQ=res.filter(function(r){return r.status==="solicitud"||r.status==="solicitada"||r.status==="vlo_proceso";});
   var rechQ=res.filter(function(r){return r.status==="rechazado_hotel";});
 
-  var esSupervisor = currentUser.rol === "supervisor" || currentUser.rol === "admin" || rol === "vlo" || rol === "supervisor";
+  var esSupervisor = currentUser.rol === "supervisor" || currentUser.rol === "admin" || currentUser.rol === "vlo" || rol === "vlo" || rol === "supervisor";
   var filtered=res.filter(function(r){
-    // Solo mis reservas, a menos que sea supervisor/vlo
-    if (!esSupervisor && r.agente && currentUser.nombre && r.agente !== currentUser.nombre) return false;
+    // Admin/supervisor/vlo ven todas; agentes solo las suyas
+    // Si agente_nombre es "Customer Service" o el usuario es admin/supervisor, mostrar siempre
+    if (!esSupervisor && r.agente && currentUser.nombre && r.agente !== currentUser.nombre && r.agente !== "Customer Service") return false;
     if(fStatus!=="all"&&r.status!==fStatus&&r.status!==(fStatus==="solicitud"?"solicitada":fStatus)) return false;
     if(fDest!=="all"&&r.destino!==fDest) return false;
     if(fTipo!=="all"&&r.tipo!==fTipo) return false;
@@ -1486,14 +1492,15 @@ export default function ReservacionesModule(props){
               </div>
               <div style={{flex:1,overflowY:"auto",padding:"14px 16px"}}>
                 {[
-                  {k:"solicitada",  l:"Solicitud",       c:"#f59e0b", bg:"rgba(245,158,11,0.08)"},
-                  {k:"vlo_proceso", l:"VLO en proceso",  c:INDIGO,    bg:"#ebeffe"},
-                  {k:"confirmada",  l:"Confirmada",       c:GREEN,     bg:"#eaf5ec"},
-                  {k:"rechazado_hotel",l:"Rechazado hotel",c:CORAL,   bg:"rgba(249,115,22,0.08)"},
-                  {k:"cancelada",   l:"Cancelada",        c:RED,       bg:"#fef0f0"},
-                  {k:"completada",  l:"Completada",       c:"#9ca3af", bg:"#f4f5f7"},
+                  {k:"solicitada",  l:"Solicitud",      c:"#f59e0b", bg:"rgba(245,158,11,0.08)"},
+                  {k:"en_reserva",  l:"En Reserva",     c:INDIGO,    bg:"#ebeffe"},
+                  {k:"vlo_proceso", l:"VLO",            c:VIOLET,    bg:"rgba(139,92,246,0.08)"},
+                  {k:"confirmada",  l:"Confirmada",     c:GREEN,     bg:"#eaf5ec"},
+                  {k:"rechazado_hotel",l:"Rechazado",   c:CORAL,    bg:"rgba(249,115,22,0.08)"},
+                  {k:"cancelada",   l:"Cancelada",      c:RED,       bg:"#fef0f0"},
+                  {k:"completada",  l:"Completada",     c:"#9ca3af", bg:"#f4f5f7"},
                 ].map(function(col){
-                  var items = filtered.filter(function(r){ return r.status===col.k||(col.k==="solicitada"&&r.status==="solicitud"); });
+                  var items = filtered.filter(function(r){ return r.status===col.k||(col.k==="solicitada"&&r.status==="solicitud")||(col.k==="en_reserva"&&r.status==="en_proceso"); });
                   if (items.length===0) return null;
                   return (
                     <div key={col.k} style={{marginBottom:18}}>
