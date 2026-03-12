@@ -63,7 +63,7 @@ function dbToDestinoVerif(r) {
 
 
 
-var ESTADO_CIVIL_OPTIONS = ["Casado","Cohabitante","Soltero","Soltera"];
+var ESTADO_CIVIL_OPTIONS = ["Casado","Union libre","Soltero hombre","Soltera mujer"];
 
 const BENEFICIOS_CATALOGO = [
   { id:"late_checkout",   label:"Late checkout",              precio:80  },
@@ -177,6 +177,7 @@ const S = {
 function EditExpedienteModal({ exp, destCatalog, destMap, onClose, onSave }) {
   var catalog = destCatalog || DESTINOS_CATALOG;
   var dmap    = destMap    || DEST_MAP;
+  console.log("EditExpedienteModal exp:", JSON.stringify({ tEstadoCivil: exp.tEstadoCivil, destinos: exp.destinos, pFirstName: exp.pFirstName }));
   var [d, setD] = useState(Object.assign({}, exp, {
     destinos: (exp.destinos||[]).map(function(x){ return Object.assign({},x); }),
     tEstadoCivil: exp.tEstadoCivil || exp.estadoCivil || "",
@@ -253,7 +254,7 @@ function EditExpedienteModal({ exp, destCatalog, destMap, onClose, onSave }) {
 
         {/* CO-PROPIETARIO */}
         {(function(){
-          var showCoProp = ["Casado","Cohabitante","Union libre"].includes(d.tEstadoCivil);
+          var showCoProp = ["Casado","Union libre","Cohabitante"].includes(d.tEstadoCivil);
           if (!showCoProp) return null;
           return (
         <div style={{marginBottom:16}}>
@@ -1795,7 +1796,7 @@ function dbToVerifLead(r) {
       tPhone:        r.tel       || "",
       tEmail:        r.email     || "",
       tEstadoCivil:  r.estado_civil || "",
-      hasPartner:    ["Casado","Cohabitante","Union libre"].includes(r.estado_civil),
+      hasPartner:    ["Casado","Union libre","Cohabitante"].includes(r.estado_civil),
       pFirstName:    r.co_prop         || "",
       pLastName:     r.co_prop_apellido|| "",
       pFechaNac:     r.co_prop_fecha_nac || "",
@@ -1861,6 +1862,10 @@ export default function VerificationModule() {
       .then(function(res) {
         setLoading(false);
         if (res.data) {
+          // DEBUG — ver valores crudos de Supabase
+          res.data.slice(0,3).forEach(function(r) {
+            console.log("LEAD RAW:", r.nombre, "| estado_civil:", JSON.stringify(r.estado_civil), "| destinos:", JSON.stringify(r.destinos), "| co_prop:", r.co_prop);
+          });
           var mapped = res.data.map(function(r) {
             var row = { ...r, vendedor_nombre: (r.vendedor && r.vendedor.nombre) || "" };
             return dbToVerifLead(row);
