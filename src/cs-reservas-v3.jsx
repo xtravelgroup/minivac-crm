@@ -680,25 +680,24 @@ function EditNombreModal(props) {
   function handleSave() {
     if (!firstName.trim()) { setErr("El nombre es requerido"); return; }
     setSaving(true); setErr("");
-    SB.from("leads").select("verificacion").eq("id", c.id).single()
-    .then(function(res2) {
-      var verif = (res2.data && res2.data.verificacion) ? Object.assign({}, res2.data.verificacion) : {};
-      var verifNuevo = Object.assign({}, verif, {
-        tFirstName: firstName.trim(), tLastName: lastName.trim(),
-        tFechaNac:  tFechaNac,
-        hasPartner: hasPartner,
-        pFirstName: hasPartner ? pFirstName.trim() : (verif.pFirstName||""),
-        pLastName:  hasPartner ? pLastName.trim()  : (verif.pLastName||""),
-        pFechaNac:  hasPartner ? pFechaNac : (verif.pFechaNac||""),
-      });
-      var nombreCompleto = (firstName.trim() + " " + lastName.trim()).trim();
-      return SB.from("leads").update({ nombre: nombreCompleto, verificacion: verifNuevo }).eq("id", c.id);
-    })
+    // Usar _exp existente del cliente como base para no perder otros campos
+    var expBase = c._exp || {};
+    var verifNuevo = Object.assign({}, expBase, {
+      tFirstName: firstName.trim(),
+      tLastName:  lastName.trim(),
+      tFechaNac:  tFechaNac,
+      hasPartner: hasPartner,
+      pFirstName: hasPartner ? pFirstName.trim() : (expBase.pFirstName||""),
+      pLastName:  hasPartner ? pLastName.trim()  : (expBase.pLastName||""),
+      pFechaNac:  hasPartner ? pFechaNac         : (expBase.pFechaNac||""),
+    });
+    var nombreCompleto = (firstName.trim() + " " + lastName.trim()).trim();
+    SB.from("leads").update({ nombre: nombreCompleto, verificacion: verifNuevo }).eq("id", c.id)
     .then(function(res) {
       setSaving(false);
       if (res && res.error) { setErr("Error al guardar: " + res.error.message); return; }
       props.onSave({
-        nombre:     (firstName.trim() + " " + lastName.trim()).trim(),
+        nombre:     nombreCompleto,
         tFechaNac:  tFechaNac,
         hasPartner: hasPartner,
         pFirstName: hasPartner ? pFirstName.trim() : "",
