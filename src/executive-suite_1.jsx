@@ -94,7 +94,7 @@ export default function ExecutiveSuite() {
     Promise.all([
       SB.from("leads").select("id, nombre, estado_civil, verificacion, membresia, vigencia, saldo_pendiente, paquete, created_at"),
       SB.from("reservaciones").select("id, folio, status, total, fee, checkin, checkout, agente_nombre, created_at, destino_nombre, hotel"),
-      SB.from("radio_spots").select("id, emisora_id, costo, talento, fecha, dia_semana"),
+      SB.from("radio_spots").select("id, emisora_id, costo, talento, fecha, dia_semana, hora, duracion, tipo, incidencia"),
       SB.from("emisoras").select("id, nombre"),
       SB.from("leads").select("id, nombre, paquete, emisora, emisora_id, created_at, verificacion"),
     ]).then(function(results){
@@ -475,155 +475,178 @@ function domingoDe(lunesStr){
   var d=new Date(lunesStr+"T12:00:00"); d.setDate(d.getDate()+6);
   return d.toISOString().split("T")[0];
 }
-function addDias(dateStr,n){
+function addDiasR(dateStr,n){
   var d=new Date(dateStr+"T12:00:00"); d.setDate(d.getDate()+n);
   return d.toISOString().split("T")[0];
 }
-function hoyStr(){ return new Date().toISOString().split("T")[0]; }
-function fmtDia(str){
+function hoyStrR(){ return new Date().toISOString().split("T")[0]; }
+function fmtDiaR(str){
   if(!str) return "-";
   var d=new Date(str+"T12:00:00");
-  return d.toLocaleDateString("es-US",{weekday:"short",month:"short",day:"numeric"});
+  return d.toLocaleDateString("es-US",{weekday:"long",month:"short",day:"numeric"});
 }
-var DIAS_ROI=["Lunes","Martes","Miercoles","Jueves","Viernes","Sabado","Domingo"];
-function fechaDeDiaROI(lunes,idx){
-  var d=new Date(lunes+"T12:00:00"); d.setDate(d.getDate()+idx);
-  return d.toISOString().split("T")[0];
-}
+function capFirst(s){ return s?s.charAt(0).toUpperCase()+s.slice(1):s; }
 
 function TabRadios(props){
   var spots    = props.data.spots    || [];
   var emisoras = props.data.emisoras || [];
   var leads    = props.data.leadsRadio || props.data.leads || [];
 
-  var hoy = hoyStr();
+  var hoy = hoyStrR();
   var [diaActual, setDiaActual] = useState(hoy);
   var lunes   = lunesDe(diaActual);
   var domingo = domingoDe(lunes);
 
   var fmtUSD = function(n){ return "$"+Number(n||0).toLocaleString("en-US",{minimumFractionDigits:0}); };
-  var fmtPct = function(a,b){ return b>0?((a/b)*100).toFixed(1)+"%":"0%"; };
-
-  function prevDia(){ setDiaActual(addDias(diaActual,-1)); }
-  function nextDia(){ if(diaActual<hoy) setDiaActual(addDias(diaActual,1)); }
-
-  // Spots del dia seleccionado
-  var spotsDia = spots.filter(function(s){ return s.fecha===diaActual; });
-  // Spots de la semana
-  var spotsSemana = spots.filter(function(s){ var f=s.fecha||""; return f>=lunes&&f<=domingo; });
-
-  // Helper: inversion de un spot
+  function roiColor(r){ return r>100?"#1a7f3c":r>0?"#1565c0":"#b91c1c"; }
   function invSpot(s){ return (Number(s.costo||0)*1.15)+Number(s.talento||0); }
 
-  // Leads del dia (por created_at)
-  var leadsDia = leads.filter(function(l){ return (l.created_at||"").slice(0,10)===diaActual; });
-  var leadsSem = leads.filter(function(l){ return (l.created_at||"").slice(0,10)>=lunes&&(l.created_at||"").slice(0,10)<=domingo; });
-
-  // Inversion total dia / semana
-  var invDia = spotsDia.reduce(function(t,s){ return t+invSpot(s); },0);
-  var invSem = spotsSemana.reduce(function(t,s){ return t+invSpot(s); },0);
-
-  // Tabla resumen dia: spots por emisora
   var emMap = {};
   emisoras.forEach(function(em){ emMap[em.id]=em.nombre; });
 
-  function rowsPorEmisora(spList, ldList){
-    var rows = {};
-    spList.forEach(function(s){
-      var eid=s.emisora_id||"?"; var enm=emMap[eid]||"Sin emisora";
-      if(!rows[eid]) rows[eid]={nombre:enm,spots:0,inversion:0,leads:0,ventas:0,ingresos:0};
-      rows[eid].spots+=1; rows[eid].inversion+=invSpot(s);
-    });
-    ldList.forEach(function(l){
-      var eid=l.emisora_id||"?";
-      if(rows[eid]){
-        rows[eid].leads+=1;
-        var verif=l.verificacion||{};
-        if(verif.firma_firmada_at){ rows[eid].ventas+=1; rows[eid].ingresos+=Number((l.paquete||{}).precio||0); }
-      }
-    });
-    return Object.values(rows);
-  }
+  // Spots del dia y de la semana
+  var spotsDia    = spots.filter(function(s){ return s.fecha===diaActual; });
+  var spotsSemana = spots.filter(function(s){ var f=s.fecha||""; return f>=lunes&&f<=domingo&&invSpot(s)>0; });
 
-  var rowsDia = rowsPorEmisora(spotsDia, leadsDia);
-  var rowsSem = rowsPorEmisora(spotsSemana, leadsSem);
+  // Leads
+  var leadsDia = leads.filter(function(l){ return (l.created_at||"").slice(0,10)===diaActual; });
+  var leadsSem = leads.filter(function(l){ var f=(l.created_at||"").slice(0,10); return f>=lunes&&f<=domingo; });
 
-  // ROI global semana
+  var invDia = spotsDia.reduce(function(t,s){ return t+invSpot(s); },0);
+  var invSem = spotsSemana.reduce(function(t,s){ return t+invSpot(s); },0);
+
+  // Resumen semanal por emisora (solo con inversion)
+  var semRows = {};
+  spotsSemana.forEach(function(s){
+    var eid=s.emisora_id||"?"; var enm=emMap[eid]||"Sin emisora";
+    if(!semRows[eid]) semRows[eid]={nombre:enm,spots:0,inversion:0,leads:0,ventas:0,ingresos:0};
+    semRows[eid].spots+=1; semRows[eid].inversion+=invSpot(s);
+  });
+  leadsSem.forEach(function(l){
+    var eid=l.emisora_id||"?";
+    if(semRows[eid]){
+      semRows[eid].leads+=1;
+      var verif=l.verificacion||{};
+      if(verif.firma_firmada_at){ semRows[eid].ventas+=1; semRows[eid].ingresos+=Number((l.paquete||{}).precio||0); }
+    }
+  });
+  var rowsSem = Object.values(semRows);
   var totInvS=rowsSem.reduce(function(t,r){return t+r.inversion;},0);
-  var totIngS=rowsSem.reduce(function(t,r){return t+r.ingresos;},0);
   var totLeadsS=rowsSem.reduce(function(t,r){return t+r.leads;},0);
   var totVentasS=rowsSem.reduce(function(t,r){return t+r.ventas;},0);
+  var totIngS=rowsSem.reduce(function(t,r){return t+r.ingresos;},0);
   var roiS=totInvS>0?((totIngS-totInvS)/totInvS)*100:0;
 
-  function roiColor(r){ return r>100?"#1a7f3c":r>0?"#1565c0":"#b91c1c"; }
+  // Spots del dia ordenados por hora
+  var spotsDiaOrdenados = spotsDia.slice().sort(function(a,b){ return (a.hora||"").localeCompare(b.hora||""); });
 
-  var thS={fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",padding:"8px 10px",textAlign:"right",borderBottom:"2px solid "+C.border};
-  var tdS=function(bold,color){ return {fontSize:12,padding:"8px 10px",textAlign:"right",fontWeight:bold?"700":"400",color:color||C.text,borderBottom:"1px solid "+C.border}; };
-  var tdL={fontSize:12,padding:"8px 10px",fontWeight:600,color:C.text,borderBottom:"1px solid "+C.border};
-
-  function Tabla(tprops){
-    var rows=tprops.rows; var titulo=tprops.titulo;
-    return React.createElement("div",{style:{background:C.surface,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden",marginBottom:20}},[
-      React.createElement("div",{key:"h",style:{padding:"10px 14px",borderBottom:"1px solid "+C.border,fontWeight:700,fontSize:13,color:C.text}},titulo),
-      React.createElement("table",{key:"t",style:{width:"100%",borderCollapse:"collapse"}},[
-        React.createElement("thead",{key:"th"},
-          React.createElement("tr",{},[
-            React.createElement("th",{key:"n",style:Object.assign({},thS,{textAlign:"left"})},"Emisora"),
-            React.createElement("th",{key:"s",style:thS},"Spots"),
-            React.createElement("th",{key:"i",style:thS},"Inversion"),
-            React.createElement("th",{key:"l",style:thS},"Leads"),
-            React.createElement("th",{key:"v",style:thS},"Ventas"),
-            React.createElement("th",{key:"r",style:thS},"ROI"),
-          ])
-        ),
-        React.createElement("tbody",{key:"tb"},
-          rows.length===0
-            ? React.createElement("tr",{key:"empty"},React.createElement("td",{colSpan:6,style:{textAlign:"center",padding:24,color:C.muted,fontSize:12}},"Sin spots este periodo"))
-            : rows.map(function(r,i){
-                var roi=r.inversion>0?((r.ingresos-r.inversion)/r.inversion)*100:0;
-                return React.createElement("tr",{key:i},[
-                  React.createElement("td",{key:"n",style:tdL},r.nombre),
-                  React.createElement("td",{key:"s",style:tdS(false,C.muted)},r.spots),
-                  React.createElement("td",{key:"i",style:tdS(false,"#b91c1c")},fmtUSD(r.inversion)),
-                  React.createElement("td",{key:"l",style:tdS(false,C.indigo)},r.leads),
-                  React.createElement("td",{key:"v",style:tdS(false,C.green)},r.ventas),
-                  React.createElement("td",{key:"r",style:tdS(true,roiColor(roi))},r.inversion>0?roi.toFixed(1)+"%":"--"),
-                ]);
-              })
-        ),
-      ]),
-    ]);
-  }
+  var thS={fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",padding:"7px 10px",textAlign:"left",borderBottom:"2px solid "+C.border,background:"#f8f9fb"};
+  var tdS=function(color,right){ return {fontSize:12,padding:"7px 10px",color:color||C.text,textAlign:right?"right":"left",borderBottom:"1px solid "+C.border}; };
 
   return React.createElement("div",{style:{padding:"16px 20px"}},[
-    // ── Navegacion dia ──
+
+    // ── Navegador de dia ──
     React.createElement("div",{key:"nav",style:{display:"flex",alignItems:"center",gap:10,marginBottom:16,background:C.surface,border:"1px solid "+C.border,borderRadius:10,padding:"10px 16px"}},[
-      React.createElement("button",{key:"prev",onClick:prevDia,style:{background:"none",border:"1px solid "+C.border,borderRadius:6,padding:"4px 12px",cursor:"pointer",fontSize:14,color:C.text}},"<"),
+      React.createElement("button",{key:"prev",onClick:function(){setDiaActual(addDiasR(diaActual,-1));},style:{background:"none",border:"1px solid "+C.border,borderRadius:6,padding:"4px 14px",cursor:"pointer",fontSize:16,color:C.text}},"‹"),
       React.createElement("div",{key:"info",style:{flex:1,textAlign:"center"}},[
-        React.createElement("div",{key:"d",style:{fontWeight:700,fontSize:15,color:C.text}},fmtDia(diaActual)),
-        React.createElement("div",{key:"s",style:{fontSize:11,color:C.muted,marginTop:2}},"Semana: "+fmtDia(lunes)+" - "+fmtDia(domingo)),
+        React.createElement("div",{key:"d",style:{fontWeight:700,fontSize:15,color:C.text}},capFirst(fmtDiaR(diaActual))),
+        React.createElement("div",{key:"s",style:{fontSize:11,color:C.muted,marginTop:2}},"Semana "+capFirst(fmtDiaR(lunes))+" – "+capFirst(fmtDiaR(domingo))),
       ]),
-      React.createElement("button",{key:"next",onClick:nextDia,style:{background:"none",border:"1px solid "+C.border,borderRadius:6,padding:"4px 12px",cursor:diaActual<hoy?"pointer":"not-allowed",fontSize:14,color:diaActual<hoy?C.text:C.muted}},">"),
-      diaActual!==hoy&&React.createElement("button",{key:"hoy",onClick:function(){setDiaActual(hoy);},style:{background:C.indigo,color:"#fff",border:"none",borderRadius:6,padding:"4px 12px",cursor:"pointer",fontSize:12}},"Hoy"),
+      React.createElement("button",{key:"next",onClick:function(){setDiaActual(addDiasR(diaActual,1));},style:{background:"none",border:"1px solid "+C.border,borderRadius:6,padding:"4px 14px",cursor:"pointer",fontSize:16,color:C.text}},"›"),
+      diaActual!==hoy&&React.createElement("button",{key:"hoy",onClick:function(){setDiaActual(hoy);},style:{background:C.indigo,color:"#fff",border:"none",borderRadius:6,padding:"5px 12px",cursor:"pointer",fontSize:12,fontWeight:600}},"Hoy"),
     ]),
-    // ── KPIs dia ──
-    React.createElement("div",{key:"kpis-dia",style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:16}},[
-      React.createElement(KpiCard,{key:"sp",label:"Spots hoy",       value:String(spotsDia.length),  color:C.indigo}),
-      React.createElement(KpiCard,{key:"iv",label:"Inversion hoy",   value:fmtUSD(invDia),           color:"#b91c1c"}),
-      React.createElement(KpiCard,{key:"ld",label:"Leads hoy",       value:String(leadsDia.length),  color:C.green}),
-      React.createElement(KpiCard,{key:"cpl",label:"CPL hoy",        value:leadsDia.length>0?fmtUSD(invDia/leadsDia.length):"--", color:C.amber}),
+
+    // ── KPIs del dia ──
+    React.createElement("div",{key:"kpis",style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:16}},[
+      React.createElement(KpiCard,{key:"sp", label:"Spots hoy",     value:String(spotsDia.length),                                      color:C.indigo}),
+      React.createElement(KpiCard,{key:"iv", label:"Inversion hoy", value:fmtUSD(invDia),                                               color:"#b91c1c"}),
+      React.createElement(KpiCard,{key:"ld", label:"Leads hoy",     value:String(leadsDia.length),                                      color:C.green}),
+      React.createElement(KpiCard,{key:"cp", label:"CPL hoy",       value:leadsDia.length>0?fmtUSD(invDia/leadsDia.length):"--",        color:C.amber}),
     ]),
-    // ── Tabla dia ──
-    React.createElement(Tabla,{key:"tdia",rows:rowsDia,titulo:"Detalle del dia por emisora"}),
+
+    // ── Tabla de spots del dia ──
+    React.createElement("div",{key:"tdia",style:{background:C.surface,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden",marginBottom:24}},[
+      React.createElement("div",{key:"hdr",style:{padding:"10px 14px",borderBottom:"1px solid "+C.border,fontWeight:700,fontSize:13,color:C.text,display:"flex",justifyContent:"space-between",alignItems:"center"}},[
+        React.createElement("span",{key:"t"},"Spots del dia"),
+        React.createElement("span",{key:"s",style:{fontSize:11,color:C.muted}},spotsDia.length+" spot"+(spotsDia.length!==1?"s":"")),
+      ]),
+      spotsDiaOrdenados.length===0
+        ? React.createElement("div",{key:"empty",style:{textAlign:"center",padding:28,color:C.muted,fontSize:12}},"Sin spots registrados para este dia")
+        : React.createElement("table",{key:"tbl",style:{width:"100%",borderCollapse:"collapse"}},[
+            React.createElement("thead",{key:"th"},React.createElement("tr",{},[
+              React.createElement("th",{key:"h",style:thS},"Hora"),
+              React.createElement("th",{key:"e",style:thS},"Emisora"),
+              React.createElement("th",{key:"t",style:thS},"Tipo"),
+              React.createElement("th",{key:"d",style:Object.assign({},thS,{textAlign:"right"})},"Dur."),
+              React.createElement("th",{key:"c",style:Object.assign({},thS,{textAlign:"right"})},"Costo"),
+              React.createElement("th",{key:"tk",style:Object.assign({},thS,{textAlign:"right"})},"Talento"),
+              React.createElement("th",{key:"i",style:Object.assign({},thS,{textAlign:"right"})},"Total"),
+              React.createElement("th",{key:"n",style:thS},"Incidencia"),
+            ])),
+            React.createElement("tbody",{key:"tb"},
+              spotsDiaOrdenados.map(function(s,i){
+                var inv=invSpot(s);
+                return React.createElement("tr",{key:i,style:{background:i%2===0?"#fff":"#f9fafb"}},[
+                  React.createElement("td",{key:"h",style:tdS(C.indigo)},s.hora||"--"),
+                  React.createElement("td",{key:"e",style:tdS(null)},emMap[s.emisora_id]||"--"),
+                  React.createElement("td",{key:"t",style:tdS(C.muted)},s.tipo||"comercial"),
+                  React.createElement("td",{key:"d",style:tdS(C.muted,true)},s.duracion?s.duracion+"s":"--"),
+                  React.createElement("td",{key:"c",style:tdS("#b91c1c",true)},fmtUSD(s.costo||0)),
+                  React.createElement("td",{key:"tk",style:tdS(C.amber,true)},s.talento>0?fmtUSD(s.talento):"--"),
+                  React.createElement("td",{key:"i",style:Object.assign({},tdS(null,true),{fontWeight:700})},fmtUSD(inv)),
+                  React.createElement("td",{key:"n",style:tdS(C.muted)},s.incidencia||""),
+                ]);
+              })
+            ),
+          ]),
+    ]),
+
     // ── KPIs semana ──
-    React.createElement("div",{key:"kpis-sem",style:{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:12,marginBottom:16}},[
-      React.createElement(KpiCard,{key:"sp",label:"Spots semana",    value:String(spotsSemana.length), color:C.indigo}),
-      React.createElement(KpiCard,{key:"iv",label:"Inversion semana",value:fmtUSD(invSem),             color:"#b91c1c"}),
-      React.createElement(KpiCard,{key:"ld",label:"Leads semana",    value:String(totLeadsS),           color:C.green}),
-      React.createElement(KpiCard,{key:"vt",label:"Ventas semana",   value:String(totVentasS),          color:C.green}),
-      React.createElement(KpiCard,{key:"ro",label:"ROI semana",      value:roiS.toFixed(1)+"%",         color:roiColor(roiS)}),
+    React.createElement("div",{key:"sem-title",style:{fontSize:12,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}},"Resumen semanal"),
+    React.createElement("div",{key:"kpis-sem",style:{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:12,marginBottom:12}},[
+      React.createElement(KpiCard,{key:"sp", label:"Spots semana",    value:String(spotsSemana.length), color:C.indigo}),
+      React.createElement(KpiCard,{key:"iv", label:"Inversion",       value:fmtUSD(invSem),             color:"#b91c1c"}),
+      React.createElement(KpiCard,{key:"ld", label:"Leads",           value:String(totLeadsS),          color:C.green}),
+      React.createElement(KpiCard,{key:"vt", label:"Ventas",          value:String(totVentasS),         color:C.green}),
+      React.createElement(KpiCard,{key:"ro", label:"ROI semana",      value:roiS.toFixed(1)+"%",        color:roiColor(roiS)}),
     ]),
-    // ── Tabla semana ──
-    React.createElement(Tabla,{key:"tsem",rows:rowsSem,titulo:"Resumen semanal por emisora"}),
+
+    // ── Tabla resumen semanal por emisora ──
+    React.createElement("div",{key:"tsem",style:{background:C.surface,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}},[
+      React.createElement("div",{key:"hdr",style:{padding:"10px 14px",borderBottom:"1px solid "+C.border,fontWeight:700,fontSize:13,color:C.text}},"Por emisora esta semana"),
+      rowsSem.length===0
+        ? React.createElement("div",{key:"empty",style:{textAlign:"center",padding:28,color:C.muted,fontSize:12}},"Sin inversion registrada esta semana")
+        : React.createElement("table",{key:"tbl",style:{width:"100%",borderCollapse:"collapse"}},[
+            React.createElement("thead",{key:"th"},React.createElement("tr",{},[
+              React.createElement("th",{key:"n",style:thS},"Emisora"),
+              React.createElement("th",{key:"s",style:Object.assign({},thS,{textAlign:"right"})},"Spots"),
+              React.createElement("th",{key:"i",style:Object.assign({},thS,{textAlign:"right"})},"Inversion"),
+              React.createElement("th",{key:"l",style:Object.assign({},thS,{textAlign:"right"})},"Leads"),
+              React.createElement("th",{key:"v",style:Object.assign({},thS,{textAlign:"right"})},"Ventas"),
+              React.createElement("th",{key:"r",style:Object.assign({},thS,{textAlign:"right"})},"ROI"),
+            ])),
+            React.createElement("tbody",{key:"tb"},[
+              rowsSem.map(function(r,i){
+                var roi=r.inversion>0?((r.ingresos-r.inversion)/r.inversion)*100:0;
+                return React.createElement("tr",{key:i,style:{background:i%2===0?"#fff":"#f9fafb"}},[
+                  React.createElement("td",{key:"n",style:tdS(null)},r.nombre),
+                  React.createElement("td",{key:"s",style:tdS(C.muted,true)},r.spots),
+                  React.createElement("td",{key:"i",style:tdS("#b91c1c",true)},fmtUSD(r.inversion)),
+                  React.createElement("td",{key:"l",style:tdS(C.indigo,true)},r.leads),
+                  React.createElement("td",{key:"v",style:tdS(C.green,true)},r.ventas),
+                  React.createElement("td",{key:"r",style:Object.assign({},tdS(null,true),{fontWeight:700,color:roiColor(roi)})},r.inversion>0?roi.toFixed(1)+"%":"--"),
+                ]);
+              }),
+              React.createElement("tr",{key:"tot",style:{background:"#f0f2f5",fontWeight:700}},[
+                React.createElement("td",{key:"n",style:tdS(null)},"TOTAL"),
+                React.createElement("td",{key:"s",style:tdS(null,true)},spotsSemana.length),
+                React.createElement("td",{key:"i",style:tdS("#b91c1c",true)},fmtUSD(totInvS)),
+                React.createElement("td",{key:"l",style:tdS(C.indigo,true)},totLeadsS),
+                React.createElement("td",{key:"v",style:tdS(C.green,true)},totVentasS),
+                React.createElement("td",{key:"r",style:Object.assign({},tdS(null,true),{color:roiColor(roiS)})},roiS.toFixed(1)+"%"),
+              ]),
+            ]),
+          ]),
+    ]),
   ]);
 }
