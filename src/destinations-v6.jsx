@@ -1073,7 +1073,7 @@ function DestModal({ data, saving, onSave, onDelete, onClose }) {
                   <input style={S.inp} type="number" min="0" max="17" value={f.qc.edadMaxNino||12}
                     onChange={e=>set("qc",Object.assign({},f.qc,{edadMaxNino:Number(e.target.value)}))}
                     disabled={!(f.qc.ninos>0)}
-                    style={{...S.inp, opacity:f.qc.ninos>0?1:0.4}} />
+                    style={Object.assign({},S.inp,{opacity:f.qc.ninos>0?1:0.4})} />
                 </FLD>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
@@ -1089,7 +1089,7 @@ function DestModal({ data, saving, onSave, onDelete, onClose }) {
                   <input style={S.inp} type="number" min="0" max="17" value={f.qc.edadMaxNino||12}
                     onChange={e=>set("qc",Object.assign({},f.qc,{edadMaxNino:Number(e.target.value)}))}
                     disabled={!f.qc.ninos}
-                    style={{...S.inp, opacity:f.qc.ninos?1:0.4}} />
+                    style={Object.assign({},S.inp,{opacity:f.qc.ninos?1:0.4})} />
                 </FLD>
               </div>
               <div style={{fontSize:10,color:"#9ca3af",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>

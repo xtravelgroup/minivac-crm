@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { SB } from "./supabase.js";
+import { supabase as SB } from "./supabase.js";
 
 var fmtUSD = function(n){ return "$" + Number(n||0).toLocaleString("en-US", {minimumFractionDigits:0}); };
 var fmtPct = function(a,b){ return b>0 ? ((a/b)*100).toFixed(1)+"%" : "0%"; };
