@@ -1809,7 +1809,7 @@ export default function SellerCRMv3({ currentUser: shellUser }) {
       .then(function(res) {
         if (res.data) {
           setSbUsers(res.data.map(function(u) {
-            return { id: u.auth_id || u.id, name: u.nombre, role: u.rol, supervisorId: null };
+            return { id: u.auth_id || u.id, dbId: u.id, authId: u.auth_id, name: u.nombre, role: u.rol, supervisorId: null };
           }));
         }
       });
@@ -1835,7 +1835,7 @@ export default function SellerCRMv3({ currentUser: shellUser }) {
   useEffect(function() {
     cargarLeads();
     cargarDestinos();
-    if (isSup) cargarUsuarios();
+    cargarUsuarios();
     var interval = setInterval(function() { cargarLeads(); }, 30000);
     return function() { clearInterval(interval); };
   }, []);
@@ -1895,7 +1895,10 @@ export default function SellerCRMv3({ currentUser: shellUser }) {
 
   const handleAddLead = function(l) {
     var dbRow = leadToDb(l);
-    if (!isSup && myAuthId) dbRow.vendedor_id = myAuthId;
+    // Buscar el id correcto en la tabla usuarios (no auth_id)
+    var meEnUsuarios = sbUsers.find(function(u){ return u.id === myAuthId || u.authId === myAuthId; });
+    var vendedorDbId = meEnUsuarios ? meEnUsuarios.dbId : myAuthId;
+    if (vendedorDbId) dbRow.vendedor_id = vendedorDbId;
     SB.from("leads").insert(dbRow).select().then(function(res) {
       if (res.error) {
         notify("Error al crear lead: " + res.error.message, false);
