@@ -1272,7 +1272,7 @@ export default function ReservacionesModule(props){
   // ── Cargar desde Supabase
   function cargarReservas() {
     SB.from("reservaciones")
-      .select("*, leads(nombre, co_prop, verificacion, noches_base)")
+      .select("*, leads(nombre, co_prop, verificacion)")
       .order("created_at", { ascending: false })
       .then(function(r) {
         setLoading(false);
@@ -1282,7 +1282,6 @@ export default function ReservacionesModule(props){
           if (rv.leads) {
             if (rv.leads.nombre) local.cliente = rv.leads.nombre;
             if (rv.leads.co_prop) local.co_prop = rv.leads.co_prop;
-            if (rv.leads.noches_base) local.nBase = rv.leads.noches_base;
             var verif = rv.leads.verificacion;
             if (verif) {
               local.tNombre    = (verif.tFirstName||"") + " " + (verif.tLastName||"");
