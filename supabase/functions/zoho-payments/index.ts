@@ -384,5 +384,24 @@ serve(async (req) => {
     }
   }
 
+
+});
+  // POST /generar-link
+  if (req.method === "POST" && path === "/generar-link") {
+    try {
+      const body    = await req.json();
+      const { lead_id } = body;
+      if (!lead_id) return new Response(JSON.stringify({ error: "lead_id requerido" }), { status: 400, headers: { ...CORS, "Content-Type": "application/json" } });
+      const SB = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const token = crypto.randomUUID();
+      await SB.from("leads").update({ firma_token: token, firma_enviada_at: new Date().toISOString() }).eq("id", lead_id);
+      const baseUrl = Deno.env.get("CERTIFICATE_BASE_URL") || "https://minivac-crm.vercel.app";
+      const link = `${baseUrl}/certificate/${token}`;
+      return new Response(JSON.stringify({ link, token }), { status: 200, headers: { ...CORS, "Content-Type": "application/json" } });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: { ...CORS, "Content-Type": "application/json" } });
+    }
+  }
+
   return new Response("Not found", { status: 404 });
 });
