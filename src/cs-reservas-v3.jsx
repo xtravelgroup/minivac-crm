@@ -673,7 +673,8 @@ function EditNombreModal(props) {
   var [firstName,  setFirstName]  = useState(exp.tFirstName || c.nombre.split(" ")[0] || "");
   var [lastName,   setLastName]   = useState(exp.tLastName  || c.nombre.split(" ").slice(1).join(" ") || "");
   var [tFechaNac,  setTFechaNac]  = useState(exp.tFechaNac  || "");
-  var [hasPartner, setHasPartner] = useState(exp.hasPartner || false);
+  var [estadoCivil, setEstadoCivil] = useState(exp.tEstadoCivil || c.estado_civil || "");
+  var hasPartner = estadoCivil === "Casado" || estadoCivil === "Cohabitante";
   var [pFirstName, setPFirstName] = useState(exp.pFirstName || "");
   var [pLastName,  setPLastName]  = useState(exp.pLastName  || "");
   var [pFechaNac,  setPFechaNac]  = useState(exp.pFechaNac  || "");
@@ -686,26 +687,28 @@ function EditNombreModal(props) {
     // Usar _exp existente del cliente como base para no perder otros campos
     var expBase = c._exp || {};
     var verifNuevo = Object.assign({}, expBase, {
-      tFirstName: firstName.trim(),
-      tLastName:  lastName.trim(),
-      tFechaNac:  tFechaNac,
-      hasPartner: hasPartner,
-      pFirstName: hasPartner ? pFirstName.trim() : (expBase.pFirstName||""),
-      pLastName:  hasPartner ? pLastName.trim()  : (expBase.pLastName||""),
-      pFechaNac:  hasPartner ? pFechaNac         : (expBase.pFechaNac||""),
+      tFirstName:    firstName.trim(),
+      tLastName:     lastName.trim(),
+      tFechaNac:     tFechaNac,
+      tEstadoCivil:  estadoCivil,
+      hasPartner:    hasPartner,
+      pFirstName:    hasPartner ? pFirstName.trim() : (expBase.pFirstName||""),
+      pLastName:     hasPartner ? pLastName.trim()  : (expBase.pLastName||""),
+      pFechaNac:     hasPartner ? pFechaNac         : (expBase.pFechaNac||""),
     });
     var nombreCompleto = (firstName.trim() + " " + lastName.trim()).trim();
-    SB.from("leads").update({ nombre: nombreCompleto, verificacion: verifNuevo }).eq("id", c.id)
+    SB.from("leads").update({ nombre: nombreCompleto, estado_civil: estadoCivil, verificacion: verifNuevo }).eq("id", c.id)
     .then(function(res) {
       setSaving(false);
       if (res && res.error) { setErr("Error al guardar: " + res.error.message); return; }
       props.onSave({
-        nombre:     nombreCompleto,
-        tFechaNac:  tFechaNac,
-        hasPartner: hasPartner,
-        pFirstName: hasPartner ? pFirstName.trim() : "",
-        pLastName:  hasPartner ? pLastName.trim()  : "",
-        pFechaNac:  hasPartner ? pFechaNac : "",
+        nombre:       nombreCompleto,
+        tFechaNac:    tFechaNac,
+        estadoCivil:  estadoCivil,
+        hasPartner:   hasPartner,
+        pFirstName:   hasPartner ? pFirstName.trim() : "",
+        pLastName:    hasPartner ? pLastName.trim()  : "",
+        pFechaNac:    hasPartner ? pFechaNac : "",
       });
     });
   }
@@ -728,18 +731,23 @@ function EditNombreModal(props) {
             <label style={S.label}>Apellido(s)</label>
             <input style={S.input} value={lastName} onChange={function(e){ setLastName(e.target.value); }} placeholder="Apellido"/>
           </div>
-          <div style={{gridColumn:"1/-1"}}>
-            <label style={S.label}>Fecha de nacimiento del titular</label>
+          <div>
+            <label style={S.label}>Fecha de nacimiento</label>
             <input style={S.input} type="date" value={tFechaNac} onChange={function(e){ setTFechaNac(e.target.value); }} max={TODAY}/>
           </div>
-        </div>
-        <div onClick={function(){ setHasPartner(function(p){ return !p; }); }}
-          style={{display:"flex",alignItems:"center",gap:8,margin:"12px 0",cursor:"pointer",userSelect:"none"}}>
-          <div style={{width:16,height:16,borderRadius:4,border:"2px solid "+(hasPartner?BLUE:"#9ca3af"),background:hasPartner?BLUE:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>
-            {hasPartner && <span style={{color:"#fff",fontSize:11,fontWeight:900}}>v</span>}
+          <div>
+            <label style={S.label}>Estado civil</label>
+            <select style={S.select} value={estadoCivil} onChange={function(e){ setEstadoCivil(e.target.value); }}>
+              <option value="">-- Seleccionar --</option>
+              <option>Casado</option>
+              <option>Cohabitante</option>
+              <option>Soltero</option>
+              <option>Soltera</option>
+            </select>
           </div>
-          <span style={{fontSize:12,color:"#6b7280"}}>Incluye co-propietario / pareja</span>
         </div>
+        {hasPartner && <div style={{fontSize:11,color:"#1565c0",fontWeight:600,margin:"8px 0 4px"}}>Co-propietario / Pareja</div>}
+
         {hasPartner && (
           <div style={S.g2}>
             <div><label style={S.label}>Nombre co-prop.</label><input style={S.input} value={pFirstName} onChange={function(e){ setPFirstName(e.target.value); }} placeholder="Nombre"/></div>
@@ -1056,15 +1064,10 @@ function EditContactoModal(props) {
               <label style={S.label}>💍 Estado civil</label>
               <select style={S.sel} value={d.estadoCivil} onChange={function(e){ set("estadoCivil", e.target.value); }}>
                 <option value="">-- Seleccionar --</option>
+                <option value="Casado">Casado</option>
+                <option value="Cohabitante">Cohabitante</option>
                 <option value="Soltero">Soltero</option>
                 <option value="Soltera">Soltera</option>
-                <option value="Casado">Casado</option>
-                <option value="Casada">Casada</option>
-                <option value="Union libre">Unión libre</option>
-                <option value="Divorciado">Divorciado</option>
-                <option value="Divorciada">Divorciada</option>
-                <option value="Viudo">Viudo</option>
-                <option value="Viuda">Viuda</option>
               </select>
             </div>
           </div>

@@ -63,7 +63,7 @@ function dbToDestinoVerif(r) {
 
 
 
-const ESTADO_CIVIL_OPTIONS = ["Casado","Union libre","Soltero hombre","Soltera mujer"];
+var ESTADO_CIVIL_OPTIONS = ["Casado","Cohabitante","Soltero","Soltera"];
 
 const BENEFICIOS_CATALOGO = [
   { id:"late_checkout",   label:"Late checkout",              precio:80  },
@@ -1792,7 +1792,7 @@ function dbToVerifLead(r) {
       tPhone:        r.tel       || "",
       tEmail:        r.email     || "",
       tEstadoCivil:  r.estado_civil || "",
-      hasPartner:    ["Casado","Union libre"].includes(r.estado_civil),
+      hasPartner:    ["Casado","Cohabitante"].includes(r.estado_civil),
       pFirstName:    r.co_prop   ? r.co_prop.split(" ")[0] : "",
       pLastName:     r.co_prop   ? r.co_prop.split(" ").slice(1).join(" ") : "",
       pFechaNac:     "",
