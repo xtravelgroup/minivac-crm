@@ -611,7 +611,29 @@ function ReservaModal(props){
   var [profCo,    setProfCo]    = useState(r.profCo     || "");
 
   // Pasajeros
-  var [pasajeros, setPasajeros] = useState(r.pasajeros || []);
+  // Inicializar pasajeros desde certificado si no hay guardados
+  function initPasajeros(){
+    if(r.pasajeros && r.pasajeros.length > 0) return r.pasajeros;
+    var lista = [];
+    // Pasajero 1: titular
+    lista.push({
+      nombre:   r.tNombre   || r.cliente || "",
+      fechaNac: r.tFechaNac || "",
+      tipo:     "adulto",
+      rol:      "titular"
+    });
+    // Pasajero 2: pareja/co-prop (si existe)
+    if(r.hasPartner || r.pNombre || r.co_prop){
+      lista.push({
+        nombre:   r.pNombre  || r.co_prop || "",
+        fechaNac: r.pFechaNac || "",
+        tipo:     "adulto",
+        rol:      "co_prop"
+      });
+    }
+    return lista;
+  }
+  var [pasajeros, setPasajeros] = useState(initPasajeros);
 
   var [tab, setTab] = useState("hotel");
   var [saving, setSaving] = useState(false);
@@ -765,7 +787,7 @@ function ReservaModal(props){
           {/* Fechas */}
           <div style={S.g3}>
             <div><label style={S.lbl}>Check-in</label><input style={S.inp} type="date" value={checkin} onChange={function(e){setCheckin(e.target.value);}}/></div>
-            <div><label style={S.lbl}>Noches paquete</label><input style={S.inp} type="number" min="1" max="21" value={nBase} onChange={function(e){setNBase(e.target.value);}}/></div>
+            <div><label style={S.lbl}>Noches paquete</label><div style={{padding:"8px 12px",background:"#f8f9fb",border:"1px solid #e3e6ea",borderRadius:"8px",fontSize:"13px",color:"#6b7280"}}>{nBase} <span style={{fontSize:10,color:"#9ca3af"}}>(del paquete)</span></div></div>
             <div><label style={S.lbl}>Noches extra</label><input style={S.inp} type="number" min="0" max="14" value={nExtra} onChange={function(e){setNExtra(e.target.value);}}/></div>
           </div>
 
@@ -806,12 +828,19 @@ function ReservaModal(props){
             return (
               <div key={i} style={{background:"#f8f9fb",border:"1px solid #e3e6ea",borderRadius:10,padding:"12px 14px",marginBottom:8}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <div style={{fontSize:11,fontWeight:700,color:INDIGO}}>{p.tipo==="nino"?"Nino":"Adulto"} {i+1}</div>
-                  <button onClick={function(){removePax(i);}} style={{background:"none",border:"none",cursor:"pointer",color:RED,fontSize:12}}>Eliminar</button>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    <div style={{fontSize:11,fontWeight:700,color:INDIGO}}>{p.tipo==="nino"?"Nino":"Adulto"} {i+1}</div>
+                    {p.rol==="titular"&&<span style={{fontSize:10,padding:"1px 7px",background:"rgba(21,101,192,0.1)",color:INDIGO,borderRadius:20,fontWeight:600}}>Titular</span>}
+                    {p.rol==="co_prop"&&<span style={{fontSize:10,padding:"1px 7px",background:"rgba(14,165,160,0.1)",color:TEAL,borderRadius:20,fontWeight:600}}>Co-prop / Pareja</span>}
+                  </div>
+                  {i>1&&<button onClick={function(){removePax(i);}} style={{background:"none",border:"none",cursor:"pointer",color:RED,fontSize:12}}>Eliminar</button>}
                 </div>
                 <div style={S.g3}>
                   <div style={{gridColumn:"1/3"}}><label style={S.lbl}>Nombre completo</label><input style={S.inp} value={p.nombre||""} onChange={function(e){setPax(i,"nombre",e.target.value);}} placeholder="Nombre y apellidos"/></div>
-                  <div><label style={S.lbl}>Fecha de nacimiento</label><input style={S.inp} type="date" value={p.fechaNac||""} onChange={function(e){setPax(i,"fechaNac",e.target.value);}}/></div>
+                  <div>
+                    <label style={S.lbl}>Fecha de nacimiento {p.fechaNac&&p.rol?"(del certificado)":""}</label>
+                    <input style={S.inp} type="date" value={p.fechaNac||""} onChange={function(e){setPax(i,"fechaNac",e.target.value);}}/>
+                  </div>
                 </div>
               </div>
             );
@@ -1243,14 +1272,26 @@ export default function ReservacionesModule(props){
   // ── Cargar desde Supabase
   function cargarReservas() {
     SB.from("reservaciones")
-      .select("*, leads(nombre)")
+      .select("*, leads(nombre, co_prop, verificacion, noches_base)")
       .order("created_at", { ascending: false })
       .then(function(r) {
         setLoading(false);
         if (r.error) { notify("Error al cargar: " + r.error.message); return; }
         var mapped = (r.data || []).map(function(rv) {
           var local = rvToLocal(rv);
-          if (rv.leads && rv.leads.nombre) local.cliente = rv.leads.nombre;
+          if (rv.leads) {
+            if (rv.leads.nombre) local.cliente = rv.leads.nombre;
+            if (rv.leads.co_prop) local.co_prop = rv.leads.co_prop;
+            if (rv.leads.noches_base) local.nBase = rv.leads.noches_base;
+            var verif = rv.leads.verificacion;
+            if (verif) {
+              local.tNombre    = (verif.tFirstName||"") + " " + (verif.tLastName||"");
+              local.tFechaNac  = verif.tFechaNac || "";
+              local.hasPartner = verif.hasPartner || false;
+              local.pNombre    = verif.hasPartner ? ((verif.pFirstName||"") + " " + (verif.pLastName||"")) : "";
+              local.pFechaNac  = verif.hasPartner ? (verif.pFechaNac || "") : "";
+            }
+          }
           return local;
         });
         setRes(mapped);
