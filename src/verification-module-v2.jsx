@@ -1372,6 +1372,9 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
   var [error,          setError]          = useState(null);
   var [zohoReady,      setZohoReady]      = useState(false);
   var [usarOtra,       setUsarOtra]       = useState(false);
+  var [metodoCobro,    setMetodoCobro]    = useState("tarjeta");
+  var [refCobro,       setRefCobro]       = useState("");
+  var [otroDescCobro,  setOtroDescCobro]  = useState("");
   var yaPagado = verif && verif.paymentStatus === "approved";
 
   var tieneGuardada = !usarOtra && (exp.zohoPaymentMethodId || "");
@@ -1385,6 +1388,35 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
     script.onerror = function() { setError("No se pudo cargar el SDK de Zoho Payments"); };
     document.head.appendChild(script);
   }, []);
+
+  // Cobro manual (no tarjeta)
+  var handleCobrarManual = function() {
+    setLoading(true); setError(null);
+    var metodoLabel = metodoCobro === "otro" ? ("otro: " + (otroDescCobro || "sin descripción")) : metodoCobro;
+    // Guardar en Supabase como pago aprobado manual
+    var SBurl = "https://gsvnvahrjgswwejnuiyn.supabase.co";
+    var SBkey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA";
+    fetch(SBurl + "/rest/v1/leads?id=eq." + lead.id, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + SBkey, "apikey": SBkey, "Prefer": "return=minimal" },
+      body: JSON.stringify({
+        verificacion: Object.assign({}, verif || {}, {
+          paymentStatus: "approved",
+          result:        "venta",
+          metodo:        metodoLabel,
+          referencia:    refCobro || "—",
+          paidAt:        new Date().toISOString(),
+        }),
+        status: "venta",
+      }),
+    })
+    .then(function(r) {
+      setLoading(false);
+      if (r.ok) { onChargeResult("approved", "manual-" + metodoCobro); }
+      else { setError("Error guardando pago manual"); }
+    })
+    .catch(function(err) { setLoading(false); setError("Error: " + err.message); });
+  };
 
   var handleCobrar = function() {
     setLoading(true);
@@ -1484,6 +1516,40 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
     <div style={S.card}>
       <div style={S.sTitle}>Pago via Zoho Payments</div>
 
+      {/* Selector método de cobro */}
+      {!yaPagado && (
+        <div style={{marginBottom:14}}>
+          <div style={S.label}>Método de cobro</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {[["tarjeta","💳 Tarjeta"],["transferencia","🏦 Transferencia/Zelle"],["efectivo","💵 Efectivo"],["otro","✏️ Otro"]].map(function(op){
+              return (
+                <button key={op[0]} onClick={function(){ setMetodoCobro(op[0]); setError(null); }}
+                  style={{padding:"6px 12px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,
+                    background:metodoCobro===op[0]?"#1565c0":"#f4f5f7",
+                    color:metodoCobro===op[0]?"#fff":"#3d4554",
+                    border:"2px solid "+(metodoCobro===op[0]?"#1565c0":"#e3e6ea")}}>
+                  {op[1]}
+                </button>
+              );
+            })}
+          </div>
+          {metodoCobro !== "tarjeta" && (
+            <div style={{marginTop:10,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              <div>
+                <div style={S.label}>Referencia / No. transacción</div>
+                <input style={S.input} value={refCobro} onChange={function(e){ setRefCobro(e.target.value); }} placeholder="TXN-12345 / SPEI-..." />
+              </div>
+              {metodoCobro === "otro" && (
+                <div>
+                  <div style={S.label}>Descripción del método</div>
+                  <input style={S.input} value={otroDescCobro} onChange={function(e){ setOtroDescCobro(e.target.value); }} placeholder="Ej: Cheque, giro bancario..." />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Resumen del cobro */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"14px 16px", borderRadius:"10px", background:"#f4f5f7", border:"1px solid #e3e6ea", marginBottom:"14px" }}>
         <div>
@@ -1529,7 +1595,7 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
       )}
 
       {/* Tarjeta guardada */}
-      {!yaPagado && tieneGuardada && (
+      {!yaPagado && metodoCobro === "tarjeta" && tieneGuardada && (
         <div style={{ padding:"10px 14px", borderRadius:"8px", background:"#edf7ee", border:"1px solid #a3d9a5", marginBottom:"10px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:"10px" }}>
           <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
             <div style={{ fontSize:"18px" }}>CC</div>
@@ -1549,7 +1615,7 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
       )}
 
       {/* Aviso cuando se usa otra tarjeta */}
-      {!yaPagado && usarOtra && (
+      {!yaPagado && metodoCobro === "tarjeta" && usarOtra && (
         <div style={{ padding:"9px 12px", borderRadius:"8px", background:"#fffce5", border:"1px solid #f0d080", marginBottom:"10px", fontSize:"12px", color:"#925c0a", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <span>Nueva tarjeta - se abrira el widget de Zoho</span>
           <button
@@ -1561,7 +1627,7 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
       )}
 
       {/* Boton cobrar */}
-      {!yaPagado && (
+      {!yaPagado && metodoCobro === "tarjeta" && (
         <button
           style={{ ...S.btn("success"), width:"100%", justifyContent:"center", opacity:loading?0.6:1, cursor:loading?"not-allowed":"pointer" }}
           disabled={loading}
@@ -1571,6 +1637,16 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
               ? "Cobrar " + fmtUSD(exp.pagoInicial) + " con tarjeta guardada"
               : "Cobrar " + fmtUSD(exp.pagoInicial) + " con nueva tarjeta"
           }
+        </button>
+      )}
+
+      {/* Boton cobro manual (no tarjeta) */}
+      {!yaPagado && metodoCobro !== "tarjeta" && (
+        <button
+          style={{ ...S.btn("success"), width:"100%", justifyContent:"center", opacity:loading?0.6:1, cursor:loading?"not-allowed":"pointer" }}
+          disabled={loading}
+          onClick={handleCobrarManual}>
+          {loading ? "Guardando..." : "✅ Confirmar cobro " + fmtUSD(exp.pagoInicial) + " — " + (metodoCobro === "otro" ? (otroDescCobro||"Otro") : metodoCobro)}
         </button>
       )}
 
