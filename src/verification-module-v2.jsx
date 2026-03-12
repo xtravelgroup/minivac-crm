@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase as SB } from "./supabase.js";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
 import { registrarEvento, TablaHistorial } from "./useHistorial.jsx";
+import EmailPanel from "./email-panel.jsx";
 
 const TODAY = new Date().toISOString().split("T")[0];
 
@@ -1663,6 +1664,7 @@ function DetailView({ lead, destCatalog, destMap, onBack, onUpdate }) {
   const [exp,         setExp]         = useState({ ...lead.exp });
   const [verif,       setVerif]       = useState(lead.verificacion||null);
   const [editModal,   setEditModal]   = useState(false);
+  const [emailModal,  setEmailModal]  = useState(false);
   const [chargeModal, setChargeModal] = useState(false);
   const [sendModal,   setSendModal]   = useState(false);
   const [finishModal, setFinishModal] = useState(null);
@@ -1730,6 +1732,7 @@ function DetailView({ lead, destCatalog, destMap, onBack, onUpdate }) {
           cliente={{folio:lead.id,nombre:exp.tFirstName+" "+exp.tLastName,membresia:"Lead",tel:exp.tPhone||lead.phone||"",whatsapp:exp.tPhone||lead.phone||"",email:exp.tEmail||""}}
           onOpen={comm.open}
         />
+        <button style={{ ...S.btn("ghost"), padding:"7px 12px", fontSize:"13px" }} onClick={() => setEmailModal(true)}>✉️ Emails</button>
         {vr
           ? <span style={S.badge(vr.color,vr.bg,vr.border)}>{vr.label}</span>
           : <span style={S.badge("#925c0a","#fffbe0","rgba(251,191,36,0.2)")}>Pendiente</span>
@@ -1804,6 +1807,17 @@ function DetailView({ lead, destCatalog, destMap, onBack, onUpdate }) {
         <TablaHistorial leadId={lead.id} />
       </div>
 
+      {emailModal && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <div style={{ background:"#fff", borderRadius:"12px", padding:"24px", width:"600px", maxWidth:"95vw", maxHeight:"85vh", overflowY:"auto" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"16px" }}>
+              <h3 style={{ margin:0, fontSize:"16px", fontWeight:700 }}>✉️ Emails — {exp.tFirstName} {exp.tLastName}</h3>
+              <button onClick={() => setEmailModal(false)} style={{ background:"none", border:"none", fontSize:"20px", cursor:"pointer", color:"#6b7280" }}>✕</button>
+            </div>
+            <EmailPanel lead={{ ...lead, nombre: exp.tFirstName+" "+exp.tLastName, email: exp.tEmail || lead.email }} currentUser={{ id: "verificador" }} />
+          </div>
+        </div>
+      )}
       {editModal   && <EditExpedienteModal exp={exp} destCatalog={destCatalog||DESTINOS_CATALOG} destMap={destMap||DEST_MAP} onClose={() => setEditModal(false)} onSave={handleSaveExp} />}
       
       {sendModal   && <SendDocsModal lead={{ ...lead, exp }} onClose={() => setSendModal(false)} onSent={handleDocsSent} />}

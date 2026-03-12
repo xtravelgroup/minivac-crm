@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase as SB } from "./supabase.js";
+import EmailPanel from "./email-panel.jsx";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
 import { registrarEvento, TablaHistorial } from "./useHistorial.jsx";
 
@@ -613,6 +614,7 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
           {tabBtn("seguimiento", `📝 Seguim.${(draft.notas||[]).length>0?" ("+draft.notas.length+")":""}`, "#925c0a")}
           {canSeePaquete && tabBtn("destinos", "🗺️ Destinos", "#1a7f3c")}
           {canSeePaquete && tabBtn("pago",     "💳 Pago",     "#1565c0")}
+          {tabBtn("emails",    "✉️ Emails",   "#6d28d9")}
           {tabBtn("historial", "🕒 Historial", "#6b7280")}
           {isSupervisor  && tabBtn("admin",    "⚙️ Admin",    "#b91c1c")}
         </div>
@@ -741,6 +743,11 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
         {/* TAB: PAGO */}
         {tab === "pago" && canSeePaquete && (
           <PagoTab draft={draft} set={set} onSave={onSave} />
+        )}
+
+        {/* TAB: EMAILS */}
+        {tab === "emails" && (
+          <EmailPanel lead={draft} currentUser={currentUser} />
         )}
 
         {/* TAB: HISTORIAL */}
@@ -1247,6 +1254,7 @@ function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, 
   const [fStatus,       setFStatus]       = useState("all");
 
   const isAdmin   = currentUser.role === "admin" || currentUser.role === "director" || currentUser.role === "supervisor";
+  console.log("SupervisorView currentUser:", currentUser, "isAdmin:", isAdmin, "leads.length:", leads.length);
   const miEquipo  = isAdmin ? users : users.filter(u => u.supervisorId===currentUser.id);
   const teamIds   = miEquipo.map(u => u.id);
   const teamLeads = isAdmin ? leads : leads.filter(l => teamIds.includes(l.vendedorId));
