@@ -275,11 +275,44 @@ function FormModal(props){
   var [busq,setBusq]=useState("");
   var [clienteSel,setClienteSel]=useState(preCliente||null);
   var [destinoSel,setDestinoSel]=useState(preDestino||null);
+  var [leadsDB, setLeadsDB] = useState([]);
 
-  var cliFiltrados=CLIENTES_SEED.filter(function(c){
-    if(!busq) return true;
+  useEffect(function(){
+    SB.from("leads")
+      .select("id, folio, nombre, co_prop, tel, email, membresia, vigencia, saldo_pendiente, estado_civil, edad, verificacion, destinos, paquete")
+      .eq("estado", "activo")
+      .order("nombre", {ascending: true})
+      .then(function(res){
+        if(!res.error){
+          var lista = (res.data||[]).map(function(l){
+            var verif = l.verificacion || {};
+            var edadCalc = verif.tFechaNac ? Math.floor((Date.now()-new Date(verif.tFechaNac).getTime())/31557600000) : (parseInt(l.edad)||0);
+            var ec = verif.tEstadoCivil || l.estado_civil || "";
+            var dests = l.destinos || [];
+            return {
+              id:          l.id,
+              folio:       l.folio || "",
+              nombre:      l.nombre || "",
+              coProp:      l.co_prop || "",
+              tel:         l.tel || "",
+              email:       l.email || "",
+              membresia:   l.membresia || "Silver",
+              vigencia:    l.vigencia || "",
+              saldo:       l.saldo_pendiente || 0,
+              estadoCivil: ec,
+              edad:        edadCalc,
+              destinos:    dests,
+            };
+          });
+          setLeadsDB(lista);
+        }
+      });
+  },[]);
+
+  var cliFiltrados = leadsDB.filter(function(c){
+    if(!busq || busq.length < 2) return false;
     var s=busq.toLowerCase();
-    return c.nombre.toLowerCase().indexOf(s)>=0||c.folio.toLowerCase().indexOf(s)>=0;
+    return (c.nombre||"").toLowerCase().indexOf(s)>=0||(c.folio||"").toLowerCase().indexOf(s)>=0;
   });
 
   var hotelesD=hotelesDB[(destinoSel?destinoSel.nombre:"Cancun")]||[];
