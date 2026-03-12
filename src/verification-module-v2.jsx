@@ -892,6 +892,7 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
   var [metodo,  setMetodo]  = useState("tarjeta");
   var [ref,     setRef]     = useState("");
   var [concepto,setConcepto]= useState("Abono");
+  var [otroDesc,setOtroDesc]= useState("");
   var [saving,  setSaving]  = useState(false);
   var [err,     setErr]     = useState("");
 
@@ -903,7 +904,7 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
     var nuevo = {
       id:       "P" + Date.now(),
       monto:    m,
-      metodo:   metodo,
+      metodo:   metodo === "otro" ? ("otro: " + (otroDesc||"sin descripción")) : metodo,
       referencia: ref || "—",
       concepto: concepto || "Abono",
       fecha:    new Date().toISOString(),
@@ -916,12 +917,12 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
       .then(function(res) {
         setSaving(false);
         if (res.error) { setErr("Error al guardar: " + res.error.message); return; }
-        setMonto(""); setRef(""); setConcepto("Abono");
+        setMonto(""); setRef(""); setConcepto("Abono"); setOtroDesc("");
         if (onAbonoGuardado) onAbonoGuardado(nuevosAbonos);
       });
   }
 
-  var METODOS = ["tarjeta","transferencia","efectivo","cheque"];
+  var METODOS = ["tarjeta","transferencia","efectivo","cheque","otro"];
 
   return (
     <div style={S.card}>
@@ -1002,6 +1003,12 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
               <div>
                 <div style={S.label}>Referencia / No. transacción</div>
                 <input style={S.input} value={ref} onChange={function(e){ setRef(e.target.value); }} placeholder="TXN-12345 / SPEI-..." />
+              </div>
+            )}
+            {metodo === "otro" && (
+              <div style={{gridColumn:"1/-1"}}>
+                <div style={S.label}>Descripción del método</div>
+                <input style={S.input} value={otroDesc} onChange={function(e){ setOtroDesc(e.target.value); }} placeholder="Ej: Pago en oficina, giro bancario..." />
               </div>
             )}
           </div>
