@@ -604,6 +604,7 @@ function ReservaModal(props){
   var [ninos,   setNinos]   = useState(r.ninos    || 0);
   var [agente,  setAgente]  = useState(r.agente_nombre || r.agente || "");
   var [notas,   setNotas]   = useState(r.notas_agente  || "");
+  var [numRes,  setNumRes]  = useState(r.conf || "");
 
   // Calificacion
   var [ingresos,  setIngresos]  = useState(r.ingresosAnuales || r.ingresos || "");
@@ -711,6 +712,7 @@ function ReservaModal(props){
       total:           total,
       agente_nombre:   agente,
       notas_agente:    notas,
+      num_confirmacion: numRes,
       ingresos_anuales: ingresos,
       profesion_titular: profTit,
       profesion_coprop:  profCo,
@@ -796,6 +798,9 @@ function ReservaModal(props){
             </div>
           )}
 
+          <div><label style={S.lbl}>Numero de reserva (Hotel)</label>
+            <input style={S.inp} value={numRes} onChange={function(e){setNumRes(e.target.value);}} placeholder="Ej: KGC-44821"/>
+          </div>
           <div><label style={S.lbl}>Notas / solicitudes especiales</label>
             <textarea style={Object.assign({},S.ta,{minHeight:55})} value={notas} onChange={function(e){setNotas(e.target.value);}} placeholder="Preferencias de piso, cama, celebraciones..."/>
           </div>
