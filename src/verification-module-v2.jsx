@@ -175,11 +175,20 @@ const S = {
 };
 
 function EditExpedienteModal({ exp, destCatalog, destMap, onClose, onSave }) {
-  var catalog = destCatalog || DESTINOS_CATALOG;
-  var dmap    = destMap    || DEST_MAP;
-  console.log("EditExpedienteModal exp.destinos:", JSON.stringify(exp.destinos));
-  console.log("EditExpedienteModal catalog ids:", catalog.map(function(x){ return x.id; }));
-  console.log("EditExpedienteModal dmap keys:", Object.keys(dmap));
+  // Forzar re-render cuando el catálogo cargue
+  var [tick, setTick] = useState(0);
+  useEffect(function() {
+    if (DESTINOS_CATALOG.length > 0) return; // ya cargó
+    var t = setInterval(function() {
+      if (DESTINOS_CATALOG.length > 0) { setTick(function(n){ return n+1; }); clearInterval(t); }
+    }, 200);
+    return function(){ clearInterval(t); };
+  }, []);
+  var catalog = (destCatalog && destCatalog.length > 0) ? destCatalog : DESTINOS_CATALOG;
+  var dmap    = (destMap && Object.keys(destMap).length > 0) ? destMap : DEST_MAP;
+
+
+
   var [d, setD] = useState(Object.assign({}, exp, {
     destinos: (exp.destinos||[]).map(function(x){ return Object.assign({},x); }),
     tEstadoCivil: exp.tEstadoCivil || exp.estadoCivil || "",
@@ -1355,7 +1364,7 @@ function SectionFirma({ lead, exp, verif, onSendDocs }) {
 }
 
 function SectionCobro({ lead, exp, verif, onChargeResult }) {
-  console.log("SectionCobro zohoPaymentMethodId:", exp.zohoPaymentMethodId, "zohoCustomerId:", exp.zohoCustomerId);
+
   var [loading,        setLoading]        = useState(false);
   var [error,          setError]          = useState(null);
   var [zohoReady,      setZohoReady]      = useState(false);
@@ -1570,7 +1579,7 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
 }
 
 function DetailView({ lead, destCatalog, destMap, onBack, onUpdate }) {
-  console.log("DetailView lead:", JSON.stringify({ zohoPaymentMethodId: lead.zohoPaymentMethodId, expZoho: lead.exp && lead.exp.zohoPaymentMethodId, tarjetaLast4: lead.exp && lead.exp.tarjetaLast4 }));
+
   const [exp,         setExp]         = useState({ ...lead.exp });
   const [verif,       setVerif]       = useState(lead.verificacion||null);
   const [editModal,   setEditModal]   = useState(false);
@@ -1881,7 +1890,7 @@ export default function VerificationModule() {
         if (res.data) {
           // DEBUG — ver valores crudos de Supabase
           res.data.slice(0,3).forEach(function(r) {
-            console.log("LEAD RAW:", r.nombre, "| estado_civil:", JSON.stringify(r.estado_civil), "| destinos:", JSON.stringify(r.destinos), "| co_prop:", r.co_prop);
+
           });
           var mapped = res.data.map(function(r) {
             var row = { ...r, vendedor_nombre: (r.vendedor && r.vendedor.nombre) || "" };
