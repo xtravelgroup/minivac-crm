@@ -157,7 +157,10 @@ function getPenalidad(dias){ if(dias<=7) return {pct:100}; if(dias<=30) return {
 // Un lead con status='venta' se convierte en miembro activo
 // ─────────────────────────────────────────────────────────────
 function leadToMiembro(r) {
-  var exp = r.expediente || {};
+  // _exp combina expediente + verificacion para tener todos los datos del titular
+  var expRaw = r.expediente || {};
+  var verif  = r.verificacion || {};
+  var exp = Object.assign({}, expRaw, verif);
   // Armar nombre completo
   var nombre = ((exp.tFirstName||"")+" "+(exp.tLastName||"")).trim() || r.nombre || "Sin nombre";
   var coProp = exp.hasPartner ? (((exp.pFirstName||"")+" "+(exp.pLastName||"")).trim()||null) : null;
