@@ -689,11 +689,29 @@ function ReservaModal(props){
     var totalAdultos = parseInt(adultos)||0;
     var totalNinos   = parseInt(ninos)||0;
     var lista = [];
-    for(var i=0;i<totalAdultos;i++){
-      lista.push({nombre:"",fechaNac:"",tipo:"adulto"});
+    // Adulto 1: titular (del certificado)
+    lista.push({
+      nombre:   r.tNombre   || r.cliente || "",
+      fechaNac: r.tFechaNac || "",
+      tipo:     "adulto",
+      rol:      "titular"
+    });
+    // Adulto 2: pareja si tiene
+    if(totalAdultos >= 2){
+      lista.push({
+        nombre:   r.pNombre  || r.co_prop || "",
+        fechaNac: r.pFechaNac || "",
+        tipo:     "adulto",
+        rol:      "co_prop"
+      });
     }
+    // Adultos adicionales
+    for(var i=2;i<totalAdultos;i++){
+      lista.push({nombre:"",fechaNac:"",tipo:"adulto",rol:"adicional"});
+    }
+    // Ninos
     for(var j=0;j<totalNinos;j++){
-      lista.push({nombre:"",fechaNac:"",tipo:"nino"});
+      lista.push({nombre:"",fechaNac:"",tipo:"nino",rol:"nino"});
     }
     setPasajeros(lista);
   }
@@ -833,7 +851,7 @@ function ReservaModal(props){
                     {p.rol==="titular"&&<span style={{fontSize:10,padding:"1px 7px",background:"rgba(21,101,192,0.1)",color:INDIGO,borderRadius:20,fontWeight:600}}>Titular</span>}
                     {p.rol==="co_prop"&&<span style={{fontSize:10,padding:"1px 7px",background:"rgba(14,165,160,0.1)",color:TEAL,borderRadius:20,fontWeight:600}}>Co-prop / Pareja</span>}
                   </div>
-                  {i>1&&<button onClick={function(){removePax(i);}} style={{background:"none",border:"none",cursor:"pointer",color:RED,fontSize:12}}>Eliminar</button>}
+                  {/* Sin boton eliminar - la lista es fija segun adultos+ninos */}
                 </div>
                 <div style={S.g3}>
                   <div style={{gridColumn:"1/3"}}><label style={S.lbl}>Nombre completo</label><input style={S.inp} value={p.nombre||""} onChange={function(e){setPax(i,"nombre",e.target.value);}} placeholder="Nombre y apellidos"/></div>
