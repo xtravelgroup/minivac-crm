@@ -588,8 +588,9 @@ function TabRadios(props){
         var fechaDia = fechaDeDiaR(lunes, dia);
         var esHoy    = fechaDia === hoy;
         var delDia   = spots.filter(function(s){
-          // Soporta tanto dia_semana como fecha directa
-          return s.fecha === fechaDia || s.dia_semana === dia;
+          // Filtra por fecha exacta del dia, o por semana+dia_semana si no tiene fecha
+          if(s.fecha) return s.fecha === fechaDia;
+          return s.semana === lunes && s.dia_semana === dia;
         }).sort(function(a,b){ return (a.hora||"").localeCompare(b.hora||""); });
 
         var leadsDelDia = leads.filter(function(l){ return (l.created_at||"").slice(0,10) === fechaDia; });
@@ -623,42 +624,60 @@ function TabRadios(props){
               React.createElement("span",{key:"sp",style:{color:esHoy?"rgba(255,255,255,0.8)":C.muted}},delDia.length+" spot"+(delDia.length!==1?"s":"")),
               invDelDia>0&&React.createElement("span",{key:"inv",style:{color:esHoy?"#ffcdd2":"#b91c1c",fontWeight:600}},fmtUSD(invDelDia)),
               leadsDelDia.length>0&&React.createElement("span",{key:"ld",style:{color:esHoy?"#c8e6c9":C.green,fontWeight:600}},leadsDelDia.length+" lead"+(leadsDelDia.length!==1?"s":"")),
-              roiDia!==null&&React.createElement("span",{key:"roi",style:{color:esHoy?"#fff":roiColor(roiDia),fontWeight:700,fontSize:11}},roiDia.toFixed(0)+"% ROI"),
+              roiDia!==null&&React.createElement("span",{key:"mc",style:{color:esHoy?"#fff":roiDia<35?C.green:roiDia<=45?C.amber:"#b91c1c",fontWeight:700,fontSize:11}},roiDia.toFixed(0)+"% Mkt"),
             ]),
           ]),
 
           // Columnas header
           delDia.length>0&&React.createElement("div",{key:"cols",style:{
             display:"grid",
-            gridTemplateColumns:"70px 1fr 70px 90px 90px 110px",
+            gridTemplateColumns:"1fr 120px 70px 70px 110px",
             padding:"5px 16px",
             background:"#fafbfc",
             borderBottom:"1px solid "+C.border,
-          }},["Hora","Emisora","Tipo","Costo","Talento","Total"].map(function(h,i){
-            return React.createElement("div",{key:i,style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",textAlign:i>1?"right":"left"}},h);
+          }},["Emisora","Costo","Leads","Ventas","% Mkt Cost"].map(function(h,i){
+            return React.createElement("div",{key:i,style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",textAlign:i>0?"right":"left"}},h);
           })),
 
-          // Spots del día
+          // Resumen por emisora del día
           delDia.length===0
             ? React.createElement("div",{key:"empty",style:{padding:"14px 16px",textAlign:"center",fontSize:12,color:C.muted}},"Sin spots registrados")
-            : React.createElement("div",{key:"spots"},delDia.map(function(s,si){
-                var inv = invSpot(s);
-                return React.createElement("div",{key:s.id||si,style:{
-                  display:"grid",
-                  gridTemplateColumns:"70px 1fr 70px 90px 90px 110px",
-                  padding:"8px 16px",
-                  background:si%2===0?"#fff":"#fafbfc",
-                  borderBottom:"1px solid "+C.border,
-                  alignItems:"center",
-                }},[
-                  React.createElement("div",{key:"h",style:{fontSize:12,color:C.indigo,fontWeight:600}},s.hora||"--"),
-                  React.createElement("div",{key:"e",style:{fontSize:12,color:C.text,fontWeight:500}},emMap[s.emisora_id]||"--"),
-                  React.createElement("div",{key:"t",style:{fontSize:11,color:C.muted,textAlign:"right"}},s.tipo||"comercial"),
-                  React.createElement("div",{key:"c",style:{fontSize:12,color:"#b91c1c",textAlign:"right"}},fmtUSD(s.costo||0)),
-                  React.createElement("div",{key:"tk",style:{fontSize:12,color:C.amber,textAlign:"right"}},s.talento>0?fmtUSD(s.talento):"--"),
-                  React.createElement("div",{key:"i",style:{fontSize:12,fontWeight:700,color:C.text,textAlign:"right"}},fmtUSD(inv)),
-                ]);
-              })),
+            : React.createElement("div",{key:"spots"},function(){
+                // Agrupar spots por emisora
+                var emDia = {};
+                delDia.forEach(function(s){
+                  var eid = s.emisora_id||"?";
+                  var enm = emMap[eid]||"Sin emisora";
+                  if(!emDia[eid]) emDia[eid]={nombre:enm,costo:0,leads:0,ventas:0,ingresos:0};
+                  emDia[eid].costo += invSpot(s);
+                });
+                leadsDelDia.forEach(function(l){
+                  var eid = l.emisora_id||"?";
+                  if(emDia[eid]){
+                    emDia[eid].leads+=1;
+                    if(l.status==="venta"){ emDia[eid].ventas+=1; emDia[eid].ingresos+=Number(l.sale_price||0); }
+                  }
+                });
+                var rows = Object.values(emDia);
+                return rows.map(function(r,ri){
+                  var mktCost = r.ingresos>0 ? (r.costo/r.ingresos)*100 : null;
+                  var mktColor = mktCost===null?C.muted:mktCost<35?C.green:mktCost<=45?C.amber:"#b91c1c";
+                  return React.createElement("div",{key:ri,style:{
+                    display:"grid",
+                    gridTemplateColumns:"1fr 120px 70px 70px 110px",
+                    padding:"8px 16px",
+                    background:ri%2===0?"#fff":"#fafbfc",
+                    borderBottom:"1px solid "+C.border,
+                    alignItems:"center",
+                  }},[
+                    React.createElement("div",{key:"e",style:{fontSize:12,color:C.text,fontWeight:500}},r.nombre),
+                    React.createElement("div",{key:"c",style:{fontSize:12,color:"#b91c1c",textAlign:"right",fontWeight:600}},fmtUSD(r.costo)),
+                    React.createElement("div",{key:"l",style:{fontSize:12,color:C.indigo,textAlign:"right",fontWeight:600}},r.leads||0),
+                    React.createElement("div",{key:"v",style:{fontSize:12,color:C.green,textAlign:"right",fontWeight:700}},r.ventas||0),
+                    React.createElement("div",{key:"mc",style:{fontSize:12,color:mktColor,textAlign:"right",fontWeight:700}},mktCost!==null?mktCost.toFixed(1)+"%":"--"),
+                  ]);
+                });
+              }()),
 
           // Footer del día con leads
           leadsDelDia.length>0&&React.createElement("div",{key:"leads-footer",style:{
