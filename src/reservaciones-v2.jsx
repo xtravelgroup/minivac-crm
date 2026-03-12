@@ -662,20 +662,19 @@ function ReservaModal(props){
   function removePax(i){
     setPasajeros(pasajeros.filter(function(_,j){return j!==i;}));
   }
-  // Auto-generar pasajeros segun adultos+ninos
-  useEffect(function(){
-    var total = (parseInt(adultos)||0) + (parseInt(ninos)||0);
-    if(pasajeros.length === total) return;
-    if(pasajeros.length < total){
-      var faltantes = [];
-      for(var i=pasajeros.length;i<total;i++){
-        faltantes.push({nombre:"",fechaNac:"",tipo: i < (parseInt(adultos)||0) ? "adulto":"nino"});
-      }
-      setPasajeros(pasajeros.concat(faltantes));
-    } else {
-      setPasajeros(pasajeros.slice(0,total));
+  // Generar pasajeros manualmente con boton
+  function generarPasajeros(){
+    var totalAdultos = parseInt(adultos)||0;
+    var totalNinos   = parseInt(ninos)||0;
+    var lista = [];
+    for(var i=0;i<totalAdultos;i++){
+      lista.push({nombre:"",fechaNac:"",tipo:"adulto"});
     }
-  },[adultos,ninos]);
+    for(var j=0;j<totalNinos;j++){
+      lista.push({nombre:"",fechaNac:"",tipo:"nino"});
+    }
+    setPasajeros(lista);
+  }
 
   function save(){
     setSaving(true);
@@ -792,7 +791,10 @@ function ReservaModal(props){
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
             <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",letterSpacing:"0.1em",textTransform:"uppercase"}}>Datos de pasajeros ({pasajeros.length})</div>
-            <button style={btn("teal")} onClick={addPax}>+ Agregar</button>
+            <div style={{display:"flex",gap:6}}>
+              <button style={btn("ghost")} onClick={generarPasajeros}>Generar lista</button>
+              <button style={btn("teal")} onClick={addPax}>+ Agregar</button>
+            </div>
           </div>
           {/* Resumen pax */}
           <div style={Object.assign({},S.g2,{marginBottom:12})}>
