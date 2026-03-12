@@ -92,20 +92,18 @@ export default function ExecutiveSuite() {
   useEffect(function(){
     // Cargar datos en paralelo
     Promise.all([
-      SB.from("leads").select("id, nombre, status, nombre_vendedor, paquete, created_at, estado_civil, verificacion, membresia, vigencia, saldo_pendiente"),
+      SB.from("leads").select("id, nombre, estado_civil, verificacion, membresia, vigencia, saldo_pendiente, paquete, created_at"),
       SB.from("reservaciones").select("id, folio, status, total, fee, checkin, checkout, agente_nombre, created_at, destino_nombre, hotel"),
-      SB.from("profiles").select("id, nombre, rol"),
       SB.from("radio_spots").select("id, emisora_id, costo, talento, fecha, semana, status"),
       SB.from("emisoras").select("id, nombre"),
-      SB.from("leads").select("id, nombre, status, paquete, emisora, emisora_id, created_at"),
+      SB.from("leads").select("id, nombre, paquete, emisora, emisora_id, created_at, verificacion"),
     ]).then(function(results){
       var leads    = (!results[0].error && results[0].data) ? results[0].data : [];
       var reservas = (!results[1].error && results[1].data) ? results[1].data : [];
-      var profiles = (!results[2].error && results[2].data) ? results[2].data : [];
-      var spots    = (!results[3].error && results[3].data) ? results[3].data : [];
-      var emisoras = (!results[4].error && results[4].data) ? results[4].data : [];
-      var leadsRadio = (!results[5].error && results[5].data) ? results[5].data : [];
-      setData({ leads: leads, reservas: reservas, profiles: profiles, spots: spots, emisoras: emisoras, leadsRadio: leadsRadio });
+      var spots    = (!results[2].error && results[2].data) ? results[2].data : [];
+      var emisoras = (!results[3].error && results[3].data) ? results[3].data : [];
+      var leadsRadio = (!results[4].error && results[4].data) ? results[4].data : [];
+      setData({ leads: leads, reservas: reservas, profiles: [], spots: spots, emisoras: emisoras, leadsRadio: leadsRadio });
       setLoading(false);
     }).catch(function(){
       setData({ leads:[], reservas:[], profiles:[] });
@@ -144,7 +142,7 @@ function TabResumen(props){
   var leads    = props.data.leads;
   var reservas = props.data.reservas;
 
-  var ventas       = leads.filter(function(l){ return l.status==="venta"||l.status==="verificacion"; });
+  var ventas       = leads.filter(function(l){ return l.verificacion && l.verificacion.firma_firmada_at||l.verificacion && l.verificacion.tFirstName; });
   var totalIngPag  = leads.reduce(function(s,l){
     var ph = l.pagos||[]||[];
     return s + ph.reduce(function(a,p){ return a+(p.monto||0); },0);
@@ -245,7 +243,7 @@ function TabVentas(props){
   return React.createElement("div", {style:S.page}, [
     React.createElement("div", {key:"kpis", style:{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12}}, [
       React.createElement(KpiCard, {key:"a", label:"Total Leads", value:leads.length, color:C.indigo}),
-      React.createElement(KpiCard, {key:"b", label:"Ventas Cerradas", value:leads.filter(function(l){return l.status==="venta";}).length, color:C.green}),
+      React.createElement(KpiCard, {key:"b", label:"Ventas Cerradas", value:leads.filter(function(l){return l.verificacion && l.verificacion.firma_firmada_at;}).length, color:C.green}),
       React.createElement(KpiCard, {key:"c", label:"Ingresos Cobrados", value:fmtUSD(totalPag), color:C.green}),
       React.createElement(KpiCard, {key:"d", label:"Valor Total Contratos", value:fmtUSD(totalPaq), color:C.violet}),
     ]),
@@ -420,7 +418,7 @@ function TabVendedores(props){
     var v = l.nombre_vendedor||"" || "Sin asignar";
     if(!vendedores[v]) vendedores[v] = {nombre:v, leads:[], ventas:0, pagado:0};
     vendedores[v].leads.push(l);
-    if(l.status==="venta"||l.status==="verificacion") vendedores[v].ventas++;
+    if(l.verificacion && l.verificacion.firma_firmada_at||l.verificacion && l.verificacion.tFirstName) vendedores[v].ventas++;
     vendedores[v].pagado += (l.pagos||[]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
   });
   var vList = Object.values(vendedores).sort(function(a,b){return b.ventas-a.ventas;});
@@ -491,7 +489,7 @@ function TabRadios(props){
     var eid = l.emisora_id || l.emisora || "sin_emisora";
     if(!leadsPorEmisora[eid]) leadsPorEmisora[eid] = {leads:0, ventas:0, ingresos:0};
     leadsPorEmisora[eid].leads += 1;
-    if(l.status === "venta" || l.status === "verificacion"){
+    var verif = l.verificacion || {}; if(verif.firma_firmada_at || verif.tFirstName){
       leadsPorEmisora[eid].ventas += 1;
       var p = l.paquete || {};
       leadsPorEmisora[eid].ingresos += Number(p.precio||0);
@@ -535,11 +533,11 @@ function TabRadios(props){
   return React.createElement("div", {style:{padding:"20px 24px"}}, [
     // KPIs globales
     React.createElement("div", {key:"kpis", style:{display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, marginBottom:24}}, [
-      React.createElement(KPI, {key:"inv",    label:"Inversion total",   value:fmtUSD(totInv),              color:C.red}),
-      React.createElement(KPI, {key:"leads",  label:"Leads de radio",    value:String(totLeads),             color:C.indigo}),
-      React.createElement(KPI, {key:"ventas", label:"Ventas",            value:String(totVentas),            color:C.green}),
-      React.createElement(KPI, {key:"ing",    label:"Ingresos ventas",   value:fmtUSD(totIng),              color:C.green}),
-      React.createElement(KPI, {key:"roi",    label:"ROI Global",        value:totRoi.toFixed(1)+"%",        color:roiColor(totRoi)}),
+      React.createElement(KpiCard, {key:"inv",    label:"Inversion total",   value:fmtUSD(totInv),              color:C.red}),
+      React.createElement(KpiCard, {key:"leads",  label:"Leads de radio",    value:String(totLeads),             color:C.indigo}),
+      React.createElement(KpiCard, {key:"ventas", label:"Ventas",            value:String(totVentas),            color:C.green}),
+      React.createElement(KpiCard, {key:"ing",    label:"Ingresos ventas",   value:fmtUSD(totIng),              color:C.green}),
+      React.createElement(KpiCard, {key:"roi",    label:"ROI Global",        value:totRoi.toFixed(1)+"%",        color:roiColor(totRoi)}),
     ]),
     // Tabla por emisora
     React.createElement("div", {key:"tbl", style:{background:C.surface, border:"1px solid "+C.border, borderRadius:10, overflow:"hidden"}}, [
