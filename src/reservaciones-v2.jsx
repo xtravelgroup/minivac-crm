@@ -1299,8 +1299,7 @@ export default function ReservacionesModule(props){
 
   useEffect(function() {
     cargarReservas();
-    var iv = setInterval(cargarReservas, 30000);
-    return function() { clearInterval(iv); };
+    // Sin auto-refresh para no interrumpir edicion de modales
   }, []);
 
   function addHist(r, txt, autor) {

@@ -1700,8 +1700,7 @@ export default function CsReservasV3() {
 
   // Polling 30s para detectar nuevas ventas en tiempo real
   useEffect(function(){
-    var t=setInterval(cargarMiembros, 30000);
-    return function(){ clearInterval(t); };
+    // Sin auto-refresh para no interrumpir edicion de modales
   },[]);
 
   // Enriquecer nombres de destinos con catálogo cuando tengamos ambos
