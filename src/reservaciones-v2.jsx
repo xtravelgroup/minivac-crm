@@ -279,8 +279,7 @@ function FormModal(props){
 
   useEffect(function(){
     SB.from("leads")
-      .select("id, folio, nombre, co_prop, tel, email, membresia, vigencia, saldo_pendiente, estado_civil, edad, verificacion, destinos, paquete")
-      .eq("estado", "activo")
+      .select("id, folio, nombre, co_prop, tel, email, membresia, vigencia, saldo_pendiente, estado_civil, verificacion, destinos")
       .order("nombre", {ascending: true})
       .then(function(res){
         if(!res.error){
