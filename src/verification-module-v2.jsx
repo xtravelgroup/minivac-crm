@@ -208,12 +208,15 @@ function EditExpedienteModal({ exp, destCatalog, destMap, onClose, onSave }) {
   catalog.filter(function(dest){ return dest.activo !== false; }).forEach(function(dest) {
     var qc = dest.qc || {};
     if (selIds.includes(dest.id)) return; // ya agregado
-    if (edad > 0 && ec) {
-      var califica = edad>=(qc.ageMin||18) && edad<=(qc.ageMax||99) && (qc.marital||[]).includes(ec);
-      if (califica) destQC.push(dest);
+    if (edad > 0 && ec && (qc.marital||[]).length > 0) {
+      // Calificar estrictamente solo si hay reglas definidas
+      var edadOk = edad >= (qc.ageMin||18) && edad <= (qc.ageMax||99);
+      var ecOk   = (qc.marital||[]).includes(ec);
+      if (edadOk && ecOk) destQC.push(dest);
       else if (dest.nq && dest.nq.enabled) destNQ.push(dest);
     } else {
-      destQC.push(dest); // sin perfil → mostrar todos como QC
+      // Sin perfil completo o sin reglas → mostrar todos como QC
+      destQC.push(dest);
     }
   });
 
@@ -1580,7 +1583,7 @@ function DetailView({ lead, destCatalog, destMap, onBack, onUpdate }) {
   useEffect(function() {
     setExp({ ...lead.exp });
     setVerif(lead.verificacion || null);
-  }, [lead.id, lead.status, lead.exp && lead.exp.zohoPaymentMethodId]);
+  }, [lead.id, lead.status, lead.exp && lead.exp.zohoPaymentMethodId, lead.exp && (lead.exp.destinos||[]).length]);
 
   const vr = verif && verif.result ? VERIF_RESULTS[verif.result] : null;
 
