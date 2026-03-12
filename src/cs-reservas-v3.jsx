@@ -196,6 +196,7 @@ function leadToMiembro(r) {
     coPropTel:      r.co_prop_tel  || exp.pPhone || null,
     tFechaNac:      exp.tFechaNac  || "",
     pFechaNac:      exp.pFechaNac  || "",
+    pEdad:          exp.pFechaNac ? Math.floor((Date.now()-new Date(exp.pFechaNac).getTime())/31557600000) : (exp.pEdad ? Number(exp.pEdad) : 0),
     estadoCivil:    r.estado_civil || exp.tEstadoCivil || "",
     edad:           edad,
     tel:            r.tel          || exp.tPhone || r.whatsapp || "",
@@ -1328,6 +1329,7 @@ function FichaMiembro(props) {
                 {c.folio}
                 {c.estadoCivil?" · "+c.estadoCivil:""}
                 {c.edad?" · "+c.edad+" años":""}
+                {c.coProp&&c.pEdad?" · "+c.coProp+": "+c.pEdad+" años":""}
                 {c.vendedor?" · Vend: "+c.vendedor:""}
               </div>
             </div>
