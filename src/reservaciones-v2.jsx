@@ -454,7 +454,22 @@ function FormModal(props){
           )}
           <div style={S.stit}>Selecciona el destino a reservar</div>
           {clienteSel.destinos.map(function(d){
-            var hotsDest=hotelesDB[d.nombre]||[];
+            var cEdad = parseInt(clienteSel.edad)||0;
+            var cEC   = (clienteSel.estadoCivil||"").toLowerCase();
+            var cHasP = cEC==="casado"||cEC==="cohabitante";
+            var hotsDest = (hotelesDB[d.nombre]||[]).filter(function(hh){
+              if(cEdad>0&&(cEdad<hh.ageMin||cEdad>hh.ageMax)) return false;
+              if(hh.marital&&hh.marital.length>0&&cEC){
+                var ok=false;
+                for(var mi=0;mi<hh.marital.length;mi++){
+                  var mn=(hh.marital[mi]||"").toLowerCase();
+                  if(mn===cEC||(mn==="casado"&&cHasP)||(mn==="soltero"&&!cHasP)){ok=true;break;}
+                }
+                if(!ok) return false;
+              }
+              return true;
+            });
+            if(hotsDest.length===0) return null;
             return (
               <div key={d.nombre} onClick={function(){selDestino(d);}}
                 style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",borderRadius:"12px",background:"rgba(255,255,255,0.025)",border:"1px solid #dde0e5",marginBottom:"6px",cursor:"pointer"}}>
