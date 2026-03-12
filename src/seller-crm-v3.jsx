@@ -123,7 +123,7 @@ const mkLead = (o) => ({
   salePrice:0, pagoInicial:0, metodoPago:"",
   destinos:[], notas:[], edad:0, estadoCivil:"",
   email:"", whatsapp:"", coProp:"", coPropEdad:0, coPropTel:"",
-  direccion:"", ciudad:"Miami", estado:"FL",
+  direccion:"", ciudad:"Miami", estado:"FL", zip:"",
   ...o,
 });
 
@@ -639,15 +639,22 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
                 <div style={S.label}>Direccion</div>
                 <input style={S.input} value={draft.direccion||""} onChange={e => set("direccion",e.target.value)} disabled={!canEdit} />
               </div>
-              <div>
-                <div style={S.label}>Ciudad</div>
-                <input style={S.input} value={draft.ciudad||""} onChange={e => set("ciudad",e.target.value)} disabled={!canEdit} />
-              </div>
-              <div>
-                <div style={S.label}>Estado</div>
-                <input style={S.input} value={draft.estado||""} onChange={e => set("estado",e.target.value)} disabled={!canEdit} />
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 100px 1fr", gap:"8px" }}>
+                <div>
+                  <div style={S.label}>Ciudad</div>
+                  <input style={S.input} value={draft.ciudad||""} onChange={e => set("ciudad",e.target.value)} disabled={!canEdit} />
+                </div>
+                <div>
+                  <div style={S.label}>Estado</div>
+                  <input style={S.input} value={draft.estado||""} onChange={e => set("estado",e.target.value)} disabled={!canEdit} />
+                </div>
+                <div>
+                  <div style={S.label}>ZIP Code</div>
+                  <input style={S.input} value={draft.zip||""} onChange={e => set("zip",e.target.value)} disabled={!canEdit} placeholder="00000" />
+                </div>
               </div>
             </div>
+            {(draft.estadoCivil==="Casado" || draft.estadoCivil==="Union libre") && (
             <div style={{ padding:"12px 14px", borderRadius:"10px", background:"#f9fafb", border:"1px solid #e3e6ea" }}>
               <div style={S.sTitle}> Co-propietario</div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 70px 1fr", gap:"8px" }}>
@@ -656,6 +663,7 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
                 <div><div style={S.label}>Telefono</div><input style={S.input} value={draft.coPropTel||""} onChange={e=>set("coPropTel",e.target.value)} disabled={!canEdit} placeholder="-" /></div>
               </div>
             </div>
+            )}
             {/* Aviso si falta perfil para calificacion */}
             {(!draft.edad || !draft.estadoCivil) && (
               <div style={{ marginTop:"10px", padding:"9px 12px", borderRadius:"8px", background:"rgba(251,146,60,0.07)", border:"1px solid rgba(251,146,60,0.2)", fontSize:"11px", color:"#925c0a" }}>
@@ -1521,6 +1529,7 @@ function dbToLead(r) {
     direccion:           r.direccion           || "",
     ciudad:              r.ciudad              || "Miami",
     estado:              r.estado_us           || "FL",
+    zip:                 r.zip                 || "",
     emisora:             r.emisora             || "",
     emisoraId:           r.emisora_id          || null,
     spotId:              r.spot_id             || null,
@@ -1566,6 +1575,7 @@ function leadToDb(l) {
     direccion:           l.direccion           || null,
     ciudad:              l.ciudad              || "Miami",
     estado_us:           l.estado              || "FL",
+    zip:                 l.zip                 || null,
     emisora:             l.emisora             || null,
     emisora_id:          l.emisoraId           || null,
     spot_id:             l.spotId              || null,
