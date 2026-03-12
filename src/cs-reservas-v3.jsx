@@ -193,7 +193,7 @@ function leadToMiembro(r) {
     folio:          "XT-"+String(r.id).slice(0,6).toUpperCase(),
     nombre:         nombre,
     coProp:         r.co_prop      || coProp,
-    coPropTel:      r.co_prop_tel  || exp.pPhone || null,
+    coPropTel:      exp.pPhone || r.co_prop_tel || null,
     tFechaNac:      exp.tFechaNac  || "",
     pFechaNac:      exp.pFechaNac  || "",
     pEdad:          exp.pFechaNac ? Math.floor((Date.now()-new Date(exp.pFechaNac).getTime())/31557600000) : (exp.pEdad ? Number(exp.pEdad) : 0),
@@ -759,7 +759,8 @@ function EditNombreModal(props) {
             <div style={S.g2}>
               <div><label style={S.label}>Nombre</label><input style={S.input} value={pFirstName} onChange={function(e){ setPFirstName(e.target.value); }} placeholder="Nombre"/></div>
               <div><label style={S.label}>Apellido</label><input style={S.input} value={pLastName} onChange={function(e){ setPLastName(e.target.value); }} placeholder="Apellido"/></div>
-              <div style={{gridColumn:"1/-1"}}><label style={S.label}>Fecha de nacimiento</label><input style={S.input} type="date" value={pFechaNac} onChange={function(e){ setPFechaNac(e.target.value); }} max={TODAY}/></div>
+              <div><label style={S.label}>Fecha de nacimiento</label><input style={S.input} type="date" value={pFechaNac} onChange={function(e){ setPFechaNac(e.target.value); }} max={TODAY}/></div>
+              <div><label style={S.label}>Telefono / WhatsApp</label><input style={S.input} value={pTel} onChange={function(e){ setPTel(e.target.value); }} placeholder="+1 555-000-0000"/></div>
             </div>
           </div>
         )}
