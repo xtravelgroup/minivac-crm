@@ -81,6 +81,7 @@ var TABS = [
   {id:"reservas",   l:"Reservas"},
   {id:"cobranza",   l:"Cobranza"},
   {id:"vendedores", l:"Vendedores"},
+  {id:"radios",     l:"Radios / ROI"},
 ];
 
 export default function ExecutiveSuite() {
@@ -94,11 +95,17 @@ export default function ExecutiveSuite() {
       SB.from("leads").select("id, nombre, status, nombre_vendedor, paquete, created_at, estado_civil, verificacion, membresia, vigencia, saldo_pendiente"),
       SB.from("reservaciones").select("id, folio, status, total, fee, checkin, checkout, agente_nombre, created_at, destino_nombre, hotel"),
       SB.from("profiles").select("id, nombre, rol"),
+      SB.from("radio_spots").select("id, emisora_id, costo, talento, fecha, semana, status"),
+      SB.from("emisoras").select("id, nombre"),
+      SB.from("leads").select("id, nombre, status, paquete, emisora, emisora_id, created_at"),
     ]).then(function(results){
       var leads    = (!results[0].error && results[0].data) ? results[0].data : [];
       var reservas = (!results[1].error && results[1].data) ? results[1].data : [];
       var profiles = (!results[2].error && results[2].data) ? results[2].data : [];
-      setData({ leads: leads, reservas: reservas, profiles: profiles });
+      var spots    = (!results[3].error && results[3].data) ? results[3].data : [];
+      var emisoras = (!results[4].error && results[4].data) ? results[4].data : [];
+      var leadsRadio = (!results[5].error && results[5].data) ? results[5].data : [];
+      setData({ leads: leads, reservas: reservas, profiles: profiles, spots: spots, emisoras: emisoras, leadsRadio: leadsRadio });
       setLoading(false);
     }).catch(function(){
       setData({ leads:[], reservas:[], profiles:[] });
@@ -126,7 +133,8 @@ export default function ExecutiveSuite() {
       tab==="ventas"     && React.createElement(TabVentas,     {data:data}) ||
       tab==="reservas"   && React.createElement(TabReservas,   {data:data}) ||
       tab==="cobranza"   && React.createElement(TabCobranza,   {data:data}) ||
-      tab==="vendedores" && React.createElement(TabVendedores, {data:data})
+      tab==="vendedores" && React.createElement(TabVendedores, {data:data}) ||
+      tab==="radios"     && React.createElement(TabRadios,     {data:data})
     ),
   ]);
 }
@@ -454,6 +462,123 @@ function TabVendedores(props){
             ]);
           })
         ),
+      ]),
+    ]),
+  ]);
+}
+
+// ── TAB RADIOS / ROI ──
+function TabRadios(props){
+  var spots    = props.data.spots    || [];
+  var emisoras = props.data.emisoras || [];
+  var leads    = props.data.leadsRadio || props.data.leads || [];
+
+  var fmtUSD = function(n){ return "$" + Number(n||0).toLocaleString("en-US",{minimumFractionDigits:0}); };
+
+  // Calcular inversion por emisora (neto + talento*1.15)
+  var invPorEmisora = {};
+  spots.forEach(function(s){
+    var eid = s.emisora_id || "sin_emisora";
+    if(!invPorEmisora[eid]) invPorEmisora[eid] = {inversion:0, spots:0};
+    invPorEmisora[eid].inversion += (Number(s.costo||0) * 1.15) + Number(s.talento||0);
+    invPorEmisora[eid].spots += 1;
+  });
+
+  // Leads por emisora
+  var leadsPorEmisora = {};
+  leads.forEach(function(l){
+    if(!l.emisora_id && !l.emisora) return;
+    var eid = l.emisora_id || l.emisora || "sin_emisora";
+    if(!leadsPorEmisora[eid]) leadsPorEmisora[eid] = {leads:0, ventas:0, ingresos:0};
+    leadsPorEmisora[eid].leads += 1;
+    if(l.status === "venta" || l.status === "verificacion"){
+      leadsPorEmisora[eid].ventas += 1;
+      var p = l.paquete || {};
+      leadsPorEmisora[eid].ingresos += Number(p.precio||0);
+    }
+  });
+
+  // Construir filas por emisora
+  var filas = emisoras.map(function(em){
+    var inv  = (invPorEmisora[em.id]  || {inversion:0, spots:0});
+    var ldat = (leadsPorEmisora[em.id] || {leads:0, ventas:0, ingresos:0});
+    var cpl  = ldat.leads > 0 ? inv.inversion / ldat.leads : 0;
+    var cpv  = ldat.ventas > 0 ? inv.inversion / ldat.ventas : 0;
+    var roi  = inv.inversion > 0 ? ((ldat.ingresos - inv.inversion) / inv.inversion) * 100 : 0;
+    return {
+      nombre:    em.nombre,
+      inversion: inv.inversion,
+      spots:     inv.spots,
+      leads:     ldat.leads,
+      ventas:    ldat.ventas,
+      ingresos:  ldat.ingresos,
+      cpl:       cpl,
+      cpv:       cpv,
+      roi:       roi,
+    };
+  });
+
+  // Totales
+  var totInv  = filas.reduce(function(s,f){return s+f.inversion;},0);
+  var totLeads= filas.reduce(function(s,f){return s+f.leads;},0);
+  var totVentas=filas.reduce(function(s,f){return s+f.ventas;},0);
+  var totIng  = filas.reduce(function(s,f){return s+f.ingresos;},0);
+  var totRoi  = totInv > 0 ? ((totIng - totInv) / totInv) * 100 : 0;
+
+  var P = "12px 0";
+  var rowS = {display:"flex", borderBottom:"1px solid "+C.border, padding:"10px 0", alignItems:"center", fontSize:13};
+  var hdS  = {display:"flex", borderBottom:"2px solid "+C.border, padding:"8px 0", fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.06em"};
+  var col  = [200, 100, 70, 70, 70, 100, 90, 90, 80];
+
+  function roiColor(r){ return r > 200 ? C.green : r > 0 ? C.indigo : C.red; }
+
+  return React.createElement("div", {style:{padding:"20px 24px"}}, [
+    // KPIs globales
+    React.createElement("div", {key:"kpis", style:{display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, marginBottom:24}}, [
+      React.createElement(KPI, {key:"inv",    label:"Inversion total",   value:fmtUSD(totInv),              color:C.red}),
+      React.createElement(KPI, {key:"leads",  label:"Leads de radio",    value:String(totLeads),             color:C.indigo}),
+      React.createElement(KPI, {key:"ventas", label:"Ventas",            value:String(totVentas),            color:C.green}),
+      React.createElement(KPI, {key:"ing",    label:"Ingresos ventas",   value:fmtUSD(totIng),              color:C.green}),
+      React.createElement(KPI, {key:"roi",    label:"ROI Global",        value:totRoi.toFixed(1)+"%",        color:roiColor(totRoi)}),
+    ]),
+    // Tabla por emisora
+    React.createElement("div", {key:"tbl", style:{background:C.surface, border:"1px solid "+C.border, borderRadius:10, overflow:"hidden"}}, [
+      React.createElement("div", {key:"thead", style:Object.assign({},hdS,{padding:"10px 16px"})}, [
+        React.createElement("div", {key:"n",  style:{flex:1}},             "Emisora"),
+        React.createElement("div", {key:"s",  style:{width:70, textAlign:"right"}},  "Spots"),
+        React.createElement("div", {key:"i",  style:{width:110, textAlign:"right"}}, "Inversion"),
+        React.createElement("div", {key:"l",  style:{width:70, textAlign:"right"}},  "Leads"),
+        React.createElement("div", {key:"v",  style:{width:70, textAlign:"right"}},  "Ventas"),
+        React.createElement("div", {key:"cv", style:{width:100, textAlign:"right"}}, "Costo/Venta"),
+        React.createElement("div", {key:"ig", style:{width:110, textAlign:"right"}}, "Ingresos"),
+        React.createElement("div", {key:"r",  style:{width:90, textAlign:"right"}},  "ROI"),
+      ]),
+      React.createElement("div", {key:"tbody", style:{padding:"0 16px"}},
+        filas.length === 0
+          ? React.createElement("div", {key:"empty", style:{textAlign:"center", padding:40, color:C.muted, fontSize:13}}, "Sin datos de emisoras")
+          : filas.map(function(f, i){
+              return React.createElement("div", {key:i, style:rowS}, [
+                React.createElement("div", {key:"n",  style:{flex:1, fontWeight:600, color:C.text}},             f.nombre),
+                React.createElement("div", {key:"s",  style:{width:70,  textAlign:"right", color:C.muted}},       String(f.spots)),
+                React.createElement("div", {key:"i",  style:{width:110, textAlign:"right", color:C.red}},         fmtUSD(f.inversion)),
+                React.createElement("div", {key:"l",  style:{width:70,  textAlign:"right", color:C.indigo}},      String(f.leads)),
+                React.createElement("div", {key:"v",  style:{width:70,  textAlign:"right", color:C.green}},       String(f.ventas)),
+                React.createElement("div", {key:"cv", style:{width:100, textAlign:"right", color:C.muted}},       f.cpv > 0 ? fmtUSD(f.cpv) : "--"),
+                React.createElement("div", {key:"ig", style:{width:110, textAlign:"right", color:C.green}},       fmtUSD(f.ingresos)),
+                React.createElement("div", {key:"r",  style:{width:90,  textAlign:"right", fontWeight:700, color:roiColor(f.roi)}}, f.roi !== 0 ? f.roi.toFixed(1)+"%" : "--"),
+              ]);
+            })
+      ),
+      // Fila totales
+      React.createElement("div", {key:"tfoot", style:Object.assign({},rowS,{borderTop:"2px solid "+C.border, fontWeight:700, padding:"10px 16px", color:C.text})}, [
+        React.createElement("div", {key:"n",  style:{flex:1}},              "TOTAL"),
+        React.createElement("div", {key:"s",  style:{width:70,  textAlign:"right"}}, String(spots.length)),
+        React.createElement("div", {key:"i",  style:{width:110, textAlign:"right", color:C.red}},  fmtUSD(totInv)),
+        React.createElement("div", {key:"l",  style:{width:70,  textAlign:"right", color:C.indigo}}, String(totLeads)),
+        React.createElement("div", {key:"v",  style:{width:70,  textAlign:"right", color:C.green}},  String(totVentas)),
+        React.createElement("div", {key:"cv", style:{width:100, textAlign:"right"}},""),
+        React.createElement("div", {key:"ig", style:{width:110, textAlign:"right", color:C.green}},  fmtUSD(totIng)),
+        React.createElement("div", {key:"r",  style:{width:90,  textAlign:"right", color:roiColor(totRoi)}}, totRoi.toFixed(1)+"%"),
       ]),
     ]),
   ]);
