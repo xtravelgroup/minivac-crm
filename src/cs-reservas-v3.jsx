@@ -667,8 +667,13 @@ function PagoAbonoCS(props) {
 function EditNombreModal(props) {
   var c = props.cliente;
   var exp = c._exp || {};
-  var [firstName, setFirstName] = useState(exp.tFirstName || c.nombre.split(" ")[0] || "");
-  var [lastName,  setLastName]  = useState(exp.tLastName  || c.nombre.split(" ").slice(1).join(" ") || "");
+  var [firstName,  setFirstName]  = useState(exp.tFirstName || c.nombre.split(" ")[0] || "");
+  var [lastName,   setLastName]   = useState(exp.tLastName  || c.nombre.split(" ").slice(1).join(" ") || "");
+  var [tFechaNac,  setTFechaNac]  = useState(exp.tFechaNac  || "");
+  var [hasPartner, setHasPartner] = useState(exp.hasPartner || false);
+  var [pFirstName, setPFirstName] = useState(exp.pFirstName || "");
+  var [pLastName,  setPLastName]  = useState(exp.pLastName  || "");
+  var [pFechaNac,  setPFechaNac]  = useState(exp.pFechaNac  || "");
   var [saving, setSaving] = useState(false);
   var [err,    setErr]    = useState("");
 
@@ -678,7 +683,14 @@ function EditNombreModal(props) {
     SB.from("leads").select("verificacion").eq("id", c.id).single()
     .then(function(res2) {
       var verif = (res2.data && res2.data.verificacion) ? Object.assign({}, res2.data.verificacion) : {};
-      var verifNuevo = Object.assign({}, verif, { tFirstName: firstName.trim(), tLastName: lastName.trim() });
+      var verifNuevo = Object.assign({}, verif, {
+        tFirstName: firstName.trim(), tLastName: lastName.trim(),
+        tFechaNac:  tFechaNac,
+        hasPartner: hasPartner,
+        pFirstName: hasPartner ? pFirstName.trim() : (verif.pFirstName||""),
+        pLastName:  hasPartner ? pLastName.trim()  : (verif.pLastName||""),
+        pFechaNac:  hasPartner ? pFechaNac : (verif.pFechaNac||""),
+      });
       var nombreCompleto = (firstName.trim() + " " + lastName.trim()).trim();
       return SB.from("leads").update({ nombre: nombreCompleto, verificacion: verifNuevo }).eq("id", c.id);
     })
@@ -707,12 +719,30 @@ function EditNombreModal(props) {
             <label style={S.label}>Apellido(s)</label>
             <input style={S.input} value={lastName} onChange={function(e){ setLastName(e.target.value); }} placeholder="Apellido"/>
           </div>
+          <div style={{gridColumn:"1/-1"}}>
+            <label style={S.label}>Fecha de nacimiento del titular</label>
+            <input style={S.input} type="date" value={tFechaNac} onChange={function(e){ setTFechaNac(e.target.value); }} max={TODAY}/>
+          </div>
         </div>
-        {err && <div style={{fontSize:12,color:RED,margin:"10px 0"}}>⚠️ {err}</div>}
+        <div onClick={function(){ setHasPartner(function(p){ return !p; }); }}
+          style={{display:"flex",alignItems:"center",gap:8,margin:"12px 0",cursor:"pointer",userSelect:"none"}}>
+          <div style={{width:16,height:16,borderRadius:4,border:"2px solid "+(hasPartner?BLUE:"#9ca3af"),background:hasPartner?BLUE:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            {hasPartner && <span style={{color:"#fff",fontSize:11,fontWeight:900}}>v</span>}
+          </div>
+          <span style={{fontSize:12,color:"#6b7280"}}>Incluye co-propietario / pareja</span>
+        </div>
+        {hasPartner && (
+          <div style={S.g2}>
+            <div><label style={S.label}>Nombre co-prop.</label><input style={S.input} value={pFirstName} onChange={function(e){ setPFirstName(e.target.value); }} placeholder="Nombre"/></div>
+            <div><label style={S.label}>Apellido co-prop.</label><input style={S.input} value={pLastName} onChange={function(e){ setPLastName(e.target.value); }} placeholder="Apellido"/></div>
+            <div style={{gridColumn:"1/-1"}}><label style={S.label}>Fecha de nacimiento de la pareja</label><input style={S.input} type="date" value={pFechaNac} onChange={function(e){ setPFechaNac(e.target.value); }} max={TODAY}/></div>
+          </div>
+        )}
+        {err && <div style={{fontSize:12,color:RED,margin:"10px 0"}}>&#9888; {err}</div>}
         <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:16}}>
           <button style={S.btn("ghost")} onClick={props.onClose}>Cancelar</button>
           <button style={S.btn("primary")} onClick={handleSave} disabled={saving}>
-            {saving ? "Guardando..." : "Guardar nombre"}
+            {saving ? "Guardando..." : "Guardar"}
           </button>
         </div>
       </div>
@@ -729,12 +759,14 @@ function TransferirModal(props) {
   var [firstName,  setFirstName]  = useState("");
   var [lastName,   setLastName]   = useState("");
   var [edad,       setEdad]       = useState("");
+  var [tFechaNac,  setTFechaNac]  = useState("");
   var [tel,        setTel]        = useState("");
   var [email,      setEmail]      = useState("");
   var [conPareja,  setConPareja]  = useState(false);
   var [pFirstName, setPFirstName] = useState("");
   var [pLastName,  setPLastName]  = useState("");
   var [pEdad,      setPEdad]      = useState("");
+  var [pFechaNac,  setPFechaNac]  = useState("");
   var [pTel,       setPTel]       = useState("");
   var [motivo,     setMotivo]     = useState("");
   var [saving,     setSaving]     = useState(false);
@@ -764,11 +796,13 @@ function TransferirModal(props) {
       var verifNuevo = Object.assign({}, verif, {
         tFirstName: firstName.trim(), tLastName: lastName.trim(),
         tPhone: tel, tEmail: email, edad: edadN,
+        tFechaNac:  tFechaNac,
         hasPartner: conPareja,
         pFirstName: conPareja ? pFirstName.trim() : "",
         pLastName:  conPareja ? pLastName.trim()  : "",
         pPhone:     conPareja ? pTel               : "",
         pEdad:      conPareja ? edadP              : null,
+        pFechaNac:  conPareja ? pFechaNac          : "",
       });
       var destFiltrados = (c.destinos || []).filter(function(_, i){ return resultados[i].ok; });
       return SB.from("leads").update({
@@ -828,6 +862,7 @@ function TransferirModal(props) {
             <div style={S.g2}>
               <div><label style={S.label}>Nombre(s)</label><input style={S.input} value={firstName} onChange={function(e){ setFirstName(e.target.value); }} placeholder="Nombre"/></div>
               <div><label style={S.label}>Apellido(s)</label><input style={S.input} value={lastName} onChange={function(e){ setLastName(e.target.value); }} placeholder="Apellido"/></div>
+              <div><label style={S.label}>Fecha de nacimiento</label><input style={S.input} type="date" value={tFechaNac} onChange={function(e){ setTFechaNac(e.target.value); }} max={TODAY}/></div>
               <div><label style={S.label}>Edad</label><input style={S.input} type="number" value={edad} onChange={function(e){ setEdad(e.target.value); }} placeholder="Edad"/></div>
               <div><label style={S.label}>Teléfono / WhatsApp</label><input style={S.input} value={tel} onChange={function(e){ setTel(e.target.value); }} placeholder="+1 555-000-0000"/></div>
               <div style={{gridColumn:"1/-1"}}><label style={S.label}>Email</label><input style={S.input} type="email" value={email} onChange={function(e){ setEmail(e.target.value); }} placeholder="correo@ejemplo.com"/></div>
@@ -843,6 +878,7 @@ function TransferirModal(props) {
               <div style={S.g2}>
                 <div><label style={S.label}>Nombre co-prop.</label><input style={S.input} value={pFirstName} onChange={function(e){ setPFirstName(e.target.value); }} placeholder="Nombre"/></div>
                 <div><label style={S.label}>Apellido</label><input style={S.input} value={pLastName} onChange={function(e){ setPLastName(e.target.value); }} placeholder="Apellido"/></div>
+                <div><label style={S.label}>Fecha de nacimiento</label><input style={S.input} type="date" value={pFechaNac} onChange={function(e){ setPFechaNac(e.target.value); }} max={TODAY}/></div>
                 <div><label style={S.label}>Edad</label><input style={S.input} type="number" value={pEdad} onChange={function(e){ setPEdad(e.target.value); }} placeholder="Edad"/></div>
                 <div><label style={S.label}>Teléfono</label><input style={S.input} value={pTel} onChange={function(e){ setPTel(e.target.value); }} placeholder="+1 555-000-0000"/></div>
               </div>
