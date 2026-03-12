@@ -91,13 +91,15 @@ function dbToDestinoSeller(r) {
 
 
 // Funcion de calificacion - igual que destinations-v5
-function calificarDestinos(edad, estadoCivil) {
+function calificarDestinos(edad, estadoCivil, edadCoProp) {
   if (!edad || !estadoCivil) return { qc: [], nq: [] };
   const age = Number(edad);
+  const ageCo = Number(edadCoProp) || 0;
   const qc = [], nq = [];
   for (const dest of DESTINOS_CATALOG) {
     const { ageMin, ageMax, marital } = dest.qc;
-    const califica = age >= ageMin && age <= ageMax && marital.includes(estadoCivil);
+    const edadOk = (age >= ageMin && age <= ageMax) || (ageCo > 0 && ageCo >= ageMin && ageCo <= ageMax);
+    const califica = edadOk && marital.includes(estadoCivil);
     if (califica) {
       qc.push(dest);
     } else if (dest.nq.enabled) {
@@ -188,15 +190,18 @@ const S = {
 function DestinosTab({ draft, set, destCatalog }) {
   var catalog = (destCatalog && destCatalog.length > 0) ? destCatalog : DESTINOS_CATALOG;
   var edad = Number(draft.edad) || 0;
+  var edadCoProp = Number(draft.coPropEdad) || 0;
   var ec   = draft.estadoCivil || "";
   var hasPerfil = edad > 0 && ec;
 
-  // Calificar usando el catálogo recibido
+  // Calificar usando el catálogo recibido — titular O copropietario califica
   var destQC = []; var destNQ = [];
   if (hasPerfil) {
     catalog.filter(function(d){ return d.activo !== false; }).forEach(function(dest) {
       var qc = dest.qc || {};
-      var califica = edad >= (qc.ageMin||18) && edad <= (qc.ageMax||99) && (qc.marital||[]).includes(ec);
+      var edadOk = (edad >= (qc.ageMin||18) && edad <= (qc.ageMax||99)) ||
+                   (edadCoProp > 0 && edadCoProp >= (qc.ageMin||18) && edadCoProp <= (qc.ageMax||99));
+      var califica = edadOk && (qc.marital||[]).includes(ec);
       if (califica) { destQC.push(dest); }
       else if (dest.nq && dest.nq.enabled) { destNQ.push(dest); }
     });
