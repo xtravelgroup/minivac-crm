@@ -273,8 +273,38 @@ function VendedorCard({ user, ventas, pagos, numeros, week, isAdmin, onConfig })
 
       <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:14 }}>
         <StatBox label="Numeros recibidos" today={numHoy}              week={numSem}             color="#1565c0" />
-        <StatBox label="Ventas cerradas"   today={ventasHoy.length}    week={ventasSem.length}   color="#1a7f3c" />
+        <StatBox label="Ventas"            today={ventasHoy.length}    week={ventasSem.length}   color="#1a7f3c" />
         <StatBox label="Cobrado"           today={fmtUSD(cobradoHoy)}  week={fmtUSD(cobradoSem)} color="#925c0a" />
+      </div>
+
+      {/* KPIs destacados: Ventas y Cobranza */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
+        <div style={{ padding:"14px 16px", borderRadius:12, background:"rgba(26,127,60,0.07)", border:"1px solid rgba(26,127,60,0.2)" }}>
+          <div style={{ fontSize:10, fontWeight:700, color:"#1a7f3c", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:10, opacity:0.8 }}>Ventas</div>
+          <div style={{ display:"flex", gap:24, alignItems:"flex-end" }}>
+            <div>
+              <div style={{ fontSize:9, color:"#9ca3af", marginBottom:2 }}>HOY</div>
+              <div style={{ fontSize:22, fontWeight:800, color:"#1a7f3c", lineHeight:1 }}>{fmtUSD(engancheHoy)}</div>
+            </div>
+            <div>
+              <div style={{ fontSize:9, color:"#9ca3af", marginBottom:2 }}>SEMANA</div>
+              <div style={{ fontSize:17, fontWeight:700, color:"#1a7f3c", opacity:0.75, lineHeight:1 }}>{fmtUSD(engancheSem)}</div>
+            </div>
+          </div>
+        </div>
+        <div style={{ padding:"14px 16px", borderRadius:12, background:"rgba(245,158,11,0.07)", border:"1px solid rgba(245,158,11,0.25)" }}>
+          <div style={{ fontSize:10, fontWeight:700, color:"#925c0a", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:10, opacity:0.8 }}>Cobranza</div>
+          <div style={{ display:"flex", gap:24, alignItems:"flex-end" }}>
+            <div>
+              <div style={{ fontSize:9, color:"#9ca3af", marginBottom:2 }}>HOY</div>
+              <div style={{ fontSize:22, fontWeight:800, color:"#925c0a", lineHeight:1 }}>{fmtUSD(cobradoHoy)}</div>
+            </div>
+            <div>
+              <div style={{ fontSize:9, color:"#9ca3af", marginBottom:2 }}>SEMANA</div>
+              <div style={{ fontSize:17, fontWeight:700, color:"#925c0a", opacity:0.75, lineHeight:1 }}>{fmtUSD(cobradoSem)}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:14 }}>
