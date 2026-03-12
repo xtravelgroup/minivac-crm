@@ -92,21 +92,24 @@ export default function ExecutiveSuite() {
   useEffect(function(){
     // Cargar datos en paralelo
     Promise.all([
-      SB.from("leads").select("id, nombre, estado_civil, verificacion, membresia, vigencia, saldo_pendiente, paquete, created_at"),
+      SB.from("leads").select("id, nombre, estado_civil, status, emisora_id, emisora, created_at, sale_price, pago_inicial"),
       SB.from("reservaciones").select("id, folio, status, total, fee, checkin, checkout, agente_nombre, created_at, destino_nombre, hotel"),
-      SB.from("radio_spots").select("id, emisora_id, costo, talento, fecha, semana, status"),
+      SB.from("radio_spots").select("id, emisora_id, costo, talento, fecha, semana, dia_semana, hora, duracion, tipo, incidencia"),
       SB.from("emisoras").select("id, nombre"),
-      SB.from("leads").select("id, nombre, paquete, emisora, emisora_id, created_at, verificacion"),
+      SB.from("leads").select("id, nombre, emisora, emisora_id, created_at, status, sale_price"),
     ]).then(function(results){
-      var leads    = (!results[0].error && results[0].data) ? results[0].data : [];
-      var reservas = (!results[1].error && results[1].data) ? results[1].data : [];
-      var spots    = (!results[2].error && results[2].data) ? results[2].data : [];
-      var emisoras = (!results[3].error && results[3].data) ? results[3].data : [];
+      var leads      = (!results[0].error && results[0].data) ? results[0].data : [];
+      var reservas   = (!results[1].error && results[1].data) ? results[1].data : [];
+      var spots      = (!results[2].error && results[2].data) ? results[2].data : [];
+      var emisoras   = (!results[3].error && results[3].data) ? results[3].data : [];
       var leadsRadio = (!results[4].error && results[4].data) ? results[4].data : [];
+      if(results[2].error) console.error("radio_spots error:", results[2].error.message);
+      if(results[3].error) console.error("emisoras error:", results[3].error.message);
       setData({ leads: leads, reservas: reservas, profiles: [], spots: spots, emisoras: emisoras, leadsRadio: leadsRadio });
       setLoading(false);
-    }).catch(function(){
-      setData({ leads:[], reservas:[], profiles:[] });
+    }).catch(function(err){
+      console.error("Dashboard error:", err);
+      setData({ leads:[], reservas:[], profiles:[], spots:[], emisoras:[], leadsRadio:[] });
       setLoading(false);
     });
   },[]);
@@ -142,12 +145,12 @@ function TabResumen(props){
   var leads    = props.data.leads;
   var reservas = props.data.reservas;
 
-  var ventas       = leads.filter(function(l){ return l.verificacion && l.verificacion.firma_firmada_at||l.verificacion && l.verificacion.tFirstName; });
+  var ventas       = leads.filter(function(l){ return l.status==="venta"||l.status==="verificacion"; });
   var totalIngPag  = leads.reduce(function(s,l){
-    var ph = l.pagos||[]||[];
+    var ph = []||[];
     return s + ph.reduce(function(a,p){ return a+(p.monto||0); },0);
   },0);
-  var totalPaq     = leads.reduce(function(s,l){ var p=l.paquete||{}; return s+(p.precio||0); },0);
+  var totalPaq     = totalIngPag;
   var resActivas   = reservas.filter(function(r){ return r.status==="en_reserva"||r.status==="vlo_proceso"||r.status==="confirmada"; });
   var resCompletadas = reservas.filter(function(r){ return r.status==="completada"; });
 
@@ -234,16 +237,16 @@ function TabVentas(props){
   var leads = props.data.leads;
   var porEstado = ["nuevo","contactado","interesado","cita","verificacion","venta","no_interesado"].map(function(k){
     var items = leads.filter(function(l){ return l.status===k; });
-    var ingresos = items.reduce(function(s,l){ var ph=l.pagos||[]||[]; return s+ph.reduce(function(a,p){return a+(p.monto||0);},0); },0);
+    var ingresos = items.reduce(function(s,l){ var ph=[]||[]; return s+ph.reduce(function(a,p){return a+(p.monto||0);},0); },0);
     return {k:k, items:items, ingresos:ingresos};
   });
-  var totalPag = leads.reduce(function(s,l){ var ph=l.pagos||[]||[]; return s+ph.reduce(function(a,p){return a+(p.monto||0);},0); },0);
-  var totalPaq = leads.reduce(function(s,l){ var p=l.paquete||{}; return s+(p.precio||0); },0);
+  var totalPag = leads.reduce(function(s,l){ var ph=[]||[]; return s+ph.reduce(function(a,p){return a+(p.monto||0);},0); },0);
+  var totalPaq = leads.reduce(function(s,l){ return s+(Number(l.sale_price)||0); },0);
 
   return React.createElement("div", {style:S.page}, [
     React.createElement("div", {key:"kpis", style:{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12}}, [
       React.createElement(KpiCard, {key:"a", label:"Total Leads", value:leads.length, color:C.indigo}),
-      React.createElement(KpiCard, {key:"b", label:"Ventas Cerradas", value:leads.filter(function(l){return l.verificacion && l.verificacion.firma_firmada_at;}).length, color:C.green}),
+      React.createElement(KpiCard, {key:"b", label:"Ventas Cerradas", value:leads.filter(function(l){return l.status==="venta";}).length, color:C.green}),
       React.createElement(KpiCard, {key:"c", label:"Ingresos Cobrados", value:fmtUSD(totalPag), color:C.green}),
       React.createElement(KpiCard, {key:"d", label:"Valor Total Contratos", value:fmtUSD(totalPaq), color:C.violet}),
     ]),
@@ -281,13 +284,12 @@ function TabVentas(props){
         React.createElement("tbody", {key:"b"},
           leads.slice(0,15).map(function(l){
             var cfg = STATUS_CFG[l.estado]||{l:l.estado,c:C.muted,bg:"#f4f5f7"};
-            var pagado = (l.pagos||[]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
-            var paq = l.paquete||{};
+            var pagado = ([]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
             return React.createElement("tr", {key:l.id}, [
               React.createElement("td",{key:"n",style:S.td},React.createElement("span",{style:{fontWeight:600}},l.nombre||"--")),
-              React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.nombre_vendedor||""||"--")),
+              React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.emisora||"--")),
               React.createElement("td",{key:"e",style:S.td},React.createElement("span",{style:S.bdg(cfg.c,cfg.bg)},cfg.l)),
-              React.createElement("td",{key:"p",style:S.tdc},paq.precio?React.createElement("span",{style:{color:C.violet}},fmtUSD(paq.precio)):"--"),
+              React.createElement("td",{key:"p",style:S.tdc},l.sale_price?React.createElement("span",{style:{color:C.violet}},fmtUSD(l.sale_price)):"--"),
               React.createElement("td",{key:"m",style:S.tdc},pagado>0?React.createElement("span",{style:{color:C.green,fontWeight:700}},fmtUSD(pagado)):"--"),
               React.createElement("td",{key:"f",style:S.tdc},React.createElement("span",{style:{fontSize:11,color:C.muted}},(l.created_at||"").split("T")[0]||"--")),
             ]);
@@ -346,13 +348,12 @@ function TabCobranza(props){
   var leads = props.data.leads;
   // Leads con saldo pendiente
   var conSaldo = leads.filter(function(l){
-    var ph = l.pagos||[]||[];
+    var ph = []||[];
     var pagado = ph.reduce(function(s,p){return s+(p.monto||0);},0);
-    var paq = l.paquete||{};
-    return paq.precio && pagado < paq.precio;
+    return l.sale_price && pagado < l.sale_price;
   });
-  var totalPagado = leads.reduce(function(s,l){ return s+(l.pagos||[]||[]).reduce(function(a,p){return a+(p.monto||0);},0); },0);
-  var totalContratos = leads.reduce(function(s,l){ return s+((l.paquete||{}).precio||0); },0);
+  var totalPagado = leads.reduce(function(s,l){ return s+([]||[]).reduce(function(a,p){return a+(p.monto||0);},0); },0);
+  var totalContratos = leads.reduce(function(s,l){ return s+(l.sale_price||0); },0);
   var totalPendiente = totalContratos - totalPagado;
 
   return React.createElement("div", {style:S.page}, [
@@ -383,14 +384,13 @@ function TabCobranza(props){
             )),
             React.createElement("tbody",{key:"b"},
               conSaldo.map(function(l){
-                var pagado = (l.pagos||[]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
-                var paq = l.paquete||{};
-                var pendiente = (paq.precio||0) - pagado;
-                var pct2 = paq.precio>0 ? Math.round((pagado/paq.precio)*100) : 0;
+                var pagado = ([]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
+                var pendiente = (l.sale_price||0) - pagado;
+                var pct2 = l.sale_price>0 ? Math.round((pagado/l.sale_price)*100) : 0;
                 return React.createElement("tr",{key:l.id},[
                   React.createElement("td",{key:"n",style:S.td},React.createElement("span",{style:{fontWeight:600}},l.nombre||"--")),
-                  React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.nombre_vendedor||""||"--")),
-                  React.createElement("td",{key:"p",style:S.tdc},paq.precio?React.createElement("span",{style:{color:C.violet}},fmtUSD(paq.precio)):"--"),
+                  React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.emisora||"--")),
+                  React.createElement("td",{key:"p",style:S.tdc},l.sale_price?React.createElement("span",{style:{color:C.violet}},fmtUSD(l.sale_price)):"--"),
                   React.createElement("td",{key:"c",style:S.tdc},React.createElement("span",{style:{color:C.green,fontWeight:700}},fmtUSD(pagado))),
                   React.createElement("td",{key:"pe",style:S.tdc},React.createElement("span",{style:{color:C.red,fontWeight:700}},fmtUSD(pendiente))),
                   React.createElement("td",{key:"pc",style:S.tdc},[
@@ -415,11 +415,11 @@ function TabVendedores(props){
   // Agrupar leads por vendedor
   var vendedores = {};
   leads.forEach(function(l){
-    var v = l.nombre_vendedor||"" || "Sin asignar";
+    var v = l.emisora || "Sin asignar";
     if(!vendedores[v]) vendedores[v] = {nombre:v, leads:[], ventas:0, pagado:0};
     vendedores[v].leads.push(l);
-    if(l.verificacion && l.verificacion.firma_firmada_at||l.verificacion && l.verificacion.tFirstName) vendedores[v].ventas++;
-    vendedores[v].pagado += (l.pagos||[]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
+    if(l.status==="venta"||l.status==="verificacion") vendedores[v].ventas++;
+    vendedores[v].pagado += ([]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
   });
   var vList = Object.values(vendedores).sort(function(a,b){return b.ventas-a.ventas;});
 
@@ -466,118 +466,257 @@ function TabVendedores(props){
 }
 
 // ── TAB RADIOS / ROI ──
+function lunesDe(dateStr){
+  var d=new Date(dateStr+"T12:00:00"); var day=d.getDay();
+  var mon=new Date(d); mon.setDate(d.getDate()-(day===0?6:day-1));
+  return mon.toISOString().split("T")[0];
+}
+function domingoDe(lunesStr){
+  var d=new Date(lunesStr+"T12:00:00"); d.setDate(d.getDate()+6);
+  return d.toISOString().split("T")[0];
+}
+function addDiasR(dateStr,n){
+  var d=new Date(dateStr+"T12:00:00"); d.setDate(d.getDate()+n);
+  return d.toISOString().split("T")[0];
+}
+function hoyStrR(){ return new Date().toISOString().split("T")[0]; }
+function fmtDiaR(str){
+  if(!str) return "-";
+  var d=new Date(str+"T12:00:00");
+  return d.toLocaleDateString("es-US",{weekday:"long",month:"short",day:"numeric"});
+}
+function capFirst(s){ return s?s.charAt(0).toUpperCase()+s.slice(1):s; }
+
+var DIAS_SEMANA_R = ["Lunes","Martes","Miercoles","Jueves","Viernes","Sabado","Domingo"];
+
+function fechaDeDiaR(lunesStr, dia) {
+  var idx = DIAS_SEMANA_R.indexOf(dia);
+  if(idx < 0) return lunesStr;
+  var d = new Date(lunesStr + "T12:00:00");
+  d.setDate(d.getDate() + idx);
+  return d.toISOString().split("T")[0];
+}
+
 function TabRadios(props){
   var spots    = props.data.spots    || [];
   var emisoras = props.data.emisoras || [];
   var leads    = props.data.leadsRadio || props.data.leads || [];
 
-  var fmtUSD = function(n){ return "$" + Number(n||0).toLocaleString("en-US",{minimumFractionDigits:0}); };
+  var hoy = hoyStrR();
+  var [diaActual, setDiaActual] = useState(hoy);
+  var [vistaLog, setVistaLog] = useState(true);
+  var lunes   = lunesDe(diaActual);
+  var domingo = domingoDe(lunes);
 
-  // Calcular inversion por emisora (neto + talento*1.15)
-  var invPorEmisora = {};
-  spots.forEach(function(s){
-    var eid = s.emisora_id || "sin_emisora";
-    if(!invPorEmisora[eid]) invPorEmisora[eid] = {inversion:0, spots:0};
-    invPorEmisora[eid].inversion += (Number(s.costo||0) * 1.15) + Number(s.talento||0);
-    invPorEmisora[eid].spots += 1;
+  var fmtUSD = function(n){ return "$"+Number(n||0).toLocaleString("en-US",{minimumFractionDigits:0}); };
+  function roiColor(r){ return r>100?"#1a7f3c":r>0?"#1565c0":"#b91c1c"; }
+  function invSpot(s){ return (Number(s.costo||0)*1.15)+Number(s.talento||0); }
+
+  var emMap = {};
+  emisoras.forEach(function(em){ emMap[em.id]=em.nombre; });
+
+  // Spots del dia y de la semana
+  var spotsDia    = spots.filter(function(s){ return s.fecha===diaActual; });
+  var spotsSemana = spots.filter(function(s){ var f=s.fecha||""; return f>=lunes&&f<=domingo&&invSpot(s)>0; });
+
+  // Leads
+  var leadsDia = leads.filter(function(l){ return (l.created_at||"").slice(0,10)===diaActual; });
+  var leadsSem = leads.filter(function(l){ var f=(l.created_at||"").slice(0,10); return f>=lunes&&f<=domingo; });
+
+  var invDia = spotsDia.reduce(function(t,s){ return t+invSpot(s); },0);
+  var invSem = spotsSemana.reduce(function(t,s){ return t+invSpot(s); },0);
+
+  // Resumen semanal por emisora (solo con inversion)
+  var semRows = {};
+  spotsSemana.forEach(function(s){
+    var eid=s.emisora_id||"?"; var enm=emMap[eid]||"Sin emisora";
+    if(!semRows[eid]) semRows[eid]={nombre:enm,spots:0,inversion:0,leads:0,ventas:0,ingresos:0};
+    semRows[eid].spots+=1; semRows[eid].inversion+=invSpot(s);
   });
-
-  // Leads por emisora
-  var leadsPorEmisora = {};
-  leads.forEach(function(l){
-    if(!l.emisora_id && !l.emisora) return;
-    var eid = l.emisora_id || l.emisora || "sin_emisora";
-    if(!leadsPorEmisora[eid]) leadsPorEmisora[eid] = {leads:0, ventas:0, ingresos:0};
-    leadsPorEmisora[eid].leads += 1;
-    var verif = l.verificacion || {}; if(verif.firma_firmada_at || verif.tFirstName){
-      leadsPorEmisora[eid].ventas += 1;
-      var p = l.paquete || {};
-      leadsPorEmisora[eid].ingresos += Number(p.precio||0);
+  leadsSem.forEach(function(l){
+    var eid=l.emisora_id||"?";
+    if(semRows[eid]){
+      semRows[eid].leads+=1;
+      if(l.status==="venta"){ semRows[eid].ventas+=1; semRows[eid].ingresos+=Number(l.sale_price||0); }
     }
   });
+  var rowsSem = Object.values(semRows);
+  var totInvS=rowsSem.reduce(function(t,r){return t+r.inversion;},0);
+  var totLeadsS=rowsSem.reduce(function(t,r){return t+r.leads;},0);
+  var totVentasS=rowsSem.reduce(function(t,r){return t+r.ventas;},0);
+  var totIngS=rowsSem.reduce(function(t,r){return t+r.ingresos;},0);
+  var roiS=totInvS>0?((totIngS-totInvS)/totInvS)*100:0;
 
-  // Construir filas por emisora
-  var filas = emisoras.map(function(em){
-    var inv  = (invPorEmisora[em.id]  || {inversion:0, spots:0});
-    var ldat = (leadsPorEmisora[em.id] || {leads:0, ventas:0, ingresos:0});
-    var cpl  = ldat.leads > 0 ? inv.inversion / ldat.leads : 0;
-    var cpv  = ldat.ventas > 0 ? inv.inversion / ldat.ventas : 0;
-    var roi  = inv.inversion > 0 ? ((ldat.ingresos - inv.inversion) / inv.inversion) * 100 : 0;
-    return {
-      nombre:    em.nombre,
-      inversion: inv.inversion,
-      spots:     inv.spots,
-      leads:     ldat.leads,
-      ventas:    ldat.ventas,
-      ingresos:  ldat.ingresos,
-      cpl:       cpl,
-      cpv:       cpv,
-      roi:       roi,
-    };
-  });
+  // Spots del dia ordenados por hora
+  var spotsDiaOrdenados = spotsDia.slice().sort(function(a,b){ return (a.hora||"").localeCompare(b.hora||""); });
 
-  // Totales
-  var totInv  = filas.reduce(function(s,f){return s+f.inversion;},0);
-  var totLeads= filas.reduce(function(s,f){return s+f.leads;},0);
-  var totVentas=filas.reduce(function(s,f){return s+f.ventas;},0);
-  var totIng  = filas.reduce(function(s,f){return s+f.ingresos;},0);
-  var totRoi  = totInv > 0 ? ((totIng - totInv) / totInv) * 100 : 0;
+  var thS={fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",padding:"7px 10px",textAlign:"left",borderBottom:"2px solid "+C.border,background:"#f8f9fb"};
+  var tdS=function(color,right){ return {fontSize:12,padding:"7px 10px",color:color||C.text,textAlign:right?"right":"left",borderBottom:"1px solid "+C.border}; };
 
-  var P = "12px 0";
-  var rowS = {display:"flex", borderBottom:"1px solid "+C.border, padding:"10px 0", alignItems:"center", fontSize:13};
-  var hdS  = {display:"flex", borderBottom:"2px solid "+C.border, padding:"8px 0", fontSize:11, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:"0.06em"};
-  var col  = [200, 100, 70, 70, 70, 100, 90, 90, 80];
+  return React.createElement("div",{style:{padding:"16px 20px"}},[
 
-  function roiColor(r){ return r > 200 ? C.green : r > 0 ? C.indigo : C.red; }
-
-  return React.createElement("div", {style:{padding:"20px 24px"}}, [
-    // KPIs globales
-    React.createElement("div", {key:"kpis", style:{display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, marginBottom:24}}, [
-      React.createElement(KpiCard, {key:"inv",    label:"Inversion total",   value:fmtUSD(totInv),              color:C.red}),
-      React.createElement(KpiCard, {key:"leads",  label:"Leads de radio",    value:String(totLeads),             color:C.indigo}),
-      React.createElement(KpiCard, {key:"ventas", label:"Ventas",            value:String(totVentas),            color:C.green}),
-      React.createElement(KpiCard, {key:"ing",    label:"Ingresos ventas",   value:fmtUSD(totIng),              color:C.green}),
-      React.createElement(KpiCard, {key:"roi",    label:"ROI Global",        value:totRoi.toFixed(1)+"%",        color:roiColor(totRoi)}),
+    // ── Navegador de semana ──
+    React.createElement("div",{key:"nav",style:{display:"flex",alignItems:"center",gap:10,marginBottom:16,background:C.white,border:"1px solid "+C.border,borderRadius:10,padding:"10px 16px"}},[
+      React.createElement("button",{key:"prev",onClick:function(){setDiaActual(addDiasR(diaActual,-7));},style:{background:"none",border:"1px solid "+C.border,borderRadius:6,padding:"4px 14px",cursor:"pointer",fontSize:16,color:C.text}},"‹"),
+      React.createElement("div",{key:"info",style:{flex:1,textAlign:"center"}},[
+        React.createElement("div",{key:"d",style:{fontWeight:700,fontSize:15,color:C.text}},"Semana del "+capFirst(fmtDiaR(lunes))+" al "+capFirst(fmtDiaR(domingo))),
+        React.createElement("div",{key:"s",style:{fontSize:11,color:C.muted,marginTop:2}},spotsSemana.length+" spots · "+fmtUSD(invSem)+" inversión"),
+      ]),
+      React.createElement("button",{key:"next",onClick:function(){setDiaActual(addDiasR(diaActual,7));},style:{background:"none",border:"1px solid "+C.border,borderRadius:6,padding:"4px 14px",cursor:"pointer",fontSize:16,color:C.text}},"›"),
+      diaActual!==hoy&&React.createElement("button",{key:"hoy",onClick:function(){setDiaActual(hoy);},style:{background:C.indigo,color:"#fff",border:"none",borderRadius:6,padding:"5px 12px",cursor:"pointer",fontSize:12,fontWeight:600}},"Esta semana"),
     ]),
-    // Tabla por emisora
-    React.createElement("div", {key:"tbl", style:{background:C.surface, border:"1px solid "+C.border, borderRadius:10, overflow:"hidden"}}, [
-      React.createElement("div", {key:"thead", style:Object.assign({},hdS,{padding:"10px 16px"})}, [
-        React.createElement("div", {key:"n",  style:{flex:1}},             "Emisora"),
-        React.createElement("div", {key:"s",  style:{width:70, textAlign:"right"}},  "Spots"),
-        React.createElement("div", {key:"i",  style:{width:110, textAlign:"right"}}, "Inversion"),
-        React.createElement("div", {key:"l",  style:{width:70, textAlign:"right"}},  "Leads"),
-        React.createElement("div", {key:"v",  style:{width:70, textAlign:"right"}},  "Ventas"),
-        React.createElement("div", {key:"cv", style:{width:100, textAlign:"right"}}, "Costo/Venta"),
-        React.createElement("div", {key:"ig", style:{width:110, textAlign:"right"}}, "Ingresos"),
-        React.createElement("div", {key:"r",  style:{width:90, textAlign:"right"}},  "ROI"),
-      ]),
-      React.createElement("div", {key:"tbody", style:{padding:"0 16px"}},
-        filas.length === 0
-          ? React.createElement("div", {key:"empty", style:{textAlign:"center", padding:40, color:C.muted, fontSize:13}}, "Sin datos de emisoras")
-          : filas.map(function(f, i){
-              return React.createElement("div", {key:i, style:rowS}, [
-                React.createElement("div", {key:"n",  style:{flex:1, fontWeight:600, color:C.text}},             f.nombre),
-                React.createElement("div", {key:"s",  style:{width:70,  textAlign:"right", color:C.muted}},       String(f.spots)),
-                React.createElement("div", {key:"i",  style:{width:110, textAlign:"right", color:C.red}},         fmtUSD(f.inversion)),
-                React.createElement("div", {key:"l",  style:{width:70,  textAlign:"right", color:C.indigo}},      String(f.leads)),
-                React.createElement("div", {key:"v",  style:{width:70,  textAlign:"right", color:C.green}},       String(f.ventas)),
-                React.createElement("div", {key:"cv", style:{width:100, textAlign:"right", color:C.muted}},       f.cpv > 0 ? fmtUSD(f.cpv) : "--"),
-                React.createElement("div", {key:"ig", style:{width:110, textAlign:"right", color:C.green}},       fmtUSD(f.ingresos)),
-                React.createElement("div", {key:"r",  style:{width:90,  textAlign:"right", fontWeight:700, color:roiColor(f.roi)}}, f.roi !== 0 ? f.roi.toFixed(1)+"%" : "--"),
-              ]);
-            })
-      ),
-      // Fila totales
-      React.createElement("div", {key:"tfoot", style:Object.assign({},rowS,{borderTop:"2px solid "+C.border, fontWeight:700, padding:"10px 16px", color:C.text})}, [
-        React.createElement("div", {key:"n",  style:{flex:1}},              "TOTAL"),
-        React.createElement("div", {key:"s",  style:{width:70,  textAlign:"right"}}, String(spots.length)),
-        React.createElement("div", {key:"i",  style:{width:110, textAlign:"right", color:C.red}},  fmtUSD(totInv)),
-        React.createElement("div", {key:"l",  style:{width:70,  textAlign:"right", color:C.indigo}}, String(totLeads)),
-        React.createElement("div", {key:"v",  style:{width:70,  textAlign:"right", color:C.green}},  String(totVentas)),
-        React.createElement("div", {key:"cv", style:{width:100, textAlign:"right"}},""),
-        React.createElement("div", {key:"ig", style:{width:110, textAlign:"right", color:C.green}},  fmtUSD(totIng)),
-        React.createElement("div", {key:"r",  style:{width:90,  textAlign:"right", color:roiColor(totRoi)}}, totRoi.toFixed(1)+"%"),
-      ]),
+
+    // ── Toggle Log / Emisoras ──
+    React.createElement("div",{key:"toggle",style:{display:"flex",gap:8,marginBottom:16}},[
+      React.createElement("button",{key:"log",onClick:function(){setVistaLog(true);},style:{padding:"6px 16px",borderRadius:20,border:"1px solid "+(vistaLog?C.indigo:C.border),background:vistaLog?C.indigo:"#fff",color:vistaLog?"#fff":C.text,fontSize:12,fontWeight:600,cursor:"pointer"}},"📋 Log por día"),
+      React.createElement("button",{key:"em",onClick:function(){setVistaLog(false);},style:{padding:"6px 16px",borderRadius:20,border:"1px solid "+((!vistaLog)?C.indigo:C.border),background:(!vistaLog)?C.indigo:"#fff",color:(!vistaLog)?"#fff":C.text,fontSize:12,fontWeight:600,cursor:"pointer"}},"📊 Por emisora"),
+    ]),
+
+    // ── KPIs semana ──
+    React.createElement("div",{key:"kpis-sem",style:{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:12,marginBottom:16}},[
+      React.createElement(KpiCard,{key:"sp", label:"Spots semana",    value:String(spotsSemana.length), color:C.indigo}),
+      React.createElement(KpiCard,{key:"iv", label:"Inversion",       value:fmtUSD(invSem),             color:"#b91c1c"}),
+      React.createElement(KpiCard,{key:"ld", label:"Leads de radio",  value:String(totLeadsS),          color:C.green}),
+      React.createElement(KpiCard,{key:"vt", label:"Ventas",          value:String(totVentasS),         color:C.green}),
+      React.createElement(KpiCard,{key:"ro", label:"ROI semana",      value:roiS.toFixed(1)+"%",        color:roiColor(roiS)}),
+    ]),
+
+    // ── VISTA: LOG POR DÍA ──
+    vistaLog && React.createElement("div",{key:"log-dias"},
+      DIAS_SEMANA_R.map(function(dia,di){
+        var fechaDia = fechaDeDiaR(lunes, dia);
+        var esHoy    = fechaDia === hoy;
+        var delDia   = spots.filter(function(s){
+          // Soporta tanto dia_semana como fecha directa
+          return s.fecha === fechaDia || s.dia_semana === dia;
+        }).sort(function(a,b){ return (a.hora||"").localeCompare(b.hora||""); });
+
+        var leadsDelDia = leads.filter(function(l){ return (l.created_at||"").slice(0,10) === fechaDia; });
+        var ventasDelDia = leadsDelDia.filter(function(l){ return l.status==="venta"; });
+        var invDelDia = delDia.reduce(function(t,s){ return t+invSpot(s); }, 0);
+        var ingDelDia = ventasDelDia.reduce(function(t,l){ return t+Number(l.sale_price||0); }, 0);
+        var roiDia = invDelDia > 0 ? ((ingDelDia - invDelDia) / invDelDia) * 100 : null;
+
+        return React.createElement("div",{key:dia,style:{
+          background:C.white,
+          border:"1px solid "+(esHoy?C.indigo:C.border),
+          borderRadius:10,
+          overflow:"hidden",
+          marginBottom:10,
+          boxShadow: esHoy?"0 0 0 2px "+C.indigo+"33":"none",
+        }},[
+
+          // Header del día
+          React.createElement("div",{key:"hdr",style:{
+            padding:"10px 16px",
+            background: esHoy?"linear-gradient(135deg,#1565c0,#1976d2)":C.bg,
+            display:"flex",justifyContent:"space-between",alignItems:"center",
+            borderBottom:"1px solid "+(esHoy?C.indigo+"44":C.border),
+          }},[
+            React.createElement("div",{key:"left",style:{display:"flex",alignItems:"center",gap:10}},[
+              React.createElement("div",{key:"d",style:{fontWeight:700,fontSize:13,color:esHoy?"#fff":C.text}},dia),
+              React.createElement("div",{key:"f",style:{fontSize:11,color:esHoy?"rgba(255,255,255,0.7)":C.muted}},capFirst(fmtDiaR(fechaDia))),
+              esHoy&&React.createElement("span",{key:"hoy",style:{background:"rgba(255,255,255,0.25)",color:"#fff",fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,border:"1px solid rgba(255,255,255,0.4)"}},"HOY"),
+            ]),
+            React.createElement("div",{key:"right",style:{display:"flex",alignItems:"center",gap:14,fontSize:12}},[
+              React.createElement("span",{key:"sp",style:{color:esHoy?"rgba(255,255,255,0.8)":C.muted}},delDia.length+" spot"+(delDia.length!==1?"s":"")),
+              invDelDia>0&&React.createElement("span",{key:"inv",style:{color:esHoy?"#ffcdd2":"#b91c1c",fontWeight:600}},fmtUSD(invDelDia)),
+              leadsDelDia.length>0&&React.createElement("span",{key:"ld",style:{color:esHoy?"#c8e6c9":C.green,fontWeight:600}},leadsDelDia.length+" lead"+(leadsDelDia.length!==1?"s":"")),
+              roiDia!==null&&React.createElement("span",{key:"roi",style:{color:esHoy?"#fff":roiColor(roiDia),fontWeight:700,fontSize:11}},roiDia.toFixed(0)+"% ROI"),
+            ]),
+          ]),
+
+          // Columnas header
+          delDia.length>0&&React.createElement("div",{key:"cols",style:{
+            display:"grid",
+            gridTemplateColumns:"70px 1fr 70px 90px 90px 110px",
+            padding:"5px 16px",
+            background:"#fafbfc",
+            borderBottom:"1px solid "+C.border,
+          }},["Hora","Emisora","Tipo","Costo","Talento","Total"].map(function(h,i){
+            return React.createElement("div",{key:i,style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",textAlign:i>1?"right":"left"}},h);
+          })),
+
+          // Spots del día
+          delDia.length===0
+            ? React.createElement("div",{key:"empty",style:{padding:"14px 16px",textAlign:"center",fontSize:12,color:C.muted}},"Sin spots registrados")
+            : React.createElement("div",{key:"spots"},delDia.map(function(s,si){
+                var inv = invSpot(s);
+                return React.createElement("div",{key:s.id||si,style:{
+                  display:"grid",
+                  gridTemplateColumns:"70px 1fr 70px 90px 90px 110px",
+                  padding:"8px 16px",
+                  background:si%2===0?"#fff":"#fafbfc",
+                  borderBottom:"1px solid "+C.border,
+                  alignItems:"center",
+                }},[
+                  React.createElement("div",{key:"h",style:{fontSize:12,color:C.indigo,fontWeight:600}},s.hora||"--"),
+                  React.createElement("div",{key:"e",style:{fontSize:12,color:C.text,fontWeight:500}},emMap[s.emisora_id]||"--"),
+                  React.createElement("div",{key:"t",style:{fontSize:11,color:C.muted,textAlign:"right"}},s.tipo||"comercial"),
+                  React.createElement("div",{key:"c",style:{fontSize:12,color:"#b91c1c",textAlign:"right"}},fmtUSD(s.costo||0)),
+                  React.createElement("div",{key:"tk",style:{fontSize:12,color:C.amber,textAlign:"right"}},s.talento>0?fmtUSD(s.talento):"--"),
+                  React.createElement("div",{key:"i",style:{fontSize:12,fontWeight:700,color:C.text,textAlign:"right"}},fmtUSD(inv)),
+                ]);
+              })),
+
+          // Footer del día con leads
+          leadsDelDia.length>0&&React.createElement("div",{key:"leads-footer",style:{
+            padding:"8px 16px",
+            background:"rgba(26,127,60,0.04)",
+            borderTop:"1px solid "+C.border,
+            display:"flex",gap:16,alignItems:"center",fontSize:11,color:C.muted,
+          }},[
+            React.createElement("span",{key:"l",style:{color:C.green,fontWeight:600}},leadsDelDia.length+" leads de radio"),
+            ventasDelDia.length>0&&React.createElement("span",{key:"v",style:{color:C.green,fontWeight:700}},ventasDelDia.length+" venta"+(ventasDelDia.length!==1?"s":"")),
+            ingDelDia>0&&React.createElement("span",{key:"ing",style:{color:C.green,fontWeight:700}},fmtUSD(ingDelDia)+" ingresos"),
+          ]),
+        ]);
+      })
+    ),
+
+    // ── VISTA: POR EMISORA (tabla semana) ──
+    !vistaLog && React.createElement("div",{key:"tsem",style:{background:C.white,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}},[
+      React.createElement("div",{key:"hdr",style:{padding:"10px 14px",borderBottom:"1px solid "+C.border,fontWeight:700,fontSize:13,color:C.text}},"Por emisora esta semana"),
+      rowsSem.length===0
+        ? React.createElement("div",{key:"empty",style:{textAlign:"center",padding:28,color:C.muted,fontSize:12}},"Sin inversion registrada esta semana")
+        : React.createElement("table",{key:"tbl",style:{width:"100%",borderCollapse:"collapse"}},[
+            React.createElement("thead",{key:"th"},React.createElement("tr",{},[
+              React.createElement("th",{key:"n",style:thS},"Emisora"),
+              React.createElement("th",{key:"s",style:Object.assign({},thS,{textAlign:"right"})},"Spots"),
+              React.createElement("th",{key:"i",style:Object.assign({},thS,{textAlign:"right"})},"Inversion"),
+              React.createElement("th",{key:"l",style:Object.assign({},thS,{textAlign:"right"})},"Leads"),
+              React.createElement("th",{key:"v",style:Object.assign({},thS,{textAlign:"right"})},"Ventas"),
+              React.createElement("th",{key:"c",style:Object.assign({},thS,{textAlign:"right"})},"Costo/Venta"),
+              React.createElement("th",{key:"ing",style:Object.assign({},thS,{textAlign:"right"})},"Ingresos"),
+              React.createElement("th",{key:"r",style:Object.assign({},thS,{textAlign:"right"})},"ROI"),
+            ])),
+            React.createElement("tbody",{key:"tb"},[
+              rowsSem.map(function(r,i){
+                var roi=r.inversion>0?((r.ingresos-r.inversion)/r.inversion)*100:0;
+                var cpv=r.ventas>0?r.inversion/r.ventas:null;
+                return React.createElement("tr",{key:i,style:{background:i%2===0?"#fff":"#f9fafb"}},[
+                  React.createElement("td",{key:"n",style:tdS(null)},r.nombre),
+                  React.createElement("td",{key:"s",style:tdS(C.muted,true)},r.spots),
+                  React.createElement("td",{key:"i",style:tdS("#b91c1c",true)},fmtUSD(r.inversion)),
+                  React.createElement("td",{key:"l",style:tdS(C.indigo,true)},r.leads),
+                  React.createElement("td",{key:"v",style:tdS(C.green,true)},r.ventas),
+                  React.createElement("td",{key:"c",style:tdS(C.muted,true)},cpv?fmtUSD(cpv):"--"),
+                  React.createElement("td",{key:"ing",style:tdS(C.green,true)},r.ingresos>0?fmtUSD(r.ingresos):"$0"),
+                  React.createElement("td",{key:"r",style:Object.assign({},tdS(null,true),{fontWeight:700,color:roiColor(roi)})},r.inversion>0?roi.toFixed(1)+"%":"--"),
+                ]);
+              }),
+              React.createElement("tr",{key:"tot",style:{background:"#f0f2f5",fontWeight:700}},[
+                React.createElement("td",{key:"n",style:tdS(null)},"TOTAL"),
+                React.createElement("td",{key:"s",style:tdS(null,true)},spotsSemana.length),
+                React.createElement("td",{key:"i",style:tdS("#b91c1c",true)},fmtUSD(totInvS)),
+                React.createElement("td",{key:"l",style:tdS(C.indigo,true)},totLeadsS),
+                React.createElement("td",{key:"v",style:tdS(C.green,true)},totVentasS),
+                React.createElement("td",{key:"c",style:tdS(null,true)},totVentasS>0?fmtUSD(totInvS/totVentasS):"--"),
+                React.createElement("td",{key:"ing",style:tdS(C.green,true)},fmtUSD(totIngS)),
+                React.createElement("td",{key:"r",style:Object.assign({},tdS(null,true),{color:roiColor(roiS)})},roiS.toFixed(1)+"%"),
+              ]),
+            ]),
+          ]),
     ]),
   ]);
 }
