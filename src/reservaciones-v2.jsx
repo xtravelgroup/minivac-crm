@@ -611,29 +611,29 @@ function ReservaModal(props){
   var [profCo,    setProfCo]    = useState(r.profCo     || "");
 
   // Pasajeros
-  // Inicializar pasajeros desde certificado si no hay guardados
-  function initPasajeros(){
-    if(r.pasajeros && r.pasajeros.length > 0) return r.pasajeros;
+  // Inicializar pasajeros siempre segun adultos+ninos de la reserva
+  function buildPasajeros(nAdultos, nNinos){
     var lista = [];
-    // Pasajero 1: titular
-    lista.push({
-      nombre:   r.tNombre   || r.cliente || "",
-      fechaNac: r.tFechaNac || "",
-      tipo:     "adulto",
-      rol:      "titular"
-    });
-    // Pasajero 2: pareja/co-prop (si existe)
-    if(r.hasPartner || r.pNombre || r.co_prop){
-      lista.push({
-        nombre:   r.pNombre  || r.co_prop || "",
-        fechaNac: r.pFechaNac || "",
-        tipo:     "adulto",
-        rol:      "co_prop"
-      });
+    var total = (parseInt(nAdultos)||0) + (parseInt(nNinos)||0);
+    // Usar pasajeros guardados si el numero coincide exactamente
+    if(r.pasajeros && r.pasajeros.length === total) return r.pasajeros;
+    // Adulto 1: titular
+    lista.push({ nombre: r.tNombre||r.cliente||"", fechaNac: r.tFechaNac||"", tipo:"adulto", rol:"titular" });
+    // Adulto 2: pareja
+    if((parseInt(nAdultos)||0) >= 2){
+      lista.push({ nombre: r.pNombre||r.co_prop||"", fechaNac: r.pFechaNac||"", tipo:"adulto", rol:"co_prop" });
+    }
+    // Adultos adicionales
+    for(var i=2;i<(parseInt(nAdultos)||0);i++){
+      lista.push({ nombre:"", fechaNac:"", tipo:"adulto", rol:"adicional" });
+    }
+    // Ninos
+    for(var j=0;j<(parseInt(nNinos)||0);j++){
+      lista.push({ nombre:"", fechaNac:"", tipo:"nino", rol:"nino" });
     }
     return lista;
   }
-  var [pasajeros, setPasajeros] = useState(initPasajeros);
+  var [pasajeros, setPasajeros] = useState(function(){ return buildPasajeros(adultos, ninos); });
 
   var [tab, setTab] = useState("hotel");
   var [saving, setSaving] = useState(false);
@@ -686,34 +686,7 @@ function ReservaModal(props){
   }
   // Generar pasajeros manualmente con boton
   function generarPasajeros(){
-    var totalAdultos = parseInt(adultos)||0;
-    var totalNinos   = parseInt(ninos)||0;
-    var lista = [];
-    // Adulto 1: titular (del certificado)
-    lista.push({
-      nombre:   r.tNombre   || r.cliente || "",
-      fechaNac: r.tFechaNac || "",
-      tipo:     "adulto",
-      rol:      "titular"
-    });
-    // Adulto 2: pareja si tiene
-    if(totalAdultos >= 2){
-      lista.push({
-        nombre:   r.pNombre  || r.co_prop || "",
-        fechaNac: r.pFechaNac || "",
-        tipo:     "adulto",
-        rol:      "co_prop"
-      });
-    }
-    // Adultos adicionales
-    for(var i=2;i<totalAdultos;i++){
-      lista.push({nombre:"",fechaNac:"",tipo:"adulto",rol:"adicional"});
-    }
-    // Ninos
-    for(var j=0;j<totalNinos;j++){
-      lista.push({nombre:"",fechaNac:"",tipo:"nino",rol:"nino"});
-    }
-    setPasajeros(lista);
+    setPasajeros(buildPasajeros(adultos, ninos));
   }
 
   function save(){
