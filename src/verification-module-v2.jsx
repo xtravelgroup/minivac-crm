@@ -334,9 +334,9 @@ function EditExpedienteModal({ exp, destCatalog, destMap, onClose, onSave }) {
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
                       <div style={{fontSize:9,color:"#9ca3af",marginBottom:2}}>Noches</div>
-                      <input style={{...S.input,width:48,textAlign:"center",padding:"5px 4px",fontSize:13,fontWeight:700,MozAppearance:"textfield",WebkitAppearance:"none"}}
-                        type="number" min="1" max="14" value={dest.noches}
+                      <input
                         style={{...S.input,width:48,textAlign:"center",padding:"5px 4px",fontSize:13,fontWeight:700,MozAppearance:"textfield",WebkitAppearance:"none"}}
+                        type="number" min="1" max="14" value={dest.noches}
                         onChange={function(e){
                           setD(function(p){ return Object.assign({},p,{destinos:p.destinos.map(function(x,j){ return j===i?Object.assign({},x,{noches:Number(e.target.value)}):x; })}); });
                         }} />
