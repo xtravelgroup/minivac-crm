@@ -92,7 +92,7 @@ export default function ExecutiveSuite() {
   useEffect(function(){
     // Cargar datos en paralelo
     Promise.all([
-      SB.from("leads").select("id, nombre, estado_civil, status, emisora_id, emisora, created_at, sale_price, pago_inicial"),
+      SB.from("leads").select("id, nombre, estado_civil, status, emisora_id, emisora, created_at, sale_price, pago_inicial, vendedor_id, usuarios(nombre)"),
       SB.from("reservaciones").select("id, folio, status, total, fee, checkin, checkout, agente_nombre, created_at, destino_nombre, hotel"),
       SB.from("radio_spots").select("id, emisora_id, costo, talento, fecha, semana, dia_semana, hora, duracion, tipo, incidencia"),
       SB.from("emisoras").select("id, nombre"),
@@ -415,7 +415,8 @@ function TabVendedores(props){
   // Agrupar leads por vendedor
   var vendedores = {};
   leads.forEach(function(l){
-    var v = l.emisora || "Sin asignar";
+    var nombre = (l.usuarios && l.usuarios.nombre) ? l.usuarios.nombre : "Sin asignar";
+    var v = nombre;
     if(!vendedores[v]) vendedores[v] = {nombre:v, leads:[], ventas:0, pagado:0};
     vendedores[v].leads.push(l);
     if(l.status==="venta"||l.status==="verificacion") vendedores[v].ventas++;
