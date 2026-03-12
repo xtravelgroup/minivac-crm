@@ -1009,9 +1009,7 @@ function EditContactoModal(props) {
       email:        d.email,
       direccion:    d.direccion,
       ciudad:       d.ciudad,
-      estado:       d.estado,
       zip:          d.zip,
-      estado_civil: d.estadoCivil,
       co_prop:      d.coProp,
       co_prop_tel:  d.coPropTel,
     }).eq("id", c.id)
