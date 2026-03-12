@@ -39,15 +39,16 @@ function calcTempTotal(checkin,noches,temps){
 var INDIGO="#6366f1",TEAL="#0ea5a0",VIOLET="#5b21b6",RED="#b91c1c",GREEN="#1a7f3c",AMBER="#f59e0b",CORAL="#f97316",BLUE="#1565c0";
 
 var STATUS = {
-  solicitud:       {label:"Solicitud",       c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
-  solicitada:      {label:"Solicitud",       c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
-  en_proceso:      {label:"En proceso",      c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
-  vlo_proceso:     {label:"VLO en proceso",  c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
-  rechazado_hotel: {label:"Rechazado hotel", c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
-  rechazada:       {label:"Rechazada",       c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
-  confirmada:      {label:"Confirmada",      c:GREEN,  bg:"#eaf5ec", br:"#a3d9a5"},
-  cancelada:       {label:"Cancelada",       c:RED,    bg:"#fef0f0", br:"#f5b8b8"},
-  completada:      {label:"Completada",      c:"#9ca3af",bg:"rgba(100,116,139,0.1)",br:"rgba(100,116,139,0.3)"},
+  solicitud:       {label:"Solicitud",    c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
+  solicitada:      {label:"Solicitud",    c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
+  en_reserva:      {label:"En Reserva",   c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
+  en_proceso:      {label:"En Reserva",   c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
+  vlo_proceso:     {label:"VLO",          c:VIOLET, bg:"rgba(91,33,182,0.1)", br:"rgba(91,33,182,0.3)"},
+  rechazado_hotel: {label:"Rechazado",    c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
+  rechazada:       {label:"Rechazada",    c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
+  confirmada:      {label:"Confirmada",   c:GREEN,  bg:"#eaf5ec", br:"#a3d9a5"},
+  cancelada:       {label:"Cancelada",    c:RED,    bg:"#fef0f0", br:"#f5b8b8"},
+  completada:      {label:"Completada",   c:"#9ca3af",bg:"rgba(100,116,139,0.1)",br:"rgba(100,116,139,0.3)"},
 };
 
 var DESTINOS = ["Cancun","Los Cabos","Riviera Maya","Puerto Vallarta","Huatulco","Las Vegas","Orlando"];
@@ -99,15 +100,16 @@ function sbHotelesToMap(rows){
 var INDIGO="#6366f1",TEAL="#0ea5a0",VIOLET="#5b21b6",RED="#b91c1c",GREEN="#1a7f3c",AMBER="#f59e0b",CORAL="#f97316",BLUE="#1565c0";
 
 var STATUS = {
-  solicitud:       {label:"Solicitud",       c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
-  solicitada:      {label:"Solicitud",       c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
-  en_proceso:      {label:"En proceso",      c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
-  vlo_proceso:     {label:"VLO en proceso",  c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
-  rechazado_hotel: {label:"Rechazado hotel", c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
-  rechazada:       {label:"Rechazada",       c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
-  confirmada:      {label:"Confirmada",      c:GREEN,  bg:"#eaf5ec", br:"#a3d9a5"},
-  cancelada:       {label:"Cancelada",       c:RED,    bg:"#fef0f0", br:"#f5b8b8"},
-  completada:      {label:"Completada",      c:"#9ca3af",bg:"rgba(100,116,139,0.1)",br:"rgba(100,116,139,0.3)"},
+  solicitud:       {label:"Solicitud",    c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
+  solicitada:      {label:"Solicitud",    c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
+  en_reserva:      {label:"En Reserva",   c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
+  en_proceso:      {label:"En Reserva",   c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
+  vlo_proceso:     {label:"VLO",          c:VIOLET, bg:"rgba(91,33,182,0.1)", br:"rgba(91,33,182,0.3)"},
+  rechazado_hotel: {label:"Rechazado",    c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
+  rechazada:       {label:"Rechazada",    c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
+  confirmada:      {label:"Confirmada",   c:GREEN,  bg:"#eaf5ec", br:"#a3d9a5"},
+  cancelada:       {label:"Cancelada",    c:RED,    bg:"#fef0f0", br:"#f5b8b8"},
+  completada:      {label:"Completada",   c:"#9ca3af",bg:"rgba(100,116,139,0.1)",br:"rgba(100,116,139,0.3)"},
 };
 
 var DESTINOS = ["Cancun","Los Cabos","Riviera Maya","Puerto Vallarta","Huatulco","Las Vegas","Orlando"];
@@ -117,15 +119,16 @@ var AGENTES = ["Jorge P.","Maria R.","Carlos V.","Ana L."];
 var INDIGO="#6366f1",TEAL="#0ea5a0",VIOLET="#5b21b6",RED="#b91c1c",GREEN="#1a7f3c",AMBER="#f59e0b",CORAL="#f97316",BLUE="#1565c0";
 
 var STATUS = {
-  solicitud:       {label:"Solicitud",       c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
-  solicitada:      {label:"Solicitud",       c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
-  en_proceso:      {label:"En proceso",      c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
-  vlo_proceso:     {label:"VLO en proceso",  c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
-  rechazado_hotel: {label:"Rechazado hotel", c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
-  rechazada:       {label:"Rechazada",       c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
-  confirmada:      {label:"Confirmada",      c:GREEN,  bg:"#eaf5ec", br:"#a3d9a5"},
-  cancelada:       {label:"Cancelada",       c:RED,    bg:"#fef0f0", br:"#f5b8b8"},
-  completada:      {label:"Completada",      c:"#9ca3af",bg:"rgba(100,116,139,0.1)",br:"rgba(100,116,139,0.3)"},
+  solicitud:       {label:"Solicitud",    c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
+  solicitada:      {label:"Solicitud",    c:AMBER,  bg:"rgba(245,158,11,0.12)", br:"rgba(245,158,11,0.3)"},
+  en_reserva:      {label:"En Reserva",   c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
+  en_proceso:      {label:"En Reserva",   c:INDIGO, bg:"#ebeffe", br:"#aab4f5"},
+  vlo_proceso:     {label:"VLO",          c:VIOLET, bg:"rgba(91,33,182,0.1)", br:"rgba(91,33,182,0.3)"},
+  rechazado_hotel: {label:"Rechazado",    c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
+  rechazada:       {label:"Rechazada",    c:CORAL,  bg:"rgba(249,115,22,0.12)", br:"rgba(249,115,22,0.3)"},
+  confirmada:      {label:"Confirmada",   c:GREEN,  bg:"#eaf5ec", br:"#a3d9a5"},
+  cancelada:       {label:"Cancelada",    c:RED,    bg:"#fef0f0", br:"#f5b8b8"},
+  completada:      {label:"Completada",   c:"#9ca3af",bg:"rgba(100,116,139,0.1)",br:"rgba(100,116,139,0.3)"},
 };
 
 var DESTINOS = ["Cancun","Los Cabos","Riviera Maya","Puerto Vallarta","Huatulco","Las Vegas","Orlando"];
@@ -184,11 +187,15 @@ function MWrap(props){
 }
 
 function Stepper(props){
-  var steps=[{k:"solicitada",l:"Solicitud"},{k:"vlo_proceso",l:"VLO"},{k:"confirmada",l:"Confirmada"},{k:"completada",l:"Completada"}];
+  var steps=[{k:"solicitada",l:"Solicitud"},{k:"en_reserva",l:"En Reserva"},{k:"vlo_proceso",l:"VLO"},{k:"confirmada",l:"Confirmada"},{k:"completada",l:"Completada"}];
   var cur=props.status;
   var curIdx=-1;
-  for(var i=0;i<steps.length;i++){ if(steps[i].k===cur){curIdx=i;break;} }
-  if(cur==="cancelada"||cur==="rechazado_hotel") curIdx=-1;
+  // Mapear aliases al paso correcto
+  var curMapped = cur;
+  if(cur==="solicitud") curMapped="solicitada";
+  if(cur==="en_proceso") curMapped="en_reserva";
+  for(var i=0;i<steps.length;i++){ if(steps[i].k===curMapped){curIdx=i;break;} }
+  if(cur==="cancelada"||cur==="rechazado_hotel"||cur==="rechazada") curIdx=-1;
   return (
     <div style={{display:"flex",alignItems:"center",marginBottom:"16px"}}>
       {steps.map(function(s,i){
@@ -578,6 +585,280 @@ function FormModal(props){
 }
 
 
+// ─── MODAL EN RESERVA ────────────────────────────────────────────────────────
+function ReservaModal(props){
+  var r = props.res;
+  var s = S;
+
+  // Estados hotel/hab
+  var [hotelesDB, setHotelesDB] = useState({});
+  var [dest,    setDest]    = useState(r.destino || "");
+  var [hotel,   setHotel]   = useState(r.hotel   || "");
+  var [hIdx,    setHIdx]    = useState(0);
+  var [habNom,  setHabNom]  = useState(r.hab     || "");
+  var [reg,     setReg]     = useState(r.reg      || "Todo incluido");
+  var [checkin, setCheckin] = useState(r.checkin  || "");
+  var [nBase,   setNBase]   = useState(r.n_base   || r.nBase || 3);
+  var [nExtra,  setNExtra]  = useState(r.n_extra  || r.nExtra || 0);
+  var [adultos, setAdultos] = useState(r.adultos  || 2);
+  var [ninos,   setNinos]   = useState(r.ninos    || 0);
+  var [agente,  setAgente]  = useState(r.agente_nombre || r.agente || "");
+  var [notas,   setNotas]   = useState(r.notas_agente  || "");
+
+  // Calificacion
+  var [ingresos,  setIngresos]  = useState(r.ingresos   || "");
+  var [profTit,   setProfTit]   = useState(r.profTit    || "");
+  var [profCo,    setProfCo]    = useState(r.profCo     || "");
+
+  // Pasajeros
+  var [pasajeros, setPasajeros] = useState(r.pasajeros || []);
+
+  var [tab, setTab] = useState("hotel");
+  var [saving, setSaving] = useState(false);
+
+  var destClean = limpiarDest(dest);
+  var hotelesLista = hotelesDB[destClean] || [];
+  var hotelObj = hotelesLista[hIdx] || hotelesLista.find(function(h){ return h.nombre === hotel; }) || null;
+  var habs = hotelObj ? hotelObj.habs : [];
+  var noches = (parseInt(nBase)||3) + (parseInt(nExtra)||0);
+  var checkout = checkin ? addDays(checkin, noches) : "";
+  var fee = hotelObj ? hotelObj.fee : 0;
+  var habObj = habs.find(function(h){ return h.nombre === habNom; }) || habs[0] || null;
+  var upg = habObj && !habObj.base ? habObj.up : 0;
+  var nochePrice = (hotelObj ? hotelObj.precioNoche : 90) + (habObj && !habObj.base ? habObj.up : 0);
+  var total = fee + upg + (parseInt(nExtra)||0) * nochePrice;
+
+  useEffect(function(){
+    SB.from("hoteles").select("*").eq("activo",true).then(function(res){
+      if(!res.error){
+        var mapped = sbHotelesToMap(res.data);
+        setHotelesDB(mapped);
+        // Pre-seleccionar hotel actual
+        var lista = mapped[limpiarDest(dest)] || [];
+        for(var i=0;i<lista.length;i++){
+          if(lista[i].nombre === hotel){ setHIdx(i); break; }
+        }
+      }
+    });
+  },[]);
+
+  // Sincronizar hotel al cambiar idx
+  function onHotelChange(v){
+    var ni = parseInt(v)||0;
+    setHIdx(ni);
+    var h = hotelesLista[ni];
+    if(h){ setHotel(h.nombre); setHabNom(""); if(h.regs&&h.regs.length>0) setReg(h.regs[0]); }
+  }
+
+  // Pasajeros helpers
+  function setPax(i,k,v){
+    var arr = pasajeros.slice();
+    arr[i] = Object.assign({},arr[i],{[k]:v});
+    setPasajeros(arr);
+  }
+  function addPax(){
+    setPasajeros(pasajeros.concat([{nombre:"",fechaNac:"",tipo:"adulto"}]));
+  }
+  function removePax(i){
+    setPasajeros(pasajeros.filter(function(_,j){return j!==i;}));
+  }
+  // Auto-generar pasajeros segun adultos+ninos
+  useEffect(function(){
+    var total = (parseInt(adultos)||0) + (parseInt(ninos)||0);
+    if(pasajeros.length === total) return;
+    if(pasajeros.length < total){
+      var faltantes = [];
+      for(var i=pasajeros.length;i<total;i++){
+        faltantes.push({nombre:"",fechaNac:"",tipo: i < (parseInt(adultos)||0) ? "adulto":"nino"});
+      }
+      setPasajeros(pasajeros.concat(faltantes));
+    } else {
+      setPasajeros(pasajeros.slice(0,total));
+    }
+  },[adultos,ninos]);
+
+  function save(){
+    setSaving(true);
+    var hist = (r.hist||r.historial||[]).concat([{f:TODAY,t:"Reserva procesada - Hotel: "+(hotelObj?hotelObj.nombre:""),a:agente}]);
+    var updates = {
+      status:          "en_reserva",
+      hotel:           hotelObj ? hotelObj.nombre : hotel,
+      hab:             habNom || (habs[0]?habs[0].nombre:""),
+      reg:             reg,
+      pax:             (parseInt(adultos)||2) + (parseInt(ninos)||0),
+      adultos:         parseInt(adultos)||2,
+      ninos:           parseInt(ninos)||0,
+      n_base:          parseInt(nBase)||3,
+      n_extra:         parseInt(nExtra)||0,
+      checkin:         checkin,
+      checkout:        checkout,
+      fee:             fee,
+      upg:             upg,
+      total:           total,
+      agente_nombre:   agente,
+      notas_agente:    notas,
+      ingresos_anuales: ingresos,
+      profesion_titular: profTit,
+      profesion_coprop:  profCo,
+      pasajeros:       pasajeros,
+      historial:       hist,
+    };
+    SB.from("reservaciones").update(updates).eq("id",r.id).then(function(res){
+      setSaving(false);
+      if(res.error){ alert("Error: "+res.error.message); return; }
+      props.onSaved();
+      props.onClose();
+    });
+  }
+
+  var TABS = [{k:"hotel",l:"Hotel y fechas"},{k:"pasajeros",l:"Pasajeros"},{k:"calificacion",l:"Calificacion"}];
+
+  return (
+    <MWrap title={"Procesar reserva"} sub={r.cliente+" | "+r.id} color={INDIGO} onClose={props.onClose} wide>
+      <Stepper status={"en_reserva"}/>
+
+      {/* Tabs */}
+      <div style={{display:"flex",borderBottom:"1px solid #e3e6ea",marginBottom:14,gap:0}}>
+        {TABS.map(function(t){
+          var active=tab===t.k;
+          return <button key={t.k} onClick={function(){setTab(t.k);}} style={{padding:"7px 14px",border:"none",borderBottom:active?"2px solid "+INDIGO:"2px solid transparent",background:"none",cursor:"pointer",fontSize:12,fontWeight:active?700:400,color:active?INDIGO:"#6b7280",whiteSpace:"nowrap"}}>{t.l}</button>;
+        })}
+      </div>
+
+      {tab==="hotel"&&(
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {/* Solicitud original - readonly */}
+          <div style={{background:"#f8f9fb",border:"1px solid #e3e6ea",borderRadius:10,padding:"10px 14px",marginBottom:4}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:6}}>Solicitud original</div>
+            <div style={{display:"flex",gap:16,fontSize:12,flexWrap:"wrap"}}>
+              <span style={{color:"#6b7280"}}>Destino: <strong style={{color:"#1a1f2e"}}>{r.destino}</strong></span>
+              <span style={{color:"#6b7280"}}>Check-in: <strong style={{color:"#1a1f2e"}}>{fmtDate(r.checkin)}</strong></span>
+              <span style={{color:"#6b7280"}}>Adultos: <strong style={{color:"#1a1f2e"}}>{r.adultos||2}</strong></span>
+              <span style={{color:"#6b7280"}}>Ninos: <strong style={{color:"#1a1f2e"}}>{r.ninos||0}</strong></span>
+              {r.notas_agente&&<span style={{color:"#6b7280"}}>Notas: <strong style={{color:"#1a1f2e"}}>{r.notas_agente}</strong></span>}
+            </div>
+          </div>
+
+          {/* Hotel */}
+          <div style={Object.assign({},S.g2)}>
+            <div><label style={S.lbl}>Hotel</label>
+              <select style={S.sel} value={String(hIdx)} onChange={function(e){onHotelChange(e.target.value);}}>
+                {hotelesLista.length===0&&<option value="">Sin hoteles para este destino</option>}
+                {hotelesLista.map(function(h,i){return <option key={h.id} value={String(i)}>{h.nombre}</option>;})}
+              </select>
+            </div>
+            <div><label style={S.lbl}>Tipo de habitacion</label>
+              <select style={S.sel} value={habNom} onChange={function(e){setHabNom(e.target.value);}}>
+                <option value="">-- Seleccionar --</option>
+                {habs.map(function(h){return <option key={h.id||h.nombre} value={h.nombre}>{h.nombre}{h.up>0?" (+$"+h.up+" upgrade)":""}</option>;})}
+              </select>
+            </div>
+            <div><label style={S.lbl}>Regimen</label>
+              <select style={S.sel} value={reg} onChange={function(e){setReg(e.target.value);}}>
+                {(hotelObj?hotelObj.regs:["Solo habitacion","Desayuno incluido","Todo incluido"]).map(function(r){return <option key={r}>{r}</option>;})}
+              </select>
+            </div>
+            <div><label style={S.lbl}>Agente de reservas</label>
+              <input style={S.inp} value={agente} onChange={function(e){setAgente(e.target.value);}} placeholder="Nombre del agente"/>
+            </div>
+          </div>
+
+          {/* Fechas */}
+          <div style={S.g3}>
+            <div><label style={S.lbl}>Check-in</label><input style={S.inp} type="date" value={checkin} onChange={function(e){setCheckin(e.target.value);}}/></div>
+            <div><label style={S.lbl}>Noches paquete</label><input style={S.inp} type="number" min="1" max="21" value={nBase} onChange={function(e){setNBase(e.target.value);}}/></div>
+            <div><label style={S.lbl}>Noches extra</label><input style={S.inp} type="number" min="0" max="14" value={nExtra} onChange={function(e){setNExtra(e.target.value);}}/></div>
+          </div>
+
+          {/* Resumen fechas y costo */}
+          {checkin&&(
+            <div style={{display:"flex",gap:14,padding:"8px 12px",background:"rgba(14,165,160,0.06)",border:"1px solid rgba(14,165,160,0.2)",borderRadius:8,fontSize:11,flexWrap:"wrap"}}>
+              <span style={{color:"#6b7280"}}>Total noches: <strong style={{color:"#1a1f2e"}}>{noches}</strong></span>
+              <span style={{color:"#6b7280"}}>Check-out: <strong style={{color:"#1a1f2e"}}>{fmtDate(checkout)}</strong></span>
+              <span style={{color:"#6b7280"}}>Fee: <strong style={{color:"#1a1f2e"}}>{fmtUSD(fee)}</strong></span>
+              {upg>0&&<span style={{color:"#6b7280"}}>Upgrade: <strong style={{color:VIOLET}}>{fmtUSD(upg)}</strong></span>}
+              {(parseInt(nExtra)||0)>0&&<span style={{color:"#6b7280"}}>Noches extra: <strong style={{color:AMBER}}>{fmtUSD((parseInt(nExtra)||0)*nochePrice)}</strong></span>}
+              <span style={{fontWeight:700,color:TEAL}}>Total: {fmtUSD(total)}</span>
+            </div>
+          )}
+
+          <div><label style={S.lbl}>Notas / solicitudes especiales</label>
+            <textarea style={Object.assign({},S.ta,{minHeight:55})} value={notas} onChange={function(e){setNotas(e.target.value);}} placeholder="Preferencias de piso, cama, celebraciones..."/>
+          </div>
+        </div>
+      )}
+
+      {tab==="pasajeros"&&(
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",letterSpacing:"0.1em",textTransform:"uppercase"}}>Datos de pasajeros ({pasajeros.length})</div>
+            <button style={btn("teal")} onClick={addPax}>+ Agregar</button>
+          </div>
+          {/* Resumen pax */}
+          <div style={Object.assign({},S.g2,{marginBottom:12})}>
+            <div><label style={S.lbl}>Adultos</label><input style={S.inp} type="number" min="1" max="6" value={adultos} onChange={function(e){setAdultos(e.target.value);}}/></div>
+            <div><label style={S.lbl}>Ninos</label><input style={S.inp} type="number" min="0" max="4" value={ninos} onChange={function(e){setNinos(e.target.value);}}/></div>
+          </div>
+          {pasajeros.length===0&&<div style={{textAlign:"center",padding:24,color:"#9ca3af",fontSize:12}}>Ajusta adultos y ninos arriba para generar los campos</div>}
+          {pasajeros.map(function(p,i){
+            return (
+              <div key={i} style={{background:"#f8f9fb",border:"1px solid #e3e6ea",borderRadius:10,padding:"12px 14px",marginBottom:8}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <div style={{fontSize:11,fontWeight:700,color:INDIGO}}>{p.tipo==="nino"?"Nino":"Adulto"} {i+1}</div>
+                  <button onClick={function(){removePax(i);}} style={{background:"none",border:"none",cursor:"pointer",color:RED,fontSize:12}}>Eliminar</button>
+                </div>
+                <div style={S.g3}>
+                  <div style={{gridColumn:"1/3"}}><label style={S.lbl}>Nombre completo</label><input style={S.inp} value={p.nombre||""} onChange={function(e){setPax(i,"nombre",e.target.value);}} placeholder="Nombre y apellidos"/></div>
+                  <div><label style={S.lbl}>Fecha de nacimiento</label><input style={S.inp} type="date" value={p.fechaNac||""} onChange={function(e){setPax(i,"fechaNac",e.target.value);}}/></div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {tab==="calificacion"&&(
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:2}}>Formulario de calificacion</div>
+          <div style={S.g2}>
+            <div><label style={S.lbl}>Profesion del titular</label><input style={S.inp} value={profTit} onChange={function(e){setProfTit(e.target.value);}} placeholder="Ej: Medico, Ingeniero, Empresario..."/></div>
+            <div><label style={S.lbl}>Profesion de la pareja / co-prop</label><input style={S.inp} value={profCo} onChange={function(e){setProfCo(e.target.value);}} placeholder="Ej: Abogada, Maestra, Enfermera..."/></div>
+          </div>
+          <div><label style={S.lbl}>Ingresos anuales combinados (USD)</label><input style={S.inp} value={ingresos} onChange={function(e){setIngresos(e.target.value);}} placeholder="Ej: $80,000"/></div>
+
+          {/* Resumen del cliente */}
+          <div style={{background:"#f8f9fb",border:"1px solid #e3e6ea",borderRadius:10,padding:"12px 14px",marginTop:4}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#9ca3af",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:8}}>Datos del cliente</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,fontSize:12}}>
+              <div><span style={{color:"#9ca3af"}}>Cliente</span><div style={{fontWeight:600,color:"#1a1f2e"}}>{r.cliente||"--"}</div></div>
+              <div><span style={{color:"#9ca3af"}}>Estado civil</span><div style={{fontWeight:600,color:"#1a1f2e"}}>{r.estado_civil||"--"}</div></div>
+              <div><span style={{color:"#9ca3af"}}>Edad</span><div style={{fontWeight:600,color:"#1a1f2e"}}>{r.edad_titular||"--"}</div></div>
+              <div><span style={{color:"#9ca3af"}}>Co-propietario</span><div style={{fontWeight:600,color:"#1a1f2e"}}>{r.co_prop||"--"}</div></div>
+              <div><span style={{color:"#9ca3af"}}>Edad pareja</span><div style={{fontWeight:600,color:"#1a1f2e"}}>{r.edad_coprop||"--"}</div></div>
+              <div><span style={{color:"#9ca3af"}}>Folio</span><div style={{fontWeight:600,color:"#1a1f2e"}}>{r.cFolio||r.c_folio||"--"}</div></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{display:"flex",gap:8,justifyContent:"space-between",marginTop:16,paddingTop:14,borderTop:"1px solid #e3e6ea"}}>
+        <div style={{display:"flex",gap:6}}>
+          {r.status!=="cancelada"&&r.status!=="completada"&&(
+            <button style={btn("danger")} onClick={function(){props.onCancelar(r);props.onClose();}}>Cancelar reserva</button>
+          )}
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <button style={btn("ghost")} onClick={props.onClose}>Cerrar</button>
+          <button style={btn("indigo")} onClick={save} disabled={saving||!hotelObj}>
+            {saving?"Guardando...":"Guardar y enviar a VLO"}
+          </button>
+        </div>
+      </div>
+    </MWrap>
+  );
+}
+
+
 function VLOModal(props){
   var r=props.res;
   var [notasH,setNotasH]=useState(r.notasHotel||"");
@@ -913,6 +1194,7 @@ export default function ReservacionesModule(props){
   var [sel,      setSel]      = useState(null);
   var [formModal,setFormModal]= useState(null);
   var [vloModal, setVloModal] = useState(null);
+  var [reservaModal, setReservaModal] = useState(null);
   var [toast,    setToast]    = useState(null);
   var currentUser = props.currentUser || { nombre:"Agente", rol:"agente", id:null };
   var comm = useCommPanel();
@@ -1109,6 +1391,7 @@ export default function ReservacionesModule(props){
       {formModal==="nueva"&&<FormModal currentUser={currentUser} onClose={function(){setFormModal(null);}} onSave={onNueva}/>}
       {formModal&&formModal!=="nueva"&&<FormModal res={formModal} currentUser={currentUser} onClose={function(){setFormModal(null);}} onSave={onEditar}/>}
       {vloModal&&<VLOModal res={vloModal} onClose={function(){setVloModal(null);}} onConfirmar={onConfirmar} onRechazar={onRechazar} onCancelar={onCancelar} onEditar={function(r){setFormModal(r);}}/>}
+      {reservaModal&&<ReservaModal res={reservaModal} onClose={function(){setReservaModal(null);}} onSaved={cargar} onCancelar={function(r){onCancelar(r);setReservaModal(null);}}/>}
       <CommPanel
         visible={comm.visible}
         cliente={comm.cliente}
@@ -1222,8 +1505,21 @@ export default function ReservacionesModule(props){
                   cliente={{folio:sel.cFolio||sel.id,nombre:sel.cliente,membresia:sel.tipo||"",tel:"",whatsapp:"",email:""}}
                   onOpen={comm.open}
                 />
-                {(sel.status==="solicitada"||sel.status==="solicitud"||sel.status==="vlo_proceso")&&<button style={btn("indigo")} onClick={function(){setVloModal(sel);}}>Panel VLO</button>}
-                {(sel.status==="solicitada"||sel.status==="solicitud"||sel.status==="rechazado_hotel")&&<button style={btn("warn")} onClick={function(){onEnviarVLO(sel);}}>Enviar a VLO</button>}
+                {(sel.status==="solicitada"||sel.status==="solicitud")&&(
+                  <button style={btn("indigo")} onClick={function(){setReservaModal(sel);}}>Procesar reserva</button>
+                )}
+                {(sel.status==="en_reserva"||sel.status==="en_proceso")&&(
+                  <button style={btn("indigo")} onClick={function(){setReservaModal(sel);}}>Editar reserva</button>
+                )}
+                {(sel.status==="en_reserva"||sel.status==="en_proceso")&&(
+                  <button style={btn("warn")} onClick={function(){onEnviarVLO(sel);}}>Enviar a VLO</button>
+                )}
+                {sel.status==="vlo_proceso"&&(
+                  <button style={btn("violet")} onClick={function(){setVloModal(sel);}}>Panel VLO</button>
+                )}
+                {sel.status==="rechazado_hotel"&&(
+                  <button style={btn("indigo")} onClick={function(){setReservaModal(sel);}}>Re-procesar</button>
+                )}
                 {(sel.status==="solicitada"||sel.status==="solicitud"||sel.status==="rechazado_hotel")&&<button style={btn("teal")} onClick={function(){setFormModal(sel);}}>Modificar</button>}
               </div>
               <div style={{flex:1,overflowY:"auto",padding:"20px 24px"}}>
