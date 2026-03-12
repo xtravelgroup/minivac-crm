@@ -1246,9 +1246,10 @@ function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, 
   const [fVendedor,     setFVendedor]     = useState("all");
   const [fStatus,       setFStatus]       = useState("all");
 
-  const miEquipo  = users.filter(u => u.supervisorId===currentUser.id);
+  const isAdmin   = currentUser.role === "admin" || currentUser.role === "director";
+  const miEquipo  = isAdmin ? users : users.filter(u => u.supervisorId===currentUser.id);
   const teamIds   = miEquipo.map(u => u.id);
-  const teamLeads = leads.filter(l => teamIds.includes(l.vendedorId));
+  const teamLeads = isAdmin ? leads : leads.filter(l => teamIds.includes(l.vendedorId));
   const alertas   = teamLeads.filter(l => daysSince(l.ultimoContacto)>=ALERT_DAYS && !["venta","no_interesado"].includes(l.status) && !l.bloqueado);
 
   const filtered = teamLeads.filter(l =>
