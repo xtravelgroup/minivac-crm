@@ -531,6 +531,7 @@ function SendDocsModal({ lead, onClose, onSent }) {
         method:"POST", headers:HDR,
         body: JSON.stringify({ lead_id: lead.id })
       });
+      if (!res.ok) { throw new Error("HTTP " + res.status + " — " + await res.text()); }
       var data = await res.json();
       if (!data.link) throw new Error(data.error || "No se pudo generar el link");
       var firmaLink = data.link;
@@ -1975,9 +1976,9 @@ export default function VerificationModule() {
             var row = { ...r, vendedor_nombre: (r.vendedor && r.vendedor.nombre) || "" };
             return dbToVerifLead(row);
           });
-          // Solo mostrar: los que estan en verificacion (pendientes) + los que tienen resultado de verificacion
+          // Mostrar: verificacion pendientes + ventas + no_interesado
           var filtrados = mapped.filter(function(l) {
-            return l.status === "verificacion" || (l.verificacion && l.verificacion.result);
+            return l.status === "verificacion" || l.status === "venta" || l.status === "no_interesado";
           });
           setLeads(filtrados);
         } else {
