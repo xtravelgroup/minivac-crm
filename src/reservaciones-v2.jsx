@@ -1393,7 +1393,7 @@ export default function ReservacionesModule(props){
       {formModal==="nueva"&&<FormModal currentUser={currentUser} onClose={function(){setFormModal(null);}} onSave={onNueva}/>}
       {formModal&&formModal!=="nueva"&&<FormModal res={formModal} currentUser={currentUser} onClose={function(){setFormModal(null);}} onSave={onEditar}/>}
       {vloModal&&<VLOModal res={vloModal} onClose={function(){setVloModal(null);}} onConfirmar={onConfirmar} onRechazar={onRechazar} onCancelar={onCancelar} onEditar={function(r){setFormModal(r);}}/>}
-      {reservaModal&&<ReservaModal res={reservaModal} onClose={function(){setReservaModal(null);}} onSaved={cargar} onCancelar={function(r){onCancelar(r);setReservaModal(null);}}/>}
+      {reservaModal&&<ReservaModal res={reservaModal} onClose={function(){setReservaModal(null);}} onSaved={cargarReservas} onCancelar={function(r){onCancelar(r);setReservaModal(null);}}/>}
       <CommPanel
         visible={comm.visible}
         cliente={comm.cliente}
