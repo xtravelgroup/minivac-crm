@@ -802,7 +802,7 @@ export default function MinivacShell() {
           {activo==="dashboard"    && <ExecutiveSuite/>}
           <Suspense fallback={<div style={{padding:"40px",textAlign:"center",color:"#94a3b8"}}>Cargando módulo...</div>}>
           {activo==="kb"           && <KnowledgeBase currentUser={currentUser} />}
-          {activo==="comms"        && <CommunicationsHub currentUser={user} destCatalog={destCatalog||[]} />}
+          {activo==="comms"        && <CommunicationsHub currentUser={user} destCatalog={[]} />}
           </Suspense>
           {activo==="radio"        && <RadioModule
             isSupervisor={user.rol==="admin"||user.rol==="director"||user.rol==="supervisor"||user.rol==="especialista_radio"}
