@@ -419,18 +419,15 @@ Responde SOLO con JSON válido, sin texto adicional, sin backticks:
 IDs exactos: ${destinos.map(d => d.destId).join(", ")}`;
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch(`${EDGE_URL}/ai-paquete`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [{ role: "user", content: prompt }],
-        }),
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${ANON_KEY}` },
+        body: JSON.stringify({ prompt }),
       });
       const data = await res.json();
-      const text = (data.content || []).find(b => b.type === "text")?.text || "{}";
-      const parsed = JSON.parse(text);
+      console.log("AI response:", data);
+      if (data.error) throw new Error(data.error);
+      const parsed = typeof data === "string" ? JSON.parse(data) : data;
       return parsed.destinos || {};
     } catch(e) {
       console.error("Error generando textos AI:", e);
