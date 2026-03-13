@@ -568,8 +568,16 @@ function Topbar(props) {
         }}
           onMouseEnter={function(e){e.currentTarget.style.background=T.bg;}}
           onMouseLeave={function(e){e.currentTarget.style.background="transparent";}}
+          onClick={function(){ setNotifPanel(function(p){return !p;}); }}
         >
-          <Icon name="bell" size={15} color={T.t3}/>
+          <div style={{position:"relative"}}>
+            <Icon name="bell" size={15} color={chatAlertas.length>0?"#ef4444":T.t3}/>
+            {chatAlertas.length>0 && (
+              <div style={{position:"absolute",top:"-6px",right:"-6px",background:"#ef4444",color:"#fff",borderRadius:"50%",width:"16px",height:"16px",fontSize:"10px",fontWeight:"800",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                {chatAlertas.length}
+              </div>
+            )}
+          </div>
         </button>
       </div>
 
