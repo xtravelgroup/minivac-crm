@@ -527,6 +527,8 @@ function Sidebar(props) {
 // TOPBAR - Zoho style: blanco, borde sutil, breadcrumb + usuario
 // 
 function Topbar(props) {
+  var chatAlertas = props.chatAlertas || [];
+  var setNotifPanel = props.setNotifPanel || function(){};
   var user = props.user;
   var mod  = null;
   for (var i = 0; i < MODULOS.length; i++) {
@@ -796,7 +798,7 @@ export default function MinivacShell() {
       fontFamily:T.font, fontSize:"13px", color:T.t2,
       display:"flex", flexDirection:"column",
     }}>
-      <Topbar user={user} activo={activo}/>
+      <Topbar user={user} activo={activo} chatAlertas={chatAlertas} setNotifPanel={setNotifPanel}/>
       <div style={{flex:1, display:"flex", overflow:"hidden", minHeight:"0"}}>
         <Sidebar
           user={user} activo={activo} col={col}
