@@ -66,21 +66,14 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts) {
     return `
       <div style="border:1px solid #bfdbfe;border-radius:12px;overflow:hidden;margin-bottom:20px;">
         <div style="background:linear-gradient(135deg,#1a3a5c,#1e4d7b);padding:18px 20px;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="font-size:32px;">✈️</div>
-            <div>
-              ${tituloHtml.replace('style="font-size:15px;font-weight:800;color:#1a3a5c', 'style="font-size:16px;font-weight:800;color:#fff')}
-              <div style="font-size:12px;color:#93c5fd;">${noches} noches incluidas · para hasta 4 personas</div>
-            </div>
-          </div>
+          ${tituloHtml.replace('style="font-size:15px;font-weight:800;color:#1a3a5c;margin-bottom:10px;"', 'style="font-size:17px;font-weight:800;color:#fff;margin-bottom:6px;"')}
+          <div style="font-size:12px;color:#93c5fd;">para hasta 4 personas</div>
         </div>
         <div style="background:#f0f7ff;padding:20px;">
           ${highlightsHtml}
           ${descHtml}
-          ${queIncluyeHtml}
           ${queHacerHtml}
-          <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">🏨 Posibles hoteles</div>
-          ${hotelesHtml}
+          ${queIncluyeHtml}
         </div>
       </div>`;
   }).join("");
@@ -129,8 +122,8 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts) {
           <div style="display:flex;gap:12px;align-items:flex-start;">
             <div style="font-size:24px;line-height:1;">🤝</div>
             <div>
-              <div style="font-weight:700;font-size:14px;color:#1a3a5c;">20+ años de confianza</div>
-              <div style="font-size:13px;color:#555;margin-top:3px;line-height:1.6;">X Travel Group lleva más de dos décadas haciendo realidad los sueños de viaje de miles de familias. Somos una empresa establecida, con respaldo legal y compromisos reales.</div>
+              <div style="font-weight:700;font-size:14px;color:#1a3a5c;">Años de confianza</div>
+              <div style="font-size:13px;color:#555;margin-top:3px;line-height:1.6;">X Travel Group lleva muchos años haciendo realidad los sueños de viaje de miles de familias. Somos una empresa establecida, con respaldo legal y compromisos reales.</div>
             </div>
           </div>
 
@@ -390,25 +383,25 @@ export default function EmailPanel({ lead, currentUser, destCatalog }) {
       return `- ${d.nombre || d.destId} (${d.noches || 4} noches)${hoteles ? ", hoteles posibles: " + hoteles : ""}`;
     }).join("\n");
 
-    const prompt = `Eres un experto copywriter de viajes para X Travel Group, empresa de membresías de viaje premium con más de 20 años en el mercado.
+    const prompt = `Eres el mejor copywriter de viajes del mundo. Tu misión es escribir textos que hagan que ${nombre} sienta que NECESITA este viaje ahora mismo. Emoción pura, sin frases genéricas.
 
 CLIENTE:
 - Nombre: ${nombre}${edad ? "\n- Edad: " + edad + " años" : ""}${ec ? "\n- Estado civil: " + ec : ""}
 
-PAQUETE INCLUIDO:
+PAQUETE:
 ${destinosInfo}
 
-Para CADA destino genera en español lo siguiente. Sé evocador, emotivo y persuasivo. Usa lenguaje cálido y cercano, como si hablaras directamente con ${nombre}:
+Para CADA destino genera en español:
 
-1. "titulo_paquete": Frase atractiva del paquete. Ej: "4 Días y 3 Noches en el Mágico Cancún para toda la familia". Incluye duración, destino y número de personas si aplica (asume máximo 4).
+1. "titulo_paquete": Título irresistible con duración y destino. Ej: "4 Días y 3 Noches en el Mágico Orlando — Para Toda la Familia". Sin avión ni emojis.
 
-2. "descripcion": Párrafo de 3-4 oraciones que haga soñar al cliente. Menciona experiencias únicas, sensaciones, momentos memorables. Personalizado según su perfil (edad, estado civil). Sin mencionar precios.
+2. "descripcion": 3-4 oraciones que EMOCIONEN. Habla de sensaciones, olores, colores, momentos únicos. Personalizado para ${nombre} según su perfil. Que sienta que ya está ahí. Sin mencionar precios ni "membresía".
 
-3. "que_incluye": Array de 4-5 beneficios concretos incluidos. Ej: ["Alojamiento en hotel de categoría", "Traslados aeropuerto-hotel", "Desayunos incluidos", "Acceso a amenidades del resort"]
+3. "que_hacer": Array de 4-5 experiencias concretas e irresistibles del destino. Específicas, no genéricas. Ej en vez de "visitar playas" → "Nadar en el agua turquesa de las playas de arena blanca de Cancún". Que den ganas de ir.
 
-4. "que_hacer": Array de 3-4 actividades o experiencias destacadas del destino. Ej: ["Snorkel en arrecife de coral", "Visita a ruinas mayas", "Noche en zona hotelera"]
+4. "que_incluye": Array de 4-5 beneficios incluidos en el paquete. Concretos y valiosos. Ej: ["Alojamiento en hotel de categoría superior", "Traslados aeropuerto↔hotel incluidos", "Acceso completo a las amenidades del resort"].
 
-5. "highlights": Array de 3-4 palabras clave visuales del destino. Ej: ["Playas paradisíacas", "Cultura milenaria", "Gastronomía única"]
+5. "highlights": Array de 3 frases cortas (máx 3 palabras) que capturan la esencia del destino. Ej: ["Mar cristalino", "Cultura viva", "Sabores únicos"].
 
 Responde SOLO con JSON válido, sin texto adicional, sin backticks:
 {
@@ -416,14 +409,14 @@ Responde SOLO con JSON válido, sin texto adicional, sin backticks:
     "ID_DESTINO": {
       "titulo_paquete": "...",
       "descripcion": "...",
-      "que_incluye": ["...", "..."],
       "que_hacer": ["...", "..."],
+      "que_incluye": ["...", "..."],
       "highlights": ["...", "..."]
     }
   }
 }
 
-IDs exactos de destino: ${destinos.map(d => d.destId).join(", ")}`;
+IDs exactos: ${destinos.map(d => d.destId).join(", ")}`;
 
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
