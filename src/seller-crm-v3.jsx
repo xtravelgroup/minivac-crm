@@ -1796,15 +1796,6 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId }) {
     }
   }, [leads]);
 
-  // Auto-abrir lead si viene desde Comunicaciones
-  const initialLeadIdRef = React.useRef(initialLeadId);
-  useEffect(() => {
-    if (initialLeadIdRef.current && leads.length > 0) {
-      const found = leads.find(l => l.id === initialLeadIdRef.current);
-      if (found) { initialLeadIdRef.current = null; /* trigger open */ }
-    }
-  }, [leads]);
-
   var mappedUser = shellUser ? {
     id:    myAuthId || "U_shell",
     name:  shellUser.nombre || shellUser.name || "Usuario",
