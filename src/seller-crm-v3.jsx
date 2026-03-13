@@ -2032,7 +2032,7 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId }) {
       </div>
 
       {isSup
-        ? <SupervisorView leads={leads} users={usersParaVista} currentUser={activeUser} destCatalog={destCatalog} onUpdateLead={handleUpdateLead} onBulkReassign={handleBulkReassign} />
+        ? <SupervisorView leads={leads} users={usersParaVista} currentUser={activeUser} destCatalog={destCatalog} onUpdateLead={handleUpdateLead} onBulkReassign={handleBulkReassign} initialLeadId={initialLeadId} />
         : <VendedorView   leads={leads} users={usersParaVista} currentUser={mappedUser}  destCatalog={destCatalog} onUpdateLead={handleUpdateLead} initialLeadId={initialLeadId} />
       }
 
