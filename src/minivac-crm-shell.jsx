@@ -1,26 +1,26 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { createClient } from "@supabase/supabase-js";
-import RadioModule          from "./radio-module-v4.jsx";
+const RadioModule       = React.lazy(() => import("./radio-module-v4.jsx"));
 
 var SB = createClient(
   "https://gsvnvahrjgswwejnuiyn.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA"
 );
-import SellerCRM            from "./seller-crm-v3.jsx";
-import VerificationModule   from "./verification-module-v2.jsx";
-import Reservaciones        from "./reservaciones-v2.jsx";
-import CSReservas           from "./cs-reservas-v3.jsx";
-import ExecutiveSuite       from "./executive-suite.jsx";
-import CommissionsModule    from "./commissions-module.jsx";
-import PackagesModule       from "./packages-module.jsx";
-import DestinationsModule   from "./destinations-v6.jsx";
-import VonageModule         from "./vonage-module.jsx";
-import AutomationsModule    from "./automations-module.jsx";
-import RolesPermissions     from "./roles-permissions.jsx";
-import ClientPortal         from "./client-portal.jsx";
-import HotelsModule         from "./hotels-module.jsx";
-import KnowledgeBase        from "./knowledge-base-module.jsx";
-import CommunicationsHub    from "./communications-hub.jsx";
+const SellerCRM         = React.lazy(() => import("./seller-crm-v3.jsx"));
+const VerificationModule = React.lazy(() => import("./verification-module-v2.jsx"));
+const Reservaciones     = React.lazy(() => import("./reservaciones-v2.jsx"));
+const CSReservas        = React.lazy(() => import("./cs-reservas-v3.jsx"));
+const ExecutiveSuite    = React.lazy(() => import("./executive-suite.jsx"));
+const CommissionsModule = React.lazy(() => import("./commissions-module.jsx"));
+const PackagesModule    = React.lazy(() => import("./packages-module.jsx"));
+const DestinationsModule = React.lazy(() => import("./destinations-v6.jsx"));
+const VonageModule      = React.lazy(() => import("./vonage-module.jsx"));
+const AutomationsModule = React.lazy(() => import("./automations-module.jsx"));
+const RolesPermissions  = React.lazy(() => import("./roles-permissions.jsx"));
+const ClientPortal      = React.lazy(() => import("./client-portal.jsx"));
+const HotelsModule      = React.lazy(() => import("./hotels-module.jsx"));
+const KnowledgeBase     = React.lazy(() => import("./knowledge-base-module.jsx"));
+const CommunicationsHub = React.lazy(() => import("./communications-hub.jsx"));
 
 // Monitor global de chats
 function useChatAlertas(currentUser) {
@@ -799,8 +799,10 @@ export default function MinivacShell() {
         }}>
           {!activo && <Bienvenida user={user} onNav={handleNav}/>}
           {activo==="dashboard"    && <ExecutiveSuite/>}
+          <Suspense fallback={<div style={{padding:"40px",textAlign:"center",color:"#94a3b8"}}>Cargando módulo...</div>}>
           {activo==="kb"           && <KnowledgeBase currentUser={currentUser} />}
           {activo==="comms"        && <CommunicationsHub currentUser={currentUser} destCatalog={destCatalog||[]} />}
+          </Suspense>
           {activo==="radio"        && <RadioModule
             isSupervisor={user.rol==="admin"||user.rol==="director"||user.rol==="supervisor"||user.rol==="especialista_radio"}
             isReadOnly={user.rol==="contador"}/>}
