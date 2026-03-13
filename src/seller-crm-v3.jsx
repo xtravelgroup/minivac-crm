@@ -1252,7 +1252,7 @@ function VendedorView({ leads, users, currentUser, destCatalog, onUpdateLead, in
 function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, onBulkReassign, initialLeadId }) {
   const [tab,           setTab]           = useState("pipeline");
   const [selLead,       setSelLead]       = useState(null);
-  useEffect(() => { console.log("initialLeadId effect:", initialLeadId, "leads:", leads.length); if (initialLeadId && leads.length) { const f = leads.find(l => l.id === initialLeadId); console.log("found:", f); if (f) setSelLead(f); } }, [initialLeadId, leads]);
+  useEffect(() => { if (initialLeadId && leads.length) { const f = leads.find(l => l.id === initialLeadId); if (f) setSelLead(f); } }, [initialLeadId, leads]);
   const [selIds,        setSelIds]        = useState([]);
   const [dragLead,      setDragLead]      = useState(null);
   const [dragOverV,     setDragOverV]     = useState(null);
@@ -1262,7 +1262,6 @@ function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, 
   const [fStatus,       setFStatus]       = useState("all");
 
   const isAdmin   = currentUser.role === "admin" || currentUser.role === "director" || currentUser.role === "supervisor";
-  console.log("SupervisorView currentUser:", currentUser, "isAdmin:", isAdmin, "leads.length:", leads.length);
   const miEquipo  = isAdmin ? users : users.filter(u => u.supervisorId===currentUser.id);
   const teamIds   = miEquipo.map(u => u.id);
   const teamLeads = isAdmin ? leads : leads.filter(l => teamIds.includes(l.vendedorId));
