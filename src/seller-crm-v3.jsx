@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase as SB } from "./supabase.js";
 import EmailPanel from "./email-panel.jsx";
+import ChatVendedor from "./chat-vendedor.jsx";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
 import { registrarEvento, TablaHistorial } from "./useHistorial.jsx";
 
@@ -615,6 +616,7 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
           {canSeePaquete && tabBtn("destinos", "🗺️ Destinos", "#1a7f3c")}
           {canSeePaquete && tabBtn("pago",     "💳 Pago",     "#1565c0")}
           {tabBtn("emails",    "✉️ Emails",   "#6d28d9")}
+          {tabBtn("chat",      "💬 Chat",     "#0891b2")}
           {tabBtn("historial", "🕒 Historial", "#6b7280")}
           {isSupervisor  && tabBtn("admin",    "⚙️ Admin",    "#b91c1c")}
         </div>
@@ -746,6 +748,10 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
         )}
 
         {/* TAB: EMAILS */}
+        {tab === "chat" && (
+          <ChatVendedor lead={draft} currentUser={currentUser} />
+        )}
+
         {tab === "emails" && (
           <EmailPanel lead={draft} currentUser={currentUser} destCatalog={destCatalog} />
         )}
