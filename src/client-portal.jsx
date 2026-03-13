@@ -12,7 +12,7 @@ function daysUntil(d){ if(!d)return null; return Math.ceil((new Date(d+"T12:00:0
 function daysAgo(n){ var d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().split("T")[0]; }
 function daysFromNow(n){ var d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().split("T")[0]; }
 
-var TEAL="#0ea5a0",INDIGO="#6366f1",VIOLET="#5b21b6",GREEN="#1a7f3c",AMBER="#f59e0b",RED="#b91c1c",CORAL="#f97316",BLUE="#1565c0";
+var TEAL="#1a385a",INDIGO="#47718a",VIOLET="#282828",GREEN="#065f46",AMBER="#b45309",RED="#991b1b",CORAL="#47718a",BLUE="#1a385a";
 
 var DEMO_ACCOUNTS = {
   "miguel@email.com":{
@@ -74,10 +74,10 @@ var REGALOS_CATALOG = {
 };
 
 var S={
-  wrap:  {minHeight:"100vh",background:"#07090f",color:"#3d4554",fontFamily:"'DM Sans','Segoe UI',-apple-system,sans-serif",fontSize:"13px"},
-  card:  {background:"rgba(255,255,255,0.025)",border:"1px solid #e3e6ea",borderRadius:"14px",padding:"16px 18px",marginBottom:"10px"},
-  inp:   {width:"100%",background:"#f8f9fb",border:"1px solid #d8dbe0",borderRadius:"8px",padding:"9px 12px",color:"#3d4554",fontSize:"13px",outline:"none",boxSizing:"border-box",fontFamily:"inherit"},
-  lbl:   {fontSize:"11px",color:"#9ca3af",marginBottom:"4px",fontWeight:"500",display:"block"},
+  wrap:  {minHeight:"100vh",background:"#f0f2f5",color:"#282828",fontFamily:"'Poppins','Segoe UI',sans-serif",fontSize:"13px"},
+  card:  {background:"#fff",border:"1px solid #e5e7eb",boxShadow:"0 1px 3px rgba(26,56,90,0.06)",borderRadius:"14px",padding:"16px 18px",marginBottom:"10px"},
+  inp:   {width:"100%",background:"#fff",border:"1px solid #d0d5dd",borderRadius:"8px",padding:"9px 12px",color:"#282828",fontSize:"13px",outline:"none",boxSizing:"border-box",fontFamily:"inherit"},
+  lbl:   {fontSize:"11px",color:"#6b7280",marginBottom:"4px",fontWeight:"500",display:"block"},
   stit:  {fontSize:"10px",fontWeight:"700",color:"#9ca3af",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"8px"},
   g2:    {display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"},
 };
@@ -112,13 +112,13 @@ function LoginScreen(props){
     props.onLogin(acc);
   }
   return (
-    <div style={{minHeight:"100vh",background:"#07090f",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
+    <div style={{minHeight:"100vh",background:"#f0f2f5",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
       <div style={{width:"100%",maxWidth:"380px"}}>
         <div style={{textAlign:"center",marginBottom:"28px"}}>
-          <div style={{fontSize:"22px",fontWeight:"800",color:TEAL,letterSpacing:"-0.5px"}}>Mini-Vac</div>
+          <div style={{fontSize:"18px",fontWeight:"700",color:"#1a385a",letterSpacing:"-0.3px"}}>TRAVEL<span style={{color:"#47718a"}}>X</span><span style={{fontWeight:"300",fontSize:"14px"}}> GROUP</span></div>
           <div style={{fontSize:"12px",color:"#9ca3af",marginTop:"4px"}}>Portal del Socio</div>
         </div>
-        <div style={{background:"rgba(255,255,255,0.025)",border:"1px solid #e3e6ea",borderRadius:"16px",padding:"24px 22px"}}>
+        <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"16px",padding:"24px 22px",boxShadow:"0 4px 16px rgba(26,56,90,0.1)"}}>
           <div style={{marginBottom:"14px"}}>
             <label style={S.lbl}>Correo electronico</label>
             <input style={S.inp} value={email} onChange={function(e){setEmail(e.target.value);setErr("");}} placeholder="tucorreo@email.com"/>
@@ -155,18 +155,18 @@ function TabInicio(props){
   }
   return (
     <div>
-      <div style={{background:"linear-gradient(135deg,rgba(14,165,160,0.15),rgba(99,102,241,0.1))",border:"1px solid rgba(14,165,160,0.2)",borderRadius:"16px",padding:"20px 22px",marginBottom:"12px"}}>
-        <div style={{fontSize:"11px",color:TEAL,fontWeight:"700",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px"}}>Bienvenido de regreso</div>
-        <div style={{fontSize:"20px",fontWeight:"800",color:"#1a1f2e",marginBottom:"4px"}}>{u.titular}{u.coProp?" + "+u.coProp:""}</div>
-        <div style={{fontSize:"11px",color:"#9ca3af"}}>Folio: <span style={{color:TEAL,fontWeight:"600"}}>{u.folio}</span> - {u.destinos.length} destino{u.destinos.length>1?"s":""} incluido{u.destinos.length>1?"s":""}</div>
+      <div style={{background:"linear-gradient(135deg,#1a385a,#47718a)",border:"none",borderRadius:"16px",padding:"20px 22px",marginBottom:"12px"}}>
+        <div style={{fontSize:"11px",color:"rgba(255,255,255,0.65)",fontWeight:"600",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px"}}>Bienvenido de regreso</div>
+        <div style={{fontSize:"20px",fontWeight:"700",color:"#fff",marginBottom:"4px"}}>{u.titular}{u.coProp?" + "+u.coProp:""}</div>
+        <div style={{fontSize:"11px",color:"rgba(255,255,255,0.65)"}}>Folio: <span style={{color:"#fff",fontWeight:"600"}}>{u.folio}</span> - {u.destinos.length} destino{u.destinos.length>1?"s":""} incluido{u.destinos.length>1?"s":""}</div>
       </div>
 
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"12px"}}>
         <div style={Object.assign({},S.card,{borderColor:"rgba(14,165,160,0.2)"})}>
           <div style={S.lbl}>Saldo pendiente</div>
           <div style={{fontSize:"20px",fontWeight:"800",color:saldo>0?AMBER:GREEN}}>{fmtUSD(saldo)}</div>
-          <div style={{marginTop:"8px",height:"4px",background:"#f6f7f9",borderRadius:"4px",overflow:"hidden"}}>
-            <div style={{height:"100%",width:pct+"%",background:"linear-gradient(90deg,"+TEAL+","+INDIGO+")",borderRadius:"4px"}}></div>
+          <div style={{marginTop:"8px",height:"5px",background:"#e5e7eb",borderRadius:"4px",overflow:"hidden"}}>
+            <div style={{height:"100%",width:pct+"%",background:"linear-gradient(90deg,#1a385a,#47718a)",borderRadius:"4px"}}></div>
           </div>
           <div style={{fontSize:"10px",color:"#9ca3af",marginTop:"4px"}}>{pct}% pagado ({fmtUSD(u.pagado)} de {fmtUSD(u.precioTotal)})</div>
         </div>
@@ -424,7 +424,7 @@ function TabPagos(props){
           {saldo>0&&<button style={btnSm("teal")} onClick={function(){setShowPago(true);}}>+ Registrar pago</button>}
         </div>
         <div style={{height:"6px",background:"#f6f7f9",borderRadius:"6px",overflow:"hidden",marginBottom:"6px"}}>
-          <div style={{height:"100%",width:pct+"%",background:"linear-gradient(90deg,"+TEAL+","+INDIGO+")",borderRadius:"6px"}}></div>
+          <div style={{height:"100%",width:pct+"%",background:"linear-gradient(90deg,#1a385a,#47718a)",borderRadius:"6px"}}></div>
         </div>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:"11px"}}>
           <span style={{color:"#9ca3af"}}>{pct}% cubierto</span>
@@ -792,15 +792,15 @@ function TabChat(props){
           if(isSystem){
             return <div key={m.id} style={{textAlign:"center",padding:"4px 12px",fontSize:"10px",color:"#9ca3af",fontStyle:"italic"}}>{m.texto}</div>;
           }
-          var bg=isUser?"rgba(14,165,160,0.12)":(isAgente?"#ede9fe":"#f8f9fb");
-          var br=isUser?"rgba(14,165,160,0.25)":(isAgente?"rgba(167,139,250,0.25)":"#f2f3f6");
-          var nc=isUser?TEAL:(isAgente?PURPLE:"#9ca3af");
+          var bg=isUser?"#1a385a":(isAgente?"#eef2f7":"#eef2f7");
+          var br=isUser?"#1a385a":(isAgente?"rgba(71,113,138,0.3)":"#e5e7eb");
+          var nc=isUser?"#1a385a":(isAgente?"#47718a":"#47718a");
           var nl=isUser?u.titular.split(" ")[0]:(isAgente?"Agente CS":"Bot Mini-Vac");
           var rad=isUser?"14px 14px 4px 14px":"14px 14px 14px 4px";
           return (
             <div key={m.id} style={{display:"flex",flexDirection:"column",alignItems:isUser?"flex-end":"flex-start",gap:"2px"}}>
               <div style={{fontSize:"10px",color:nc,fontWeight:"600",paddingLeft:isUser?"0":"2px",paddingRight:isUser?"2px":"0"}}>{nl}</div>
-              <div style={{maxWidth:"84%",padding:"9px 13px",borderRadius:rad,background:bg,border:"1px solid "+br,fontSize:"13px",color:"#3d4554",lineHeight:"1.5"}}>{m.texto}</div>
+              <div style={{maxWidth:"84%",padding:"9px 13px",borderRadius:rad,background:bg,border:"1px solid "+br,fontSize:"13px",color:isUser?"#fff":"#282828",lineHeight:"1.5"}}>{m.texto}</div>
             </div>
           );
         })}
@@ -906,18 +906,18 @@ export default function ClientPortal(){
 
   return (
     <div style={S.wrap}>
-      <div style={{background:"#fafbfc",borderBottom:"1px solid #e8eaed",padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+      <div style={{background:"#1a385a",padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <div>
-          <div style={{fontSize:"13px",fontWeight:"800",color:TEAL}}>Mini-Vac</div>
-          <div style={{fontSize:"10px",color:"#9ca3af"}}>Portal del Socio</div>
+          <div style={{fontSize:"14px",fontWeight:"700",color:"#fff",letterSpacing:"-0.3px"}}>TRAVEL<span style={{color:"#47718a"}}>X</span><span style={{fontWeight:"300",fontSize:"12px"}}> GROUP</span></div>
+          <div style={{fontSize:"10px",color:"rgba(255,255,255,0.5)",borderLeft:"1px solid rgba(255,255,255,0.2)",paddingLeft:"8px",marginLeft:"4px"}}>Portal del Socio</div>
         </div>
         <div style={{textAlign:"right"}}>
-          <div style={{fontSize:"12px",fontWeight:"600",color:"#3d4554"}}>{user.titular}</div>
-          <div style={{fontSize:"10px",color:TEAL}}>{user.folio}</div>
+          <div style={{fontSize:"12px",fontWeight:"600",color:"#fff"}}>{user.titular}</div>
+          <div style={{fontSize:"10px",color:"#8aacca"}}>{user.folio}</div>
         </div>
       </div>
 
-      <div style={{display:"flex",gap:"3px",padding:"8px 12px",overflowX:"auto",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+      <div style={{display:"flex",gap:"2px",padding:"6px 12px",overflowX:"auto",borderBottom:"1px solid #e5e7eb",background:"#fff"}}>
         {TABS.map(function(t){
           return <button key={t.k} style={tabS(tab===t.k,TEAL)} onClick={function(){setTab(t.k);}}>{t.l}</button>;
         })}
