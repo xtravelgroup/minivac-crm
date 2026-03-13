@@ -19,8 +19,8 @@ const AutomationsModule = React.lazy(() => import("./automations-module.jsx"));
 const RolesPermissions  = React.lazy(() => import("./roles-permissions.jsx"));
 const ClientPortal      = React.lazy(() => import("./client-portal.jsx"));
 const HotelsModule      = React.lazy(() => import("./hotels-module.jsx"));
-const KnowledgeBase     = React.lazy(() => import("./knowledge-base-module.jsx"));
-const CommunicationsHub = React.lazy(() => import("./communications-hub.jsx"));
+import KnowledgeBase from "./knowledge-base-module.jsx";
+import CommunicationsHub from "./communications-hub.jsx";
 
 // Monitor global de chats
 function useChatAlertas(currentUser) {
