@@ -151,22 +151,16 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts, fotosPorDest) {
         </div>
       </div>
 
-      <!-- CTA -->
-      <div style="background:linear-gradient(135deg,#1a7f3c 0%,#14532d 100%);padding:28px 24px;text-align:center;border-radius:0 0 12px 12px;">
-        <div style="color:#bbf7d0;font-size:14px;margin-bottom:8px;">¿Listo para hacer realidad su viaje?</div>
-        <div style="color:#fff;font-weight:800;font-size:20px;margin-bottom:16px;">Hable hoy con su asesor de X Travel Group</div>
-        <div style="color:#86efac;font-size:13px;">Responda a este email o comuníquese directamente con nosotros</div>
-        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.2);margin:20px 0;"/>
-        <div style="font-size:12px;color:#86efac;">X Travel Group · members@xtravelgroup.com</div>
-      </div>
-
       <!-- FOOTER -->
-      <div style="background:#0f2340;padding:20px 24px;text-align:center;margin-top:0;">
-        <div style="font-size:13px;color:#93c5fd;font-weight:700;margin-bottom:10px;">¿Preguntas? Estamos aquí para ayudarle</div>
-        <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin-bottom:12px;">
-          <a href="tel:18009271490" style="color:#fff;text-decoration:none;font-size:13px;">📞 1 (800) 927-1490</a>
-          ${lead.chat_url ? `<a href="${lead.chat_url}" style="color:#38bdf8;text-decoration:none;font-size:13px;">💬 Chat en línea</a>` : `<a href="mailto:members@xtravelgroup.com" style="color:#38bdf8;text-decoration:none;font-size:13px;">✉ members@xtravelgroup.com</a>`}
+      <div style="background:linear-gradient(135deg,#0f2340 0%,#1a3a5c 100%);padding:32px 24px;text-align:center;border-radius:0 0 12px 12px;">
+        <div style="color:#bbf7d0;font-size:14px;margin-bottom:6px;">¿Listo para hacer realidad su viaje?</div>
+        <div style="color:#fff;font-weight:800;font-size:20px;margin-bottom:6px;">Hable hoy con su asesor de X Travel Group</div>
+        <div style="color:#93c5fd;font-size:13px;margin-bottom:20px;">Responda a este email o comuníquese directamente con nosotros</div>
+        <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
+          <a href="tel:18009271490" style="display:inline-block;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;text-decoration:none;font-size:14px;font-weight:700;padding:10px 20px;border-radius:8px;">📞 1 (800) 927-1490</a>
+          ${lead.chat_url ? `<a href="${lead.chat_url}" style="display:inline-block;background:#38bdf8;color:#0f172a;text-decoration:none;font-size:14px;font-weight:700;padding:10px 20px;border-radius:8px;">💬 Chat en línea</a>` : `<a href="mailto:members@xtravelgroup.com" style="display:inline-block;background:#38bdf8;color:#0f172a;text-decoration:none;font-size:14px;font-weight:700;padding:10px 20px;border-radius:8px;">✉ members@xtravelgroup.com</a>`}
         </div>
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.15);margin:0 0 14px 0;"/>
         <div style="font-size:11px;color:#475569;">© 2025 X Travel Group · Todos los derechos reservados</div>
       </div>
 
