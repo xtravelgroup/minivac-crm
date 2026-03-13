@@ -402,42 +402,46 @@ function TabPagos(props){
   // Monto maximo = saldo pendiente
   var montoNum=Math.min(parseFloat(monto)||0, saldo);
 
+  var ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA";
+  var BASE_URL="https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/zoho-payments";
+
   function abrirZoho(){
     if(montoNum<=0) return;
     setLoadingLink(true);
     setPagoErr("");
-    // Llamar edge function que crea payment link en Zoho
-    fetch("https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/zoho-payments",{
+    fetch(BASE_URL+"/create-session",{
       method:"POST",
-      headers:{"Content-Type":"application/json","apikey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA"},
+      headers:{"Content-Type":"application/json","apikey":ANON_KEY,"Authorization":"Bearer "+ANON_KEY},
       body:JSON.stringify({
-        amount: montoNum,
-        description: "Abono paquete Mini-Vac - Folio "+u.folio,
-        customer_name: u.titular,
-        customer_email: u.email,
-        reference_id: u.folio+"-"+Date.now(),
+        lead_id:  u.folio,
+        amount:   montoNum,
+        currency: "USD",
+        folio:    u.folio,
+        nombre:   u.titular,
       })
     })
-    .then(function(r){return r.json();})
+    .then(function(r){
+      if(!r.ok){ return r.json().then(function(e){throw new Error(e.error||"HTTP "+r.status);}); }
+      return r.json();
+    })
     .then(function(data){
       setLoadingLink(false);
-      if(data.payment_url){
-        // Abrir checkout Zoho en nueva ventana
-        window.open(data.payment_url,"_blank","noopener,noreferrer");
-        // Optimisticamente agregar pago pendiente al historial
-        var np={fecha:TODAY,monto:montoNum,tipo:"Abono",status:"pendiente",ref:"ZOHO-"+Date.now()};
+      if(data.payments_session_id){
+        var checkoutUrl="https://payments.zoho.com/payment-gateway/checkout/"+data.payments_session_id;
+        window.open(checkoutUrl,"_blank","noopener,noreferrer");
+        var np={fecha:TODAY,monto:montoNum,tipo:"Abono",status:"pendiente",ref:"ZOHO-"+data.payments_session_id.slice(-8)};
         setPagos(function(prev){return [np].concat(prev);});
         setShowModal(false);
         setMonto("");
         setSuccess(true);
-        setTimeout(function(){setSuccess(false);},5000);
+        setTimeout(function(){setSuccess(false);},6000);
       } else {
-        setPagoErr(data.error||"No se pudo generar el link de pago. Intenta de nuevo.");
+        setPagoErr(data.error||"No se pudo iniciar el pago. Intenta de nuevo.");
       }
     })
-    .catch(function(){
+    .catch(function(e){
       setLoadingLink(false);
-      setPagoErr("Error de conexion. Por favor intenta de nuevo.");
+      setPagoErr("Error: "+String(e));
     });
   }
 
