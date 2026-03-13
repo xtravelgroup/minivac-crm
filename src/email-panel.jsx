@@ -18,15 +18,16 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts) {
   const estrellasHtml = (n) => "⭐".repeat(Math.min(n || 4, 5));
 
   const destinosHtml = destinos.map(function(d) {
-    const hoteles = (hotelesPorDest[d.destId] || []).slice(0, 3);
+    const hoteles    = (hotelesPorDest[d.destId] || []).slice(0, 3);
     const nombreDest = d.nombre || d.destId;
-    const noches = d.noches || 4;
-    const ai = aiData[d.destId] || {};
+    const noches     = d.noches || 4;
+    const dias       = noches + 1;
+    const ai         = aiData[d.destId] || {};
 
     const hotelesHtml = hoteles.length > 0
       ? hoteles.map(h => `
           <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;">
-            <div style="font-size:28px;line-height:1;">🏨</div>
+            <div style="font-size:24px;line-height:1;">🏨</div>
             <div>
               <div style="font-weight:700;font-size:14px;color:#1a3a5c;">${h.nombre}</div>
               <div style="font-size:12px;color:#666;margin-top:2px;">${estrellasHtml(h.estrellas)} ${h.tipo_hab || ""} ${h.regimen ? "· " + h.regimen : ""}</div>
@@ -34,40 +35,67 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts) {
           </div>`).join("")
       : `<div style="font-size:13px;color:#888;padding:8px 0;">Hoteles de categoría superior incluidos</div>`;
 
-    const aiDescHtml = ai.descripcion
-      ? `<p style="font-size:14px;color:#374151;line-height:1.7;margin:0 0 14px 0;font-style:italic;">${ai.descripcion}</p>`
-      : "";
+    const tituloHtml = ai.titulo_paquete
+      ? `<div style="font-size:15px;font-weight:800;color:#1a3a5c;margin-bottom:10px;">${ai.titulo_paquete}</div>`
+      : `<div style="font-size:15px;font-weight:800;color:#1a3a5c;margin-bottom:10px;">${dias} Días / ${noches} Noches en ${nombreDest}</div>`;
 
-    const aiHighlightsHtml = ai.highlights && ai.highlights.length > 0
+    const highlightsHtml = (ai.highlights || []).length > 0
       ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">
           ${ai.highlights.map(h => `<span style="background:#dbeafe;color:#1e40af;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:600;">${h}</span>`).join("")}
         </div>`
       : "";
 
+    const descHtml = ai.descripcion
+      ? `<p style="font-size:14px;color:#374151;line-height:1.75;margin:0 0 14px 0;">${ai.descripcion}</p>`
+      : "";
+
+    const queIncluyeHtml = (ai.que_incluye || []).length > 0
+      ? `<div style="margin-bottom:14px;">
+          <div style="font-size:11px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">✅ Qué incluye</div>
+          ${ai.que_incluye.map(item => `<div style="font-size:13px;color:#374151;padding:4px 0;border-bottom:1px solid #f0fdf4;">✔ ${item}</div>`).join("")}
+        </div>`
+      : "";
+
+    const queHacerHtml = (ai.que_hacer || []).length > 0
+      ? `<div style="margin-bottom:14px;">
+          <div style="font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">🎯 Experiencias imperdibles</div>
+          ${ai.que_hacer.map(item => `<div style="font-size:13px;color:#374151;padding:4px 0;">→ ${item}</div>`).join("")}
+        </div>`
+      : "";
+
     return `
-      <div style="background:#f0f7ff;border:1px solid #bfdbfe;border-radius:10px;padding:20px;margin-bottom:16px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-          <div style="font-size:28px;">✈️</div>
-          <div>
-            <div style="font-weight:800;font-size:17px;color:#1a3a5c;">${nombreDest}</div>
-            <div style="font-size:13px;color:#3b82f6;font-weight:600;">${noches} noches incluidas</div>
+      <div style="border:1px solid #bfdbfe;border-radius:12px;overflow:hidden;margin-bottom:20px;">
+        <div style="background:linear-gradient(135deg,#1a3a5c,#1e4d7b);padding:18px 20px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="font-size:32px;">✈️</div>
+            <div>
+              ${tituloHtml.replace('style="font-size:15px;font-weight:800;color:#1a3a5c', 'style="font-size:16px;font-weight:800;color:#fff')}
+              <div style="font-size:12px;color:#93c5fd;">${noches} noches incluidas · para hasta 4 personas</div>
+            </div>
           </div>
         </div>
-        ${aiDescHtml}
-        ${aiHighlightsHtml}
-        <div style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Posibles hoteles:</div>
-        ${hotelesHtml}
+        <div style="background:#f0f7ff;padding:20px;">
+          ${highlightsHtml}
+          ${descHtml}
+          ${queIncluyeHtml}
+          ${queHacerHtml}
+          <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">🏨 Posibles hoteles</div>
+          ${hotelesHtml}
+        </div>
       </div>`;
   }).join("");
 
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;color:#222;">
 
-      <!-- Header -->
+      <!-- Header con logo -->
       <div style="background:linear-gradient(135deg,#1a3a5c 0%,#0f2340 100%);padding:32px 24px;border-radius:12px 12px 0 0;text-align:center;">
-        <div style="font-size:13px;color:#93c5fd;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">X Travel Group</div>
-        <h1 style="color:#fff;margin:0;font-size:26px;font-weight:800;">Su paquete de viaje exclusivo</h1>
-        <div style="color:#bfdbfe;font-size:14px;margin-top:8px;">Preparado especialmente para usted</div>
+        <img src="https://minivac-crm.vercel.app/logo.png" alt="X Travel Group" style="height:60px;object-fit:contain;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;" onerror="this.style.display='none'" />
+        <div style="display:inline-block;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 20px;margin-bottom:14px;">
+          <span style="font-size:13px;color:#93c5fd;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;">✈ X TRAVEL GROUP</span>
+        </div>
+        <h1 style="color:#fff;margin:0;font-size:26px;font-weight:800;line-height:1.3;">Su paquete de viaje exclusivo</h1>
+        <div style="color:#bfdbfe;font-size:14px;margin-top:10px;">Preparado especialmente para <strong style="color:#fff;">${nombre}</strong></div>
       </div>
 
       <!-- Saludo -->
@@ -296,7 +324,7 @@ const S = {
 };
 
 // ── Componente principal ───────────────────────────────────────────────────
-export default function EmailPanel({ lead, currentUser }) {
+export default function EmailPanel({ lead, currentUser, destCatalog }) {
   const [emails,     setEmails]     = useState([]);
   const [hotelesPorDest, setHotelesPorDest] = useState({});
   const [loadingPaquete, setLoadingPaquete] = useState(false);
@@ -309,7 +337,16 @@ export default function EmailPanel({ lead, currentUser }) {
   const [toast,      setToast]      = useState(null);
   const [showCompose,setShowCompose]= useState(false);
 
-  const templates = buildTemplates(lead);
+  // Enriquecer destinos con nombres del catálogo
+  const leadConNombres = {
+    ...lead,
+    destinos: (lead.destinos || []).map(d => {
+      const cat = (destCatalog || []).find(c => c.id === d.destId);
+      return { ...d, nombre: cat?.nombre || cat?.label || d.nombre || d.destId };
+    })
+  };
+
+  const templates = buildTemplates(leadConNombres);
 
   function notify(msg, ok = true) {
     setToast({ msg, ok });
@@ -353,26 +390,40 @@ export default function EmailPanel({ lead, currentUser }) {
       return `- ${d.nombre || d.destId} (${d.noches || 4} noches)${hoteles ? ", hoteles posibles: " + hoteles : ""}`;
     }).join("\n");
 
-    const prompt = `Eres un experto en marketing de viajes para X Travel Group, una empresa de membresías de viaje premium.
+    const prompt = `Eres un experto copywriter de viajes para X Travel Group, empresa de membresías de viaje premium con más de 20 años en el mercado.
 
-El cliente se llama ${nombre}${edad ? ", tiene " + edad + " años" : ""}${ec ? ", estado civil: " + ec : ""}.
+CLIENTE:
+- Nombre: ${nombre}${edad ? "\n- Edad: " + edad + " años" : ""}${ec ? "\n- Estado civil: " + ec : ""}
 
-Sus destinos incluidos en el paquete son:
+PAQUETE INCLUIDO:
 ${destinosInfo}
 
-Para CADA destino, genera en español:
-1. "descripcion": Un párrafo corto (2-3 oraciones) evocador y emocionante que haga soñar al cliente con ese destino. Personalizado para su perfil. Sin mencionar precios.
-2. "highlights": Array de 3-4 experiencias o atractivos clave del destino (máximo 4 palabras cada uno). Ejemplo: ["Playas cristalinas", "Gastronomía local", "Vida nocturna"]
+Para CADA destino genera en español lo siguiente. Sé evocador, emotivo y persuasivo. Usa lenguaje cálido y cercano, como si hablaras directamente con ${nombre}:
 
-Responde SOLO con JSON válido sin texto adicional ni backticks, con esta estructura exacta:
+1. "titulo_paquete": Frase atractiva del paquete. Ej: "4 Días y 3 Noches en el Mágico Cancún para toda la familia". Incluye duración, destino y número de personas si aplica (asume máximo 4).
+
+2. "descripcion": Párrafo de 3-4 oraciones que haga soñar al cliente. Menciona experiencias únicas, sensaciones, momentos memorables. Personalizado según su perfil (edad, estado civil). Sin mencionar precios.
+
+3. "que_incluye": Array de 4-5 beneficios concretos incluidos. Ej: ["Alojamiento en hotel de categoría", "Traslados aeropuerto-hotel", "Desayunos incluidos", "Acceso a amenidades del resort"]
+
+4. "que_hacer": Array de 3-4 actividades o experiencias destacadas del destino. Ej: ["Snorkel en arrecife de coral", "Visita a ruinas mayas", "Noche en zona hotelera"]
+
+5. "highlights": Array de 3-4 palabras clave visuales del destino. Ej: ["Playas paradisíacas", "Cultura milenaria", "Gastronomía única"]
+
+Responde SOLO con JSON válido, sin texto adicional, sin backticks:
 {
   "destinos": {
-    "ID_DESTINO_1": { "descripcion": "...", "highlights": ["...", "..."] },
-    "ID_DESTINO_2": { "descripcion": "...", "highlights": ["...", "..."] }
+    "ID_DESTINO": {
+      "titulo_paquete": "...",
+      "descripcion": "...",
+      "que_incluye": ["...", "..."],
+      "que_hacer": ["...", "..."],
+      "highlights": ["...", "..."]
+    }
   }
 }
 
-Los IDs de destino son exactamente: ${destinos.map(d => d.destId).join(", ")}`;
+IDs exactos de destino: ${destinos.map(d => d.destId).join(", ")}`;
 
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -420,15 +471,11 @@ Los IDs de destino son exactamente: ${destinos.map(d => d.destId).join(", ")}`;
 
     if (tpl.id === "paquete") {
       setLoadingPaquete(true);
-      const destIds = (lead.destinos || []).map(d => d.destId).filter(Boolean);
-      const [hoteles, aiTexts] = await Promise.all([
-        cargarHoteles(destIds),
-        generateAITexts(lead, {}),
-      ]);
+      const destIds = (leadConNombres.destinos || []).map(d => d.destId).filter(Boolean);
+      const hoteles = await cargarHoteles(destIds);
       setHotelesPorDest(hoteles);
-      // Re-run AI with hotel info for better context
-      const aiTextsWithHoteles = await generateAITexts(lead, hoteles);
-      const built = buildPaqueteHtml(lead, hoteles, aiTextsWithHoteles);
+      const aiTextsWithHoteles = await generateAITexts(leadConNombres, hoteles);
+      const built = buildPaqueteHtml(leadConNombres, hoteles, aiTextsWithHoteles);
       setSubject(built.subject);
       setBodyText(built.text);
       setBodyHtml(built.html);

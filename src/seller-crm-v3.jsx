@@ -747,7 +747,7 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
 
         {/* TAB: EMAILS */}
         {tab === "emails" && (
-          <EmailPanel lead={draft} currentUser={currentUser} />
+          <EmailPanel lead={draft} currentUser={currentUser} destCatalog={destCatalog} />
         )}
 
         {/* TAB: HISTORIAL */}
