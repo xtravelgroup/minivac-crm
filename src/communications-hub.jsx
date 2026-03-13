@@ -15,7 +15,7 @@ async function sbGet(path) {
 const CANAL_ICONS = { chat: "💬", email: "✉️", whatsapp: "📱", kixie: "📞" };
 const CANAL_COLORS = { chat: "#0891b2", email: "#6d28d9", whatsapp: "#16a34a", kixie: "#d97706" };
 
-export default function CommunicationsHub({ currentUser, destCatalog }) {
+export default function CommunicationsHub({ currentUser, destCatalog, onVerLead }) {
   const [leads, setLeads]         = useState([]);
   const [selLead, setSelLead]     = useState(null);
   const [canal, setCanal]         = useState("chat");
@@ -36,8 +36,8 @@ export default function CommunicationsHub({ currentUser, destCatalog }) {
       // Traer leads del vendedor o todos si admin
       const isAdmin = ["admin","director","supervisor"].includes(currentUser?.role || currentUser?.rol);
       const query = isAdmin
-        ? `leads?select=id,nombre,email,tel,whatsapp,status,destinos,vendedor_id&order=updated_at.desc&limit=100`
-        : `leads?select=id,nombre,email,tel,whatsapp,status,destinos,vendedor_id&vendedor_id=eq.${currentUser?.id}&order=updated_at.desc&limit=100`;
+        ? `leads?select=id,nombre,email,tel,whatsapp,status,destinos,vendedor_id,usuarios!leads_vendedor_id_fkey(nombre)&order=updated_at.desc&limit=100`
+        : `leads?select=id,nombre,email,tel,whatsapp,status,destinos,vendedor_id,usuarios!leads_vendedor_id_fkey(nombre)&vendedor_id=eq.${currentUser?.id}&order=updated_at.desc&limit=100`;
       const data = await sbGet(query);
       setLeads(data || []);
       await cargarResumen(data);
@@ -117,10 +117,9 @@ export default function CommunicationsHub({ currentUser, destCatalog }) {
                   {total > 0 && <span style={{background:"#1a3a5c",color:"#fff",borderRadius:"20px",padding:"1px 7px",fontSize:"10px",fontWeight:"700",flexShrink:0,marginLeft:"6px"}}>{total}</span>}
                 </div>
                 <div style={{fontSize:"12px",color:"#64748b",marginBottom:"6px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lead.email||lead.tel||"Sin contacto"}</div>
-                <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
-                  {/* Status */}
+                <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
                   <span style={{background:"#f1f5f9",color:"#475569",borderRadius:"20px",padding:"2px 8px",fontSize:"10px",fontWeight:"600"}}>{lead.status||"nuevo"}</span>
-                  {/* Canales activos */}
+                  {lead.usuarios?.nombre && <span style={{background:"#fef3c7",color:"#92400e",borderRadius:"20px",padding:"2px 8px",fontSize:"10px",fontWeight:"600"}}>👤 {lead.usuarios.nombre}</span>}
                   {r.chat > 0 && <span style={{background:"#e0f2fe",color:"#0369a1",borderRadius:"20px",padding:"2px 7px",fontSize:"10px",fontWeight:"700"}}>💬 {r.chat}</span>}
                   {r.email > 0 && <span style={{background:"#ede9fe",color:"#6d28d9",borderRadius:"20px",padding:"2px 7px",fontSize:"10px",fontWeight:"700"}}>✉️ {r.email}</span>}
                 </div>
@@ -155,6 +154,7 @@ export default function CommunicationsHub({ currentUser, destCatalog }) {
                   </div>
                 </div>
                 <span style={{background:"#f1f5f9",color:"#475569",borderRadius:"20px",padding:"4px 12px",fontSize:"12px",fontWeight:"700"}}>{selLead.status||"nuevo"}</span>
+                {onVerLead && <button onClick={()=>onVerLead(selLead)} style={{background:"#1a3a5c",color:"#fff",border:"none",borderRadius:"20px",padding:"4px 12px",fontSize:"12px",fontWeight:"700",cursor:"pointer"}}>📋 Ver Lead</button>}
               </div>
 
               {/* Tabs de canal */}
