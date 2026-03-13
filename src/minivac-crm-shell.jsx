@@ -576,7 +576,8 @@ function Topbar(props) {
           onClick={function(){ setNotifPanel(function(p){return !p;}); }}
         >
           <div style={{position:"relative"}}>
-            <Icon name="bell" size={15} color={T.t3}/>
+            <Icon name="bell" size={15} color={chatAlertas.length>0?"#ef4444":T.t3}/>
+            {chatAlertas.length>0&&(<div style={{position:"absolute",top:"-5px",right:"-5px",background:"#ef4444",color:"#fff",borderRadius:"50%",width:"15px",height:"15px",fontSize:"9px",fontWeight:"800",display:"flex",alignItems:"center",justifyContent:"center"}}>{chatAlertas.length}</div>)}
           </div>
         </button>
       </div>
