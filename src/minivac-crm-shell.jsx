@@ -816,7 +816,7 @@ export default function MinivacShell() {
           {!activo && <Bienvenida user={user} onNav={handleNav}/>}
           {activo==="dashboard"    && <ExecutiveSuite/>}
           <Suspense fallback={<div style={{padding:"40px",textAlign:"center",color:"#94a3b8"}}>Cargando módulo...</div>}>
-          {activo==="kb"           && <KnowledgeBase currentUser={currentUser} />}
+          {activo==="kb"           && <KnowledgeBase currentUser={user} />}
           {activo==="comms"        && <CommunicationsHub currentUser={user} destCatalog={[]} />}
           </Suspense>
           {activo==="radio"        && <RadioModule
