@@ -128,7 +128,7 @@ export default function CommunicationsHub({ currentUser, destCatalog, onVerLead 
                 <div style={{fontSize:"12px",color:"#64748b",marginBottom:"6px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lead.email||lead.tel||"Sin contacto"}</div>
                 <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
                   <span style={{background:"#f1f5f9",color:"#475569",borderRadius:"20px",padding:"2px 8px",fontSize:"10px",fontWeight:"600"}}>{lead.status||"nuevo"}</span>
-                  {lead.vendedorNombre && <span style={{background:"#fef3c7",color:"#92400e",borderRadius:"20px",padding:"2px 8px",fontSize:"10px",fontWeight:"600"}}>👤 {lead.usuarios.nombre}</span>}
+                  {lead.vendedorNombre && <span style={{background:"#fef3c7",color:"#92400e",borderRadius:"20px",padding:"2px 8px",fontSize:"10px",fontWeight:"600"}}>👤 {lead.vendedorNombre}</span>}
                   {r.chat > 0 && <span style={{background:"#e0f2fe",color:"#0369a1",borderRadius:"20px",padding:"2px 7px",fontSize:"10px",fontWeight:"700"}}>💬 {r.chat}</span>}
                   {r.email > 0 && <span style={{background:"#ede9fe",color:"#6d28d9",borderRadius:"20px",padding:"2px 7px",fontSize:"10px",fontWeight:"700"}}>✉️ {r.email}</span>}
                 </div>
