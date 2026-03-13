@@ -2085,7 +2085,6 @@ export default function RadioModule(props) {
     setSemana({lunes:lunes, domingo:domingoDe(lunes)});
   }
   function nextSemana() {
-    if (esSemanaActual) return;
     var d = new Date(semana.lunes + "T12:00:00");
     d.setDate(d.getDate() + 7);
     var lunes = lunesDe(d.toISOString().split("T")[0]);
