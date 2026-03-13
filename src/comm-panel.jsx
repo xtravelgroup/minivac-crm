@@ -251,7 +251,7 @@ var CANALES = [
   { id:"llamada",  label:"Llamada",  color:BLUE,   bg:"#e5eefe",  br:"#aac4f0",  icon:"phone"  },
   { id:"sms",      label:"SMS",      color:GREEN,  bg:"#eaf5ec",  br:"#a3d9a5",  icon:"sms"    },
   { id:"whatsapp", label:"WhatsApp", color:"#25D366", bg:"rgba(37,211,102,0.12)", br:"rgba(37,211,102,0.3)", icon:"wa"   },
-  { id:"email",    label:"Email",    color:VIOLET, bg:"#ebe6fd", br:"#c4b5fd", icon:"email"  },
+
 ];
 
 function fmtTime(iso){
