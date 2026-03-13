@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import RadioModule          from "./radio-module-v4.jsx";
 
@@ -20,6 +20,51 @@ import RolesPermissions     from "./roles-permissions.jsx";
 import ClientPortal         from "./client-portal.jsx";
 import HotelsModule         from "./hotels-module.jsx";
 import KnowledgeBase        from "./knowledge-base-module.jsx";
+
+// Monitor global de chats
+function useChatAlertas(currentUser) {
+  const [alertas, setAlertas] = useState([]);
+  const prevCountRef = useRef({});
+
+  useEffect(() => {
+    if (!currentUser) return;
+    const poll = setInterval(async () => {
+      try {
+        const SB = "https://gsvnvahrjgswwejnuiyn.supabase.co";
+        const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA";
+        // Traer chats del vendedor con ultimo mensaje
+        const r = await fetch(`${SB}/rest/v1/chats?usuario_id=eq.${currentUser.id}&select=id,token,lead_id,leads(nombre)`, {
+          headers: { "apikey": KEY, "Authorization": `Bearer ${KEY}` }
+        });
+        const chats = await r.json();
+        if (!Array.isArray(chats)) return;
+        const nuevasAlertas = [];
+        for (const ch of chats) {
+          const r2 = await fetch(`${SB}/rest/v1/chat_mensajes?chat_id=eq.${ch.id}&autor=eq.cliente&order=created_at.desc&limit=1`, {
+            headers: { "apikey": KEY, "Authorization": `Bearer ${KEY}` }
+          });
+          const msgs = await r2.json();
+          if (!msgs?.length) continue;
+          const ultimo = msgs[0];
+          const key = ch.id;
+          const prev = prevCountRef.current[key];
+          if (prev && prev !== ultimo.id) {
+            nuevasAlertas.push({ chatId: ch.id, token: ch.token, leadNombre: ch.leads?.nombre || "Cliente", mensaje: ultimo.mensaje });
+            // Notificacion browser
+            if ("Notification" in window && Notification.permission === "granted") {
+              new Notification("💬 " + (ch.leads?.nombre || "Cliente") + " escribió", { body: ultimo.mensaje?.substring(0,80) });
+            }
+          }
+          prevCountRef.current[key] = ultimo.id;
+        }
+        if (nuevasAlertas.length) setAlertas(prev => [...prev, ...nuevasAlertas]);
+      } catch(e) {}
+    }, 5000);
+    return () => clearInterval(poll);
+  }, [currentUser?.id]);
+
+  return [alertas, () => setAlertas([])];
+}
 
 // 
 // DESIGN TOKENS - Zoho-style: blanco, gris neutro, azul marino
@@ -210,6 +255,22 @@ function LoginScreen(props) {
   };
 
   return (
+    <div style={{position:"relative"}}>
+      {/* Alertas globales de chat */}
+      {chatAlertas.length > 0 && (
+        <div style={{position:"fixed",top:"16px",right:"16px",zIndex:9999,display:"flex",flexDirection:"column",gap:"8px",maxWidth:"320px"}}>
+          {chatAlertas.map((a,i) => (
+            <div key={i} style={{background:"linear-gradient(135deg,#1a3a5c,#1e4d7b)",borderRadius:"12px",padding:"12px 16px",boxShadow:"0 4px 20px rgba(0,0,0,0.3)",display:"flex",gap:"12px",alignItems:"flex-start",animation:"slideIn 0.3s ease"}}>
+              <span style={{fontSize:"20px"}}>💬</span>
+              <div style={{flex:1}}>
+                <div style={{color:"#fff",fontWeight:"700",fontSize:"13px"}}>{a.leadNombre} escribió</div>
+                <div style={{color:"#93c5fd",fontSize:"12px",marginTop:"2px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.mensaje}</div>
+              </div>
+              <button onClick={limpiarAlertas} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#fff",borderRadius:"6px",padding:"2px 8px",cursor:"pointer",fontSize:"11px"}}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
     <div style={{
       minHeight: "100vh", background: T.bg,
       display: "flex", alignItems: "center", justifyContent: "center",
