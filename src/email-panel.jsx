@@ -9,6 +9,141 @@ const SB_URL     = "https://gsvnvahrjgswwejnuiyn.supabase.co";
 const FROM_NAME  = "X Travel Group";
 
 // ── Templates de email ─────────────────────────────────────────────────────
+// ── Construye el HTML del email de presentación de paquete ──────────────────
+function buildPaqueteHtml(lead, hotelesPorDest, aiTexts) {
+  const nombre  = lead.nombre || lead.name || "Estimado cliente";
+  const destinos = lead.destinos || [];
+  const aiData  = aiTexts || {};
+
+  const estrellasHtml = (n) => "⭐".repeat(Math.min(n || 4, 5));
+
+  const destinosHtml = destinos.map(function(d) {
+    const hoteles = (hotelesPorDest[d.destId] || []).slice(0, 3);
+    const nombreDest = d.nombre || d.destId;
+    const noches = d.noches || 4;
+    const ai = aiData[d.destId] || {};
+
+    const hotelesHtml = hoteles.length > 0
+      ? hoteles.map(h => `
+          <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;">
+            <div style="font-size:28px;line-height:1;">🏨</div>
+            <div>
+              <div style="font-weight:700;font-size:14px;color:#1a3a5c;">${h.nombre}</div>
+              <div style="font-size:12px;color:#666;margin-top:2px;">${estrellasHtml(h.estrellas)} ${h.tipo_hab || ""} ${h.regimen ? "· " + h.regimen : ""}</div>
+            </div>
+          </div>`).join("")
+      : `<div style="font-size:13px;color:#888;padding:8px 0;">Hoteles de categoría superior incluidos</div>`;
+
+    const aiDescHtml = ai.descripcion
+      ? `<p style="font-size:14px;color:#374151;line-height:1.7;margin:0 0 14px 0;font-style:italic;">${ai.descripcion}</p>`
+      : "";
+
+    const aiHighlightsHtml = ai.highlights && ai.highlights.length > 0
+      ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">
+          ${ai.highlights.map(h => `<span style="background:#dbeafe;color:#1e40af;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:600;">${h}</span>`).join("")}
+        </div>`
+      : "";
+
+    return `
+      <div style="background:#f0f7ff;border:1px solid #bfdbfe;border-radius:10px;padding:20px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <div style="font-size:28px;">✈️</div>
+          <div>
+            <div style="font-weight:800;font-size:17px;color:#1a3a5c;">${nombreDest}</div>
+            <div style="font-size:13px;color:#3b82f6;font-weight:600;">${noches} noches incluidas</div>
+          </div>
+        </div>
+        ${aiDescHtml}
+        ${aiHighlightsHtml}
+        <div style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Posibles hoteles:</div>
+        ${hotelesHtml}
+      </div>`;
+  }).join("");
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;color:#222;">
+
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#1a3a5c 0%,#0f2340 100%);padding:32px 24px;border-radius:12px 12px 0 0;text-align:center;">
+        <div style="font-size:13px;color:#93c5fd;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">X Travel Group</div>
+        <h1 style="color:#fff;margin:0;font-size:26px;font-weight:800;">Su paquete de viaje exclusivo</h1>
+        <div style="color:#bfdbfe;font-size:14px;margin-top:8px;">Preparado especialmente para usted</div>
+      </div>
+
+      <!-- Saludo -->
+      <div style="background:#fff;padding:28px 24px;border-left:1px solid #e0e0e0;border-right:1px solid #e0e0e0;">
+        <p style="font-size:16px;margin:0 0 16px 0;">Estimado/a <strong>${nombre}</strong>,</p>
+        <p style="font-size:14px;color:#444;line-height:1.7;margin:0 0 16px 0;">
+          Ha sido seleccionado/a para acceder a una <strong>oportunidad exclusiva de viaje</strong> a través de X Travel Group.
+          Hemos preparado un paquete personalizado con los destinos que más se adaptan a su perfil.
+        </p>
+      </div>
+
+      <!-- Destinos -->
+      <div style="background:#f8faff;padding:24px;border-left:1px solid #e0e0e0;border-right:1px solid #e0e0e0;">
+        <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">🗺️ Sus destinos incluidos</div>
+        ${destinosHtml || '<p style="color:#888;">Destinos por confirmar con su asesor</p>'}
+      </div>
+
+      <!-- Por qué X Travel -->
+      <div style="background:#fff;padding:24px;border-left:1px solid #e0e0e0;border-right:1px solid #e0e0e0;">
+        <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">🏆 ¿Por qué elegir X Travel Group?</div>
+
+        <div style="display:grid;gap:12px;">
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="font-size:24px;line-height:1;">💎</div>
+            <div>
+              <div style="font-weight:700;font-size:14px;color:#1a3a5c;">Precios que nadie puede igualar</div>
+              <div style="font-size:13px;color:#555;margin-top:3px;line-height:1.6;">Trabajamos directamente con cadenas hoteleras y aerolineas, eliminando intermediarios. Lo que otros cobran a precio de lista, nosotros lo ofrecemos a precio de miembro — hasta un 70% menos.</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="font-size:24px;line-height:1;">🤝</div>
+            <div>
+              <div style="font-weight:700;font-size:14px;color:#1a3a5c;">20+ años de confianza</div>
+              <div style="font-size:13px;color:#555;margin-top:3px;line-height:1.6;">X Travel Group lleva más de dos décadas haciendo realidad los sueños de viaje de miles de familias. Somos una empresa establecida, con respaldo legal y compromisos reales.</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="font-size:24px;line-height:1;">✈️</div>
+            <div>
+              <div style="font-weight:700;font-size:14px;color:#1a3a5c;">Flexibilidad total</div>
+              <div style="font-size:13px;color:#555;margin-top:3px;line-height:1.6;">Viaje cuando quiera, a los destinos incluidos en su paquete. Sin fechas forzadas, sin restricciones absurdas. Su tiempo de viaje, sus reglas.</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="font-size:24px;line-height:1;">🛡️</div>
+            <div>
+              <div style="font-weight:700;font-size:14px;color:#1a3a5c;">Garantía de satisfacción</div>
+              <div style="font-size:13px;color:#555;margin-top:3px;line-height:1.6;">Si por cualquier razón no está 100% satisfecho, nuestro equipo de servicio al cliente está disponible para resolverlo. Su experiencia es nuestra prioridad.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div style="background:linear-gradient(135deg,#1a7f3c 0%,#14532d 100%);padding:28px 24px;text-align:center;border-radius:0 0 12px 12px;">
+        <div style="color:#bbf7d0;font-size:14px;margin-bottom:8px;">¿Listo para hacer realidad su viaje?</div>
+        <div style="color:#fff;font-weight:800;font-size:20px;margin-bottom:16px;">Hable hoy con su asesor de X Travel Group</div>
+        <div style="color:#86efac;font-size:13px;">Responda a este email o comuníquese directamente con nosotros</div>
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.2);margin:20px 0;"/>
+        <div style="font-size:12px;color:#86efac;">X Travel Group · members@xtravelgroup.com</div>
+      </div>
+
+    </div>`;
+
+  const text = `Estimado/a ${nombre},\n\nHemos preparado un paquete de viaje exclusivo para usted.\n\nDestinos incluidos: ${destinos.map(d => (d.nombre||d.destId) + " (" + (d.noches||4) + " noches)").join(", ") || "Por confirmar"}\n\nEn X Travel Group llevamos 20+ años haciendo realidad sueños de viaje con precios hasta 70% menores al mercado.\n\nResponda este email para más información.\n\nX Travel Group`;
+
+  return {
+    subject: `Su paquete de viaje exclusivo — X Travel Group`,
+    html,
+    text,
+  };
+}
+
 function buildTemplates(lead) {
   const nombre   = lead.nombre || lead.name || "Estimado cliente";
   const precio   = lead.salePrice ? `$${lead.salePrice.toLocaleString()}` : "";
@@ -44,6 +179,14 @@ function buildTemplates(lead) {
       text: `Estimado/a ${nombre},\n\nPor favor firme su certificado de viaje en: ${firmaUrl || "Link no disponible"}\n\nX Travel Group`,
       disabled: !firmaUrl,
       disabledMsg: "Genera el link de firma primero en el tab de Pago",
+    },
+    {
+      id:      "paquete",
+      label:   "🗺️ Presentación de paquete",
+      subject: "",
+      html:    "",
+      text:    "",
+      isPaquete: true,
     },
     {
       id:      "bienvenida",
@@ -155,6 +298,8 @@ const S = {
 // ── Componente principal ───────────────────────────────────────────────────
 export default function EmailPanel({ lead, currentUser }) {
   const [emails,     setEmails]     = useState([]);
+  const [hotelesPorDest, setHotelesPorDest] = useState({});
+  const [loadingPaquete, setLoadingPaquete] = useState(false);
   const [loading,    setLoading]    = useState(true);
   const [selTpl,     setSelTpl]     = useState(null);  // template seleccionado
   const [subject,    setSubject]    = useState("");
@@ -169,6 +314,84 @@ export default function EmailPanel({ lead, currentUser }) {
   function notify(msg, ok = true) {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 3500);
+  }
+
+  // Cargar hoteles por destino para el template de paquete
+  async function cargarHoteles(destIds) {
+    if (!destIds || destIds.length === 0) return {};
+    try {
+      const res = await fetch(
+        `${SB_URL}/rest/v1/hoteles?destino_id=in.(${destIds.join(",")})&activo=eq.true&select=*`,
+        { headers: { "apikey": ANON_KEY, "Authorization": `Bearer ${ANON_KEY}` } }
+      );
+      const data = await res.json();
+      const byDest = {};
+      if (Array.isArray(data)) {
+        data.forEach(h => {
+          if (!byDest[h.destino_id]) byDest[h.destino_id] = [];
+          byDest[h.destino_id].push(h);
+        });
+      }
+      return byDest;
+    } catch(e) {
+      console.error("Error cargando hoteles:", e);
+      return {};
+    }
+  }
+
+  // Generar textos AI para cada destino via Claude API
+  async function generateAITexts(lead, hotelesPorDest) {
+    const destinos = (lead.destinos || []);
+    if (destinos.length === 0) return {};
+
+    const nombre = lead.nombre || lead.name || "el cliente";
+    const edad   = lead.edad || "";
+    const ec     = lead.estadoCivil || "";
+
+    const destinosInfo = destinos.map(d => {
+      const hoteles = (hotelesPorDest[d.destId] || []).slice(0, 3).map(h => h.nombre).join(", ");
+      return `- ${d.nombre || d.destId} (${d.noches || 4} noches)${hoteles ? ", hoteles posibles: " + hoteles : ""}`;
+    }).join("\n");
+
+    const prompt = `Eres un experto en marketing de viajes para X Travel Group, una empresa de membresías de viaje premium.
+
+El cliente se llama ${nombre}${edad ? ", tiene " + edad + " años" : ""}${ec ? ", estado civil: " + ec : ""}.
+
+Sus destinos incluidos en el paquete son:
+${destinosInfo}
+
+Para CADA destino, genera en español:
+1. "descripcion": Un párrafo corto (2-3 oraciones) evocador y emocionante que haga soñar al cliente con ese destino. Personalizado para su perfil. Sin mencionar precios.
+2. "highlights": Array de 3-4 experiencias o atractivos clave del destino (máximo 4 palabras cada uno). Ejemplo: ["Playas cristalinas", "Gastronomía local", "Vida nocturna"]
+
+Responde SOLO con JSON válido sin texto adicional ni backticks, con esta estructura exacta:
+{
+  "destinos": {
+    "ID_DESTINO_1": { "descripcion": "...", "highlights": ["...", "..."] },
+    "ID_DESTINO_2": { "descripcion": "...", "highlights": ["...", "..."] }
+  }
+}
+
+Los IDs de destino son exactamente: ${destinos.map(d => d.destId).join(", ")}`;
+
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      const data = await res.json();
+      const text = (data.content || []).find(b => b.type === "text")?.text || "{}";
+      const parsed = JSON.parse(text);
+      return parsed.destinos || {};
+    } catch(e) {
+      console.error("Error generando textos AI:", e);
+      return {};
+    }
   }
 
   // Cargar historial de emails del lead
@@ -190,13 +413,31 @@ export default function EmailPanel({ lead, currentUser }) {
 
   useEffect(() => { cargarEmails(); }, [lead?.id]);
 
-  function selectTemplate(tpl) {
+  async function selectTemplate(tpl) {
     if (tpl.disabled) { notify(tpl.disabledMsg, false); return; }
     setSelTpl(tpl);
-    setSubject(tpl.subject || "");
-    setBodyText(tpl.text || "");
-    setBodyHtml(tpl.html || "");
     setShowCompose(true);
+
+    if (tpl.id === "paquete") {
+      setLoadingPaquete(true);
+      const destIds = (lead.destinos || []).map(d => d.destId).filter(Boolean);
+      const [hoteles, aiTexts] = await Promise.all([
+        cargarHoteles(destIds),
+        generateAITexts(lead, {}),
+      ]);
+      setHotelesPorDest(hoteles);
+      // Re-run AI with hotel info for better context
+      const aiTextsWithHoteles = await generateAITexts(lead, hoteles);
+      const built = buildPaqueteHtml(lead, hoteles, aiTextsWithHoteles);
+      setSubject(built.subject);
+      setBodyText(built.text);
+      setBodyHtml(built.html);
+      setLoadingPaquete(false);
+    } else {
+      setSubject(tpl.subject || "");
+      setBodyText(tpl.text || "");
+      setBodyHtml(tpl.html || "");
+    }
   }
 
   async function enviarEmail() {
@@ -266,7 +507,7 @@ export default function EmailPanel({ lead, currentUser }) {
         <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "16px", marginBottom: "16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
             <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a3a5c" }}>
-              {selTpl?.isLibre ? "✏️ Email libre" : selTpl?.label}
+              {selTpl?.id === "paquete" ? "🗺️ Presentación de paquete" : selTpl?.isLibre ? "✏️ Email libre" : selTpl?.label}
             </div>
             <button onClick={() => { setShowCompose(false); setSelTpl(null); }}
               style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer", color: "#6b7280" }}>✕</button>
@@ -276,6 +517,11 @@ export default function EmailPanel({ lead, currentUser }) {
             Para: <strong>{lead.nombre || lead.name}</strong> &lt;{lead.email}&gt;
           </div>
 
+          {loadingPaquete && (
+            <div style={{ padding:"16px", textAlign:"center", color:"#6b7280", fontSize:"13px" }}>
+              ✨ La IA está redactando su email personalizado...
+            </div>
+          )}
           <input
             style={S.input}
             placeholder="Asunto"
