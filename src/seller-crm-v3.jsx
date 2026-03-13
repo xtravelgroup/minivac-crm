@@ -1782,7 +1782,7 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId }) {
 
   // Auto-abrir lead si viene desde Comunicaciones
   const initialLeadIdRef = useRef(initialLeadId);
-  React.useEffect(() => {
+  useEffect(() => {
     if (initialLeadIdRef.current && leads.length > 0) {
       const lead = leads.find(l => l.id === initialLeadIdRef.current);
       if (lead) {
