@@ -106,6 +106,12 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts, fotosPorDest) {
         </p>
       </div>
 
+      <!-- Botones de contacto -->
+      <div style="background:#fff;padding:16px 24px;text-align:center;border-left:1px solid #e0e0e0;border-right:1px solid #e0e0e0;">
+        <a href="tel:18009271490" style="display:inline-block;background:#1a3a5c;color:#fff;text-decoration:none;font-size:13px;font-weight:700;padding:10px 22px;border-radius:8px;margin:4px 8px;">📞 1 (800) 927-1490</a>
+        ${lead.chat_url ? `<a href="${lead.chat_url}" style="display:inline-block;background:#38bdf8;color:#0f172a;text-decoration:none;font-size:13px;font-weight:700;padding:10px 22px;border-radius:8px;margin:4px 8px;">💬 Chat en línea</a>` : ""}
+      </div>
+
       <!-- Destinos -->
       <div style="background:#f8faff;padding:24px;border-left:1px solid #e0e0e0;border-right:1px solid #e0e0e0;">
         <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">🗺️ Sus destinos incluidos</div>
@@ -156,7 +162,7 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts, fotosPorDest) {
         <div style="color:#bbf7d0;font-size:14px;margin-bottom:6px;">¿Listo para hacer realidad su viaje?</div>
         <div style="color:#fff;font-weight:800;font-size:20px;margin-bottom:6px;">Hable hoy con su asesor de X Travel Group</div>
         <div style="color:#93c5fd;font-size:13px;margin-bottom:20px;">Responda a este email o comuníquese directamente con nosotros</div>
-        <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
+        <div style="display:flex;justify-content:center;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
           <a href="tel:18009271490" style="display:inline-block;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;text-decoration:none;font-size:14px;font-weight:700;padding:10px 20px;border-radius:8px;">📞 1 (800) 927-1490</a>
           ${lead.chat_url ? `<a href="${lead.chat_url}" style="display:inline-block;background:#38bdf8;color:#0f172a;text-decoration:none;font-size:14px;font-weight:700;padding:10px 20px;border-radius:8px;">💬 Chat en línea</a>` : `<a href="mailto:members@xtravelgroup.com" style="display:inline-block;background:#38bdf8;color:#0f172a;text-decoration:none;font-size:14px;font-weight:700;padding:10px 20px;border-radius:8px;">✉ members@xtravelgroup.com</a>`}
         </div>
