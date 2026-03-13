@@ -160,6 +160,16 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts, fotosPorDest) {
         <div style="font-size:12px;color:#86efac;">X Travel Group · members@xtravelgroup.com</div>
       </div>
 
+      <!-- FOOTER -->
+      <div style="background:#0f2340;padding:20px 24px;text-align:center;margin-top:0;">
+        <div style="font-size:13px;color:#93c5fd;font-weight:700;margin-bottom:10px;">¿Preguntas? Estamos aquí para ayudarle</div>
+        <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin-bottom:12px;">
+          <a href="tel:18009271490" style="color:#fff;text-decoration:none;font-size:13px;">📞 1 (800) 927-1490</a>
+          ${lead.chat_url ? `<a href="${lead.chat_url}" style="color:#38bdf8;text-decoration:none;font-size:13px;">💬 Chat en línea</a>` : `<a href="mailto:members@xtravelgroup.com" style="color:#38bdf8;text-decoration:none;font-size:13px;">✉ members@xtravelgroup.com</a>`}
+        </div>
+        <div style="font-size:11px;color:#475569;">© 2025 X Travel Group · Todos los derechos reservados</div>
+      </div>
+
     </div>`;
 
   const text = `Estimado/a ${nombre},\n\nHemos preparado un paquete de viaje exclusivo para usted.\n\nDestinos incluidos: ${destinos.map(d => (d.nombre||d.destId) + " (" + (d.noches||4) + " noches)").join(", ") || "Por confirmar"}\n\nEn X Travel Group llevamos 20+ años haciendo realidad sueños de viaje con precios hasta 70% menores al mercado.\n\nResponda este email para más información.\n\nX Travel Group`;
@@ -491,7 +501,14 @@ IDs exactos: ${destinos.map(d => d.destId).join(", ")}`;
       ]);
       const fotosPorDest = {};
       fotosArr.forEach(f => { if (f.url) fotosPorDest[f.destId] = f.url; });
-      const built = buildPaqueteHtml(leadConNombres, hoteles, aiTextsWithHoteles, fotosPorDest);
+      // Buscar chat_id del lead para el footer
+      let chatUrl = "";
+      try {
+        const chatRes = await fetch(`${SB_URL}/rest/v1/chats?lead_id=eq.${lead.id}&limit=1&select=id`, { headers: { "apikey": ANON_KEY, "Authorization": `Bearer ${ANON_KEY}` } });
+        const chatData = await chatRes.json();
+        if (chatData?.[0]?.id) chatUrl = `https://minivac-crm.vercel.app/chat/${chatData[0].id}`;
+      } catch(e) {}
+      const built = buildPaqueteHtml({ ...leadConNombres, chat_url: chatUrl }, hoteles, aiTextsWithHoteles, fotosPorDest);
       setSubject(built.subject);
       setBodyText(built.text);
       setBodyHtml(built.html);
