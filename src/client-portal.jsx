@@ -405,10 +405,16 @@ function TabPagos(props){
   var ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA";
   var BASE_URL="https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/zoho-payments";
 
+  var [sessionId,setSessionId]=useState("");
+  var [zohoReady,setZohoReady]=useState(false);
+  var zohoRef=useRef(null);
+
   function abrirZoho(){
     if(montoNum<=0) return;
     setLoadingLink(true);
     setPagoErr("");
+    setSessionId("");
+    setZohoReady(false);
     fetch(BASE_URL+"/create-session",{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+ANON_KEY},
@@ -427,14 +433,7 @@ function TabPagos(props){
     .then(function(data){
       setLoadingLink(false);
       if(data.payments_session_id){
-        var checkoutUrl="https://payments.zoho.com/payment-gateway/checkout/"+data.payments_session_id;
-        window.open(checkoutUrl,"_blank","noopener,noreferrer");
-        var np={fecha:TODAY,monto:montoNum,tipo:"Abono",status:"pendiente",ref:"ZOHO-"+data.payments_session_id.slice(-8)};
-        setPagos(function(prev){return [np].concat(prev);});
-        setShowModal(false);
-        setMonto("");
-        setSuccess(true);
-        setTimeout(function(){setSuccess(false);},6000);
+        setSessionId(data.payments_session_id);
       } else {
         setPagoErr(data.error||"No se pudo iniciar el pago. Intenta de nuevo.");
       }
@@ -444,6 +443,44 @@ function TabPagos(props){
       setPagoErr("Error: "+String(e));
     });
   }
+
+  // Inicializar widget Zoho cuando tengamos el sessionId
+  useEffect(function(){
+    if(!sessionId) return;
+    // Cargar SDK de Zoho Payments si no esta cargado
+    function initWidget(){
+      if(!window.ZPayments){ setPagoErr("Error cargando widget de pago."); return; }
+      var config={
+        account_id: "874101637",
+        domain: "US",
+      };
+      var instance=new window.ZPayments(config);
+      instance.requestPayment({
+        payments_session_id: sessionId,
+      }).then(function(resp){
+        var ref2="ZOHO-"+(resp.payment_id||sessionId).slice(-8);
+        var np={fecha:TODAY,monto:montoNum,tipo:"Abono",status:"aprobado",ref:ref2};
+        setPagos(function(prev){return [np].concat(prev);});
+        setShowModal(false);
+        setSessionId("");
+        setMonto("");
+        setSuccess(true);
+        setTimeout(function(){setSuccess(false);},6000);
+      }).catch(function(err){
+        if(err&&err.code==="widget_closed") return;
+        setPagoErr("Pago no completado: "+(err&&err.message?err.message:"Intenta de nuevo."));
+      });
+    }
+    if(window.ZPayments){
+      initWidget();
+    } else {
+      var script=document.createElement("script");
+      script.src="https://js.zoho.com/payments/zpayments.js";
+      script.onload=initWidget;
+      script.onerror=function(){ setPagoErr("Error cargando widget de pago."); };
+      document.head.appendChild(script);
+    }
+  },[sessionId]);
 
   var bannerStyle={padding:"10px 14px",borderRadius:"10px",background:"#edf7ee",border:"1px solid rgba(74,222,128,0.3)",marginBottom:"12px",fontSize:"12px",color:GREEN,display:"flex",alignItems:"center",gap:"8px"};
 
@@ -534,11 +571,11 @@ function TabPagos(props){
             <div style={{display:"flex",gap:"8px"}}>
               <button style={Object.assign({},btn("ghost"),{flex:1,justifyContent:"center"})} onClick={function(){setShowModal(false);}}>Cancelar</button>
               <button
-                style={Object.assign({},btn("primary"),{flex:2,justifyContent:"center",opacity:(loadingLink||montoNum<=0)?0.6:1})}
+                style={Object.assign({},btn("primary"),{flex:2,justifyContent:"center",opacity:(loadingLink||montoNum<=0||!!sessionId)?0.6:1})}
                 onClick={abrirZoho}
-                disabled={loadingLink||montoNum<=0}
+                disabled={loadingLink||montoNum<=0||!!sessionId}
               >
-                {loadingLink?"Generando link...":"Pagar "+fmtUSD(montoNum)}
+                {loadingLink?"Iniciando pago...":(sessionId?"Abriendo widget...":"Pagar "+fmtUSD(montoNum))}
               </button>
             </div>
           </div>
