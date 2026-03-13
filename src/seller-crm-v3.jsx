@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase as SB } from "./supabase.js";
 import EmailPanel from "./email-panel.jsx";
 import ChatVendedor from "./chat-vendedor.jsx";
