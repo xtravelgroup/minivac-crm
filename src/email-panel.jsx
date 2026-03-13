@@ -10,10 +10,11 @@ const FROM_NAME  = "X Travel Group";
 
 // ── Templates de email ─────────────────────────────────────────────────────
 // ── Construye el HTML del email de presentación de paquete ──────────────────
-function buildPaqueteHtml(lead, hotelesPorDest, aiTexts) {
+function buildPaqueteHtml(lead, hotelesPorDest, aiTexts, fotosPorDest) {
   const nombre  = lead.nombre || lead.name || "Estimado cliente";
   const destinos = lead.destinos || [];
   const aiData  = aiTexts || {};
+  const fotos   = fotosPorDest || {};
 
   const estrellasHtml = (n) => "⭐".repeat(Math.min(n || 4, 5));
 
@@ -49,6 +50,13 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts) {
       ? `<p style="font-size:14px;color:#374151;line-height:1.75;margin:0 0 14px 0;">${ai.descripcion}</p>`
       : "";
 
+    const queIncluyeHtml = (ai.que_incluye || []).length > 0
+      ? `<div style="margin-bottom:14px;">
+          <div style="font-size:11px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">✅ Qué incluye</div>
+          ${ai.que_incluye.map(item => `<div style="font-size:13px;color:#374151;padding:4px 0;border-bottom:1px solid #f0fdf4;">✔ ${item}</div>`).join("")}
+        </div>`
+      : "";
+
     const queHacerHtml = (ai.que_hacer || []).length > 0
       ? `<div style="margin-bottom:14px;">
           <div style="font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">🎯 Experiencias imperdibles</div>
@@ -56,8 +64,14 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts) {
         </div>`
       : "";
 
+    const fotoUrl = fotos[d.destId];
+    const fotoHtml = fotoUrl
+      ? `<div style="width:100%;height:200px;overflow:hidden;"><img src="${fotoUrl}" alt="${nombreDest}" style="width:100%;height:200px;object-fit:cover;display:block;" /></div>`
+      : "";
+
     return `
       <div style="border:1px solid #bfdbfe;border-radius:12px;overflow:hidden;margin-bottom:20px;">
+        ${fotoHtml}
         <div style="background:linear-gradient(135deg,#1a3a5c,#1e4d7b);padding:18px 20px;">
           ${tituloHtml.replace('style="font-size:15px;font-weight:800;color:#1a3a5c;margin-bottom:10px;"', 'style="font-size:17px;font-weight:800;color:#fff;margin-bottom:6px;"')}
           <div style="font-size:12px;color:#93c5fd;">para hasta 4 personas</div>
@@ -100,38 +114,38 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts) {
 
       <!-- Por qué X Travel -->
       <div style="background:#fff;padding:24px;border-left:1px solid #e0e0e0;border-right:1px solid #e0e0e0;">
-        <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">🏆 ¿Por qué elegir X Travel Group?</div>
+        <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;">🏆 ¿Por qué X Travel Group?</div>
 
-        <div style="display:grid;gap:12px;">
+        <div style="display:grid;gap:14px;">
           <div style="display:flex;gap:12px;align-items:flex-start;">
-            <div style="font-size:24px;line-height:1;">💎</div>
+            <div style="font-size:24px;line-height:1;">🎯</div>
             <div>
-              <div style="font-weight:700;font-size:14px;color:#1a3a5c;">Precios que nadie puede igualar</div>
-              <div style="font-size:13px;color:#555;margin-top:3px;line-height:1.6;">Trabajamos directamente con cadenas hoteleras y aerolineas, eliminando intermediarios. Lo que otros cobran a precio de lista, nosotros lo ofrecemos a precio de miembro — hasta un 70% menos.</div>
+              <div style="font-weight:700;font-size:14px;color:#1a3a5c;">Somos el puente entre usted y el hotel</div>
+              <div style="font-size:13px;color:#555;margin-top:3px;line-height:1.6;">X Travel Group realiza campañas en nombre de los mejores hoteles y clubes vacacionales para que usted conozca sus instalaciones de primera mano. Por eso puede acceder a experiencias que normalmente costarían mucho más.</div>
             </div>
           </div>
 
           <div style="display:flex;gap:12px;align-items:flex-start;">
             <div style="font-size:24px;line-height:1;">🤝</div>
             <div>
-              <div style="font-weight:700;font-size:14px;color:#1a3a5c;">Años de confianza</div>
-              <div style="font-size:13px;color:#555;margin-top:3px;line-height:1.6;">X Travel Group lleva muchos años haciendo realidad los sueños de viaje de miles de familias. Somos una empresa establecida, con respaldo legal y compromisos reales.</div>
+              <div style="font-weight:700;font-size:14px;color:#1a3a5c;">Años de confianza y trayectoria</div>
+              <div style="font-size:13px;color:#555;margin-top:3px;line-height:1.6;">Llevamos muchos años conectando familias con las mejores experiencias de viaje. Miles de familias han vivido sus sueños gracias a X Travel Group — con respaldo real y compromisos cumplidos.</div>
             </div>
           </div>
 
           <div style="display:flex;gap:12px;align-items:flex-start;">
-            <div style="font-size:24px;line-height:1;">✈️</div>
+            <div style="font-size:24px;line-height:1;">💎</div>
             <div>
-              <div style="font-weight:700;font-size:14px;color:#1a3a5c;">Flexibilidad total</div>
-              <div style="font-size:13px;color:#555;margin-top:3px;line-height:1.6;">Viaje cuando quiera, a los destinos incluidos en su paquete. Sin fechas forzadas, sin restricciones absurdas. Su tiempo de viaje, sus reglas.</div>
+              <div style="font-weight:700;font-size:14px;color:#1a3a5c;">Precios exclusivos que no encontrará en otro lado</div>
+              <div style="font-size:13px;color:#555;margin-top:3px;line-height:1.6;">Al trabajar directamente con los hoteles, eliminamos intermediarios. Usted obtiene estadías de lujo a una fracción del precio regular — eso es el poder de ser parte de nuestra red.</div>
             </div>
           </div>
 
           <div style="display:flex;gap:12px;align-items:flex-start;">
-            <div style="font-size:24px;line-height:1;">🛡️</div>
+            <div style="font-size:24px;line-height:1;">🌟</div>
             <div>
-              <div style="font-weight:700;font-size:14px;color:#1a3a5c;">Garantía de satisfacción</div>
-              <div style="font-size:13px;color:#555;margin-top:3px;line-height:1.6;">Si por cualquier razón no está 100% satisfecho, nuestro equipo de servicio al cliente está disponible para resolverlo. Su experiencia es nuestra prioridad.</div>
+              <div style="font-weight:700;font-size:14px;color:#1a3a5c;">Una experiencia que cambia la perspectiva</div>
+              <div style="font-size:13px;color:#555;margin-top:3px;line-height:1.6;">No solo viaja — descubre un mundo de beneficios que los hoteles reservan para sus mejores huéspedes. Instalaciones de primer nivel, servicio personalizado y momentos que su familia recordará para siempre.</div>
             </div>
           </div>
         </div>
@@ -148,7 +162,7 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts) {
 
     </div>`;
 
-  const text = `Estimado/a ${nombre},\n\nHemos preparado un paquete de viaje exclusivo para usted.\n\nDestinos incluidos: ${destinos.map(d => (d.nombre||d.destId) + " (" + (d.noches||4) + " noches)").join(", ") || "Por confirmar"}\n\nEn X Travel Group llevamos muchos años haciendo realidad los sueños de viaje de miles de familias, con precios hasta 70% menores al mercado.\n\nResponda este email para más información.\n\nX Travel Group`;
+  const text = `Estimado/a ${nombre},\n\nHemos preparado un paquete de viaje exclusivo para usted.\n\nDestinos incluidos: ${destinos.map(d => (d.nombre||d.destId) + " (" + (d.noches||4) + " noches)").join(", ") || "Por confirmar"}\n\nEn X Travel Group llevamos 20+ años haciendo realidad sueños de viaje con precios hasta 70% menores al mercado.\n\nResponda este email para más información.\n\nX Travel Group`;
 
   return {
     subject: `Su paquete de viaje exclusivo — X Travel Group`,
@@ -361,6 +375,22 @@ export default function EmailPanel({ lead, currentUser, destCatalog }) {
     }
   }
 
+  // Buscar foto de Unsplash para cada destino
+  async function buscarFotoUnsplash(nombreDestino) {
+    try {
+      const query = encodeURIComponent(nombreDestino + " vacation travel");
+      const res = await fetch(
+        `https://api.unsplash.com/search/photos?query=${query}&per_page=1&orientation=landscape`,
+        { headers: { "Authorization": "Client-ID omrp-MWVGbHhNROvFOmPsyJAujUKyPUpWpm8RL491Lo" } }
+      );
+      const data = await res.json();
+      const foto = data?.results?.[0];
+      return foto ? foto.urls.regular : null;
+    } catch(e) {
+      return null;
+    }
+  }
+
   // Generar textos AI para cada destino via Claude API
   async function generateAITexts(lead, hotelesPorDest) {
     const destinos = (lead.destinos || []);
@@ -453,8 +483,16 @@ IDs exactos: ${destinos.map(d => d.destId).join(", ")}`;
       const destIds = (leadConNombres.destinos || []).map(d => d.destId).filter(Boolean);
       const hoteles = await cargarHoteles(destIds);
       setHotelesPorDest(hoteles);
-      const aiTextsWithHoteles = await generateAITexts(leadConNombres, hoteles);
-      const built = buildPaqueteHtml(leadConNombres, hoteles, aiTextsWithHoteles);
+      // Generar AI y fotos en paralelo
+      const [aiTextsWithHoteles, fotosArr] = await Promise.all([
+        generateAITexts(leadConNombres, hoteles),
+        Promise.all((leadConNombres.destinos || []).map(d =>
+          buscarFotoUnsplash(d.nombre || d.destId).then(url => ({ destId: d.destId, url }))
+        ))
+      ]);
+      const fotosPorDest = {};
+      fotosArr.forEach(f => { if (f.url) fotosPorDest[f.destId] = f.url; });
+      const built = buildPaqueteHtml(leadConNombres, hoteles, aiTextsWithHoteles, fotosPorDest);
       setSubject(built.subject);
       setBodyText(built.text);
       setBodyHtml(built.html);
