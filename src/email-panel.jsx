@@ -378,14 +378,13 @@ export default function EmailPanel({ lead, currentUser, destCatalog }) {
   // Buscar foto de Unsplash para cada destino
   async function buscarFotoUnsplash(nombreDestino) {
     try {
-      const query = encodeURIComponent(nombreDestino + " vacation travel");
-      const res = await fetch(
-        `https://api.unsplash.com/search/photos?query=${query}&per_page=1&orientation=landscape`,
-        { headers: { "Authorization": "Client-ID omrp-MWVGbHhNROvFOmPsyJAujUKyPUpWpm8RL491Lo" } }
-      );
+      const res = await fetch(EDGE_URL + "/unsplash-foto", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + ANON_KEY },
+        body: JSON.stringify({ query: nombreDestino }),
+      });
       const data = await res.json();
-      const foto = data?.results?.[0];
-      return foto ? foto.urls.regular : null;
+      return data.url || null;
     } catch(e) {
       return null;
     }
