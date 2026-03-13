@@ -257,22 +257,6 @@ function LoginScreen(props) {
   };
 
   return (
-    <div style={{position:"relative"}}>
-      {/* Alertas globales de chat */}
-      {chatAlertas.length > 0 && (
-        <div style={{position:"fixed",top:"16px",right:"16px",zIndex:9999,display:"flex",flexDirection:"column",gap:"8px",maxWidth:"320px"}}>
-          {chatAlertas.map((a,i) => (
-            <div key={i} style={{background:"linear-gradient(135deg,#1a3a5c,#1e4d7b)",borderRadius:"12px",padding:"12px 16px",boxShadow:"0 4px 20px rgba(0,0,0,0.3)",display:"flex",gap:"12px",alignItems:"flex-start",animation:"slideIn 0.3s ease"}}>
-              <span style={{fontSize:"20px"}}>💬</span>
-              <div style={{flex:1}}>
-                <div style={{color:"#fff",fontWeight:"700",fontSize:"13px"}}>{a.leadNombre} escribió</div>
-                <div style={{color:"#93c5fd",fontSize:"12px",marginTop:"2px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.mensaje}</div>
-              </div>
-              <button onClick={limpiarAlertas} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#fff",borderRadius:"6px",padding:"2px 8px",cursor:"pointer",fontSize:"11px"}}>✕</button>
-            </div>
-          ))}
-        </div>
-      )}
     <div style={{
       minHeight: "100vh", background: T.bg,
       display: "flex", alignItems: "center", justifyContent: "center",
