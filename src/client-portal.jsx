@@ -392,70 +392,151 @@ function TabPagos(props){
   var u=props.user;
   var saldo=u.precioTotal-u.pagado;
   var pct=Math.round((u.pagado/u.precioTotal)*100);
-  var [showPago,setShowPago]=useState(false);
-  var [monto,setMonto]=useState("");
-  var [metodo,setMetodo]=useState("Tarjeta");
-  var [ref2,setRef2]=useState("");
   var [pagos,setPagos]=useState(u.pagos);
+  var [showModal,setShowModal]=useState(false);
+  var [monto,setMonto]=useState("");
+  var [loadingLink,setLoadingLink]=useState(false);
+  var [pagoErr,setPagoErr]=useState("");
   var [success,setSuccess]=useState(false);
 
-  function registrarPago(){
-    var m=parseFloat(monto)||0;
-    if(m<=0) return;
-    var np={fecha:TODAY,monto:m,tipo:"Abono",status:"pendiente",ref:ref2||"MANUAL-"+Date.now()};
-    setPagos(function(prev){return [np].concat(prev);});
-    setSuccess(true);
-    setShowPago(false);
-    setMonto(""); setRef2("");
-    setTimeout(function(){setSuccess(false);},3000);
+  // Monto maximo = saldo pendiente
+  var montoNum=Math.min(parseFloat(monto)||0, saldo);
+
+  function abrirZoho(){
+    if(montoNum<=0) return;
+    setLoadingLink(true);
+    setPagoErr("");
+    // Llamar edge function que crea payment link en Zoho
+    fetch("https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/zoho-payments",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","apikey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA"},
+      body:JSON.stringify({
+        amount: montoNum,
+        description: "Abono paquete Mini-Vac - Folio "+u.folio,
+        customer_name: u.titular,
+        customer_email: u.email,
+        reference_id: u.folio+"-"+Date.now(),
+      })
+    })
+    .then(function(r){return r.json();})
+    .then(function(data){
+      setLoadingLink(false);
+      if(data.payment_url){
+        // Abrir checkout Zoho en nueva ventana
+        window.open(data.payment_url,"_blank","noopener,noreferrer");
+        // Optimisticamente agregar pago pendiente al historial
+        var np={fecha:TODAY,monto:montoNum,tipo:"Abono",status:"pendiente",ref:"ZOHO-"+Date.now()};
+        setPagos(function(prev){return [np].concat(prev);});
+        setShowModal(false);
+        setMonto("");
+        setSuccess(true);
+        setTimeout(function(){setSuccess(false);},5000);
+      } else {
+        setPagoErr(data.error||"No se pudo generar el link de pago. Intenta de nuevo.");
+      }
+    })
+    .catch(function(){
+      setLoadingLink(false);
+      setPagoErr("Error de conexion. Por favor intenta de nuevo.");
+    });
   }
 
-  var bannerStyle={padding:"10px 14px",borderRadius:"10px",background:"#edf7ee",border:"1px solid rgba(74,222,128,0.3)",marginBottom:"10px",fontSize:"12px",color:GREEN};
-  var successBanner=success?<div style={bannerStyle}>Pago registrado. Nuestro equipo lo validara en breve.</div>:null;
+  var bannerStyle={padding:"10px 14px",borderRadius:"10px",background:"#edf7ee",border:"1px solid rgba(74,222,128,0.3)",marginBottom:"12px",fontSize:"12px",color:GREEN,display:"flex",alignItems:"center",gap:"8px"};
+
   return (
     <div>
-      {successBanner}
+      {success&&(
+        <div style={bannerStyle}>
+          <span style={{fontSize:"16px"}}>✓</span>
+          <span>Se abrio la ventana de pago. Una vez completado, tu historial se actualizara en unos minutos.</span>
+        </div>
+      )}
+
+      {/* Resumen financiero */}
       <div style={Object.assign({},S.card,{borderColor:"rgba(14,165,160,0.2)",marginBottom:"12px"})}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"10px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"10px"}}> 
           <div>
             <div style={S.lbl}>Resumen financiero</div>
-            <div style={{fontSize:"11px",color:"#9ca3af"}}>Total: {fmtUSD(u.precioTotal)} - Pagado: {fmtUSD(u.pagado)}</div>
+            <div style={{fontSize:"11px",color:"#9ca3af"}}>Total: {fmtUSD(u.precioTotal)} · Pagado: {fmtUSD(u.pagado)}</div>
           </div>
-          {saldo>0&&<button style={btnSm("teal")} onClick={function(){setShowPago(true);}}>+ Registrar pago</button>}
+          {saldo>0&&(
+            <button style={btnSm("primary")} onClick={function(){setShowModal(true);setPagoErr("");setMonto(String(saldo.toFixed(2)));}}>
+              Pagar ahora
+            </button>
+          )}
         </div>
-        <div style={{height:"6px",background:"#f6f7f9",borderRadius:"6px",overflow:"hidden",marginBottom:"6px"}}>
+        <div style={{height:"6px",background:"#f6f7f9",borderRadius:"6px",overflow:"hidden",marginBottom:"6px"}}> 
           <div style={{height:"100%",width:pct+"%",background:"linear-gradient(90deg,#1a385a,#47718a)",borderRadius:"6px"}}></div>
         </div>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:"11px"}}>
           <span style={{color:"#9ca3af"}}>{pct}% cubierto</span>
-          {saldo>0?<span style={{color:AMBER,fontWeight:"600"}}>Saldo: {fmtUSD(saldo)}</span>:<span style={{color:GREEN,fontWeight:"600"}}>Liquidado</span>}
+          {saldo>0
+            ?<span style={{color:AMBER,fontWeight:"700"}}>Saldo pendiente: {fmtUSD(saldo)}</span>
+            :<span style={{color:GREEN,fontWeight:"700"}}>✓ Liquidado</span>
+          }
         </div>
       </div>
 
-      {showPago&&(
-        <div style={Object.assign({},S.card,{borderColor:"rgba(14,165,160,0.3)",marginBottom:"12px"})}>
-          <div style={{fontSize:"13px",fontWeight:"700",color:TEAL,marginBottom:"12px"}}>Registrar abono</div>
-          <div style={Object.assign({},S.g2,{marginBottom:"10px"})}>
-            <div>
-              <label style={S.lbl}>Monto (USD)</label>
-              <input style={S.inp} type="number" value={monto} onChange={function(e){setMonto(e.target.value);}} placeholder="0.00"/>
+      {/* Modal pago Zoho */}
+      {showModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999,padding:"16px"}}>
+          <div style={{background:"#fff",borderRadius:"16px",padding:"24px 22px",width:"100%",maxWidth:"380px",boxShadow:"0 8px 40px rgba(0,0,0,0.18)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"18px"}}>
+              <div>
+                <div style={{fontSize:"15px",fontWeight:"700",color:"#1a385a"}}>Realizar pago</div>
+                <div style={{fontSize:"11px",color:"#9ca3af",marginTop:"2px"}}>Procesado de forma segura via Zoho</div>
+              </div>
+              <button onClick={function(){setShowModal(false);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:"18px",color:"#9ca3af",padding:"4px"}}>×</button>
             </div>
-            <div>
-              <label style={S.lbl}>Metodo de pago</label>
-              <select style={Object.assign({},S.inp,{cursor:"pointer"})} value={metodo} onChange={function(e){setMetodo(e.target.value);}}>
-                <option>Tarjeta</option>
-                <option>Transferencia</option>
-                <option>Efectivo</option>
-              </select>
+
+            {/* Saldo */}
+            <div style={{background:"#f8f9fb",borderRadius:"10px",padding:"12px 14px",marginBottom:"16px",border:"1px solid #e5e7eb"}}>
+              <div style={{fontSize:"10px",color:"#9ca3af",fontWeight:"700",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"4px"}}>Saldo pendiente</div>
+              <div style={{fontSize:"22px",fontWeight:"800",color:AMBER}}>{fmtUSD(saldo)}</div>
             </div>
-          </div>
-          <div style={{marginBottom:"12px"}}>
-            <label style={S.lbl}>Referencia / No. de operacion</label>
-            <input style={S.inp} value={ref2} onChange={function(e){setRef2(e.target.value);}} placeholder="Opcional"/>
-          </div>
-          <div style={{display:"flex",gap:"7px",justifyContent:"flex-end"}}>
-            <button style={btnSm("ghost")} onClick={function(){setShowPago(false);}}>Cancelar</button>
-            <button style={btnSm("teal")} onClick={registrarPago} disabled={!monto}>Enviar</button>
+
+            {/* Monto a pagar */}
+            <div style={{marginBottom:"16px"}}>
+              <label style={S.lbl}>Monto a pagar (USD)</label>
+              <input
+                style={Object.assign({},S.inp,{fontSize:"15px",fontWeight:"700",color:"#1a385a"})}
+                type="number"
+                min="1"
+                max={saldo}
+                step="0.01"
+                value={monto}
+                onChange={function(e){
+                  var v=parseFloat(e.target.value)||0;
+                  setMonto(e.target.value);
+                  if(v>saldo) setMonto(String(saldo.toFixed(2)));
+                }}
+                placeholder="0.00"
+              />
+              <div style={{fontSize:"10px",color:"#9ca3af",marginTop:"4px"}}>Maximo: {fmtUSD(saldo)}</div>
+            </div>
+
+            {pagoErr&&(
+              <div style={{padding:"9px 12px",background:"rgba(248,113,113,0.08)",border:"1px solid rgba(248,113,113,0.2)",borderRadius:"8px",fontSize:"12px",color:RED,marginBottom:"14px"}}>
+                {pagoErr}
+              </div>
+            )}
+
+            {/* Info seguridad */}
+            <div style={{display:"flex",alignItems:"center",gap:"8px",padding:"10px 12px",background:"rgba(26,56,90,0.04)",borderRadius:"8px",border:"1px solid rgba(26,56,90,0.08)",marginBottom:"16px"}}>
+              <span style={{fontSize:"18px"}}>🔒</span>
+              <div style={{fontSize:"10px",color:"#6b7280",lineHeight:"1.5"}}>Pago 100% seguro. Seras redirigido a la pagina de pago de Zoho para ingresar tus datos de tarjeta.</div>
+            </div>
+
+            <div style={{display:"flex",gap:"8px"}}>
+              <button style={Object.assign({},btn("ghost"),{flex:1,justifyContent:"center"})} onClick={function(){setShowModal(false);}}>Cancelar</button>
+              <button
+                style={Object.assign({},btn("primary"),{flex:2,justifyContent:"center",opacity:(loadingLink||montoNum<=0)?0.6:1})}
+                onClick={abrirZoho}
+                disabled={loadingLink||montoNum<=0}
+              >
+                {loadingLink?"Generando link...":"Pagar "+fmtUSD(montoNum)}
+              </button>
+            </div>
           </div>
         </div>
       )}
