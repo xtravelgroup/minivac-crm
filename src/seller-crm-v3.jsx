@@ -1781,7 +1781,7 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId }) {
   var myAuthId  = shellUser ? (shellUser.auth_id || shellUser.id) : null;
 
   // Auto-abrir lead si viene desde Comunicaciones
-  const initialLeadIdRef = React.useRef(initialLeadId);
+  const initialLeadIdRef = useRef(initialLeadId);
   React.useEffect(() => {
     if (initialLeadIdRef.current && leads.length > 0) {
       const lead = leads.find(l => l.id === initialLeadIdRef.current);
