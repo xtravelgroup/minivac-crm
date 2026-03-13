@@ -717,6 +717,7 @@ function Bienvenida(props) {
 export default function MinivacShell() {
   var [user,    setUser]    = useState(null);
   var [activo,  setActivo]  = useState(null);
+  const [chatAlertas, limpiarAlertas] = useChatAlertas(user);
   var [col,     setCol]     = useState(true);
   var [checking,setChecking]= useState(true);
 
