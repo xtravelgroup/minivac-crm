@@ -1175,8 +1175,9 @@ JSON: {"estadoGeneral":"bueno|regular|critico","resumenEjecutivo":"","acciones":
 // 
 // VENDEDOR VIEW
 // 
-function VendedorView({ leads, users, currentUser, destCatalog, onUpdateLead }) {
+function VendedorView({ leads, users, currentUser, destCatalog, onUpdateLead, initialLeadId }) {
   const [sel,     setSel]    = useState(null);
+  useEffect(() => { if (initialLeadId && leads.length) { const f = leads.find(l => l.id === initialLeadId); if (f) setSel(f); } }, [initialLeadId, leads]);
   const [aiLead,  setAiLead] = useState(null);
   const [search,  setSearch] = useState("");
   const [fStatus, setFStatus] = useState("all");
@@ -1248,9 +1249,10 @@ function VendedorView({ leads, users, currentUser, destCatalog, onUpdateLead }) 
 // 
 // SUPERVISOR VIEW
 // 
-function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, onBulkReassign }) {
+function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, onBulkReassign, initialLeadId }) {
   const [tab,           setTab]           = useState("pipeline");
   const [selLead,       setSelLead]       = useState(null);
+  useEffect(() => { if (initialLeadId && leads.length) { const f = leads.find(l => l.id === initialLeadId); if (f) setSelLead(f); } }, [initialLeadId, leads]);
   const [selIds,        setSelIds]        = useState([]);
   const [dragLead,      setDragLead]      = useState(null);
   const [dragOverV,     setDragOverV]     = useState(null);
@@ -2031,7 +2033,7 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId }) {
 
       {isSup
         ? <SupervisorView leads={leads} users={usersParaVista} currentUser={activeUser} destCatalog={destCatalog} onUpdateLead={handleUpdateLead} onBulkReassign={handleBulkReassign} />
-        : <VendedorView   leads={leads} users={usersParaVista} currentUser={mappedUser}  destCatalog={destCatalog} onUpdateLead={handleUpdateLead} />
+        : <VendedorView   leads={leads} users={usersParaVista} currentUser={mappedUser}  destCatalog={destCatalog} onUpdateLead={handleUpdateLead} initialLeadId={initialLeadId} />
       }
 
       {showNuevo && (
