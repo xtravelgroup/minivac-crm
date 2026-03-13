@@ -39,11 +39,9 @@ export default function CommunicationsHub({ currentUser, destCatalog, onVerLead 
         ? `leads?select=id,nombre,email,tel,whatsapp,status,destinos,vendedor_id&order=updated_at.desc&limit=100`
         : `leads?select=id,nombre,email,tel,whatsapp,status,destinos,vendedor_id&vendedor_id=eq.${currentUser?.id}&order=updated_at.desc&limit=100`;
       const data = await sbGet(query);
-      console.log("leads data:", data);
       const leadsArr = Array.isArray(data) ? data.filter(Boolean) : [];
       // Fetch vendedores
       const usrs = await sbGet('usuarios?select=id,nombre&order=nombre');
-      console.log("usuarios fetch:", usrs);
       const usrMap = {};
       (Array.isArray(usrs) ? usrs : []).forEach(u => { usrMap[u.id] = u.nombre; });
       // Attach vendedor nombre to each lead
