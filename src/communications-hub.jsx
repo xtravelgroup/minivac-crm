@@ -46,7 +46,7 @@ export default function CommunicationsHub({ currentUser, destCatalog, onVerLead 
       const usrMap = {};
       (Array.isArray(usrs) ? usrs : []).forEach(u => { usrMap[u.id] = u.nombre; });
       // Attach vendedor nombre to each lead
-      const leadsConVendedor = leadsArr.map(l => ({...l, vendedorNombre: usrMap[l.vendedor_id] || null}));
+      const leadsConVendedor = leadsArr.map(l => ({...l, vendedorNombre: l.vendedor_id ? (usrMap[l.vendedor_id] || "Sin asignar") : null}));
       setLeads(leadsConVendedor);
       await cargarResumen(data);
     } catch(e) {}
