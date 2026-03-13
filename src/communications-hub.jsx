@@ -34,7 +34,7 @@ export default function CommunicationsHub({ currentUser, destCatalog }) {
     setLoading(true);
     try {
       // Traer leads del vendedor o todos si admin
-      const isAdmin = ["admin","director","supervisor"].includes(currentUser?.role);
+      const isAdmin = ["admin","director","supervisor"].includes(currentUser?.role || currentUser?.rol);
       const query = isAdmin
         ? `leads?select=id,nombre,email,tel,whatsapp,status,destinos,vendedor_id&order=updated_at.desc&limit=100`
         : `leads?select=id,nombre,email,tel,whatsapp,status,destinos,vendedor_id&vendedor_id=eq.${currentUser?.id}&order=updated_at.desc&limit=100`;
