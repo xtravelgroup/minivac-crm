@@ -36,10 +36,17 @@ export default function CommunicationsHub({ currentUser, destCatalog, onVerLead 
       // Traer leads del vendedor o todos si admin
       const isAdmin = ["admin","director","supervisor"].includes(currentUser?.role || currentUser?.rol);
       const query = isAdmin
-        ? `leads?select=id,nombre,email,tel,whatsapp,status,destinos,vendedor_id,usuarios!leads_vendedor_id_fkey(nombre)&order=updated_at.desc&limit=100`
-        : `leads?select=id,nombre,email,tel,whatsapp,status,destinos,vendedor_id,usuarios!leads_vendedor_id_fkey(nombre)&vendedor_id=eq.${currentUser?.id}&order=updated_at.desc&limit=100`;
+        ? `leads?select=id,nombre,email,tel,whatsapp,status,destinos,vendedor_id&order=updated_at.desc&limit=100`
+        : `leads?select=id,nombre,email,tel,whatsapp,status,destinos,vendedor_id&vendedor_id=eq.${currentUser?.id}&order=updated_at.desc&limit=100`;
       const data = await sbGet(query);
-      setLeads(data || []);
+      const leadsArr = Array.isArray(data) ? data : [];
+      // Fetch vendedores
+      const usrs = await sbGet('usuarios?select=id,nombre&order=nombre');
+      const usrMap = {};
+      (Array.isArray(usrs) ? usrs : []).forEach(u => { usrMap[u.id] = u.nombre; });
+      // Attach vendedor nombre to each lead
+      const leadsConVendedor = leadsArr.map(l => ({...l, vendedorNombre: usrMap[l.vendedor_id] || null}));
+      setLeads(leadsConVendedor);
       await cargarResumen(data);
     } catch(e) {}
     setLoading(false);
@@ -119,7 +126,7 @@ export default function CommunicationsHub({ currentUser, destCatalog, onVerLead 
                 <div style={{fontSize:"12px",color:"#64748b",marginBottom:"6px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lead.email||lead.tel||"Sin contacto"}</div>
                 <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
                   <span style={{background:"#f1f5f9",color:"#475569",borderRadius:"20px",padding:"2px 8px",fontSize:"10px",fontWeight:"600"}}>{lead.status||"nuevo"}</span>
-                  {lead.usuarios?.nombre && <span style={{background:"#fef3c7",color:"#92400e",borderRadius:"20px",padding:"2px 8px",fontSize:"10px",fontWeight:"600"}}>👤 {lead.usuarios.nombre}</span>}
+                  {lead.vendedorNombre && <span style={{background:"#fef3c7",color:"#92400e",borderRadius:"20px",padding:"2px 8px",fontSize:"10px",fontWeight:"600"}}>👤 {lead.usuarios.nombre}</span>}
                   {r.chat > 0 && <span style={{background:"#e0f2fe",color:"#0369a1",borderRadius:"20px",padding:"2px 7px",fontSize:"10px",fontWeight:"700"}}>💬 {r.chat}</span>}
                   {r.email > 0 && <span style={{background:"#ede9fe",color:"#6d28d9",borderRadius:"20px",padding:"2px 7px",fontSize:"10px",fontWeight:"700"}}>✉️ {r.email}</span>}
                 </div>
