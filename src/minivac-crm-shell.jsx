@@ -20,6 +20,7 @@ import RolesPermissions     from "./roles-permissions.jsx";
 import ClientPortal         from "./client-portal.jsx";
 import HotelsModule         from "./hotels-module.jsx";
 import KnowledgeBase        from "./knowledge-base-module.jsx";
+import CommunicationsHub    from "./communications-hub.jsx";
 
 // Monitor global de chats
 function useChatAlertas(currentUser) {
@@ -148,6 +149,7 @@ var MODULOS = [
   {id:"dashboard",   label:"Dashboard",      icon:"dashboard",    section:"Principal", roles:["admin","director","supervisor"]},
   {id:"radio",       label:"Radio",          icon:"radio",        section:"Principal", roles:["admin","director","supervisor","especialista_radio","contador"]},
   {id:"kb",          label:"Knowledge Base", icon:"grid",         section:"Principal", roles:["admin","director"]},
+  {id:"comms",       label:"Comunicaciones", icon:"grid",         section:"Principal", roles:["admin","director","supervisor","vendedor"]},
   {id:"seller",      label:"Vendedores",     icon:"seller",       section:"Principal", roles:["admin","director","supervisor","vendedor"]},
   {id:"verificacion",label:"Verificacion",   icon:"verificacion", section:"Principal", roles:["admin","director","supervisor","verificador"]},
   {id:"cs",          label:"Membresias",    icon:"cs",           section:"Operacion", roles:["admin","director","supervisor","cs","verificador"]},
@@ -814,6 +816,7 @@ export default function MinivacShell() {
           {!activo && <Bienvenida user={user} onNav={handleNav}/>}
           {activo==="dashboard"    && <ExecutiveSuite/>}
           {activo==="kb"           && <KnowledgeBase currentUser={currentUser} />}
+          {activo==="comms"        && <CommunicationsHub currentUser={currentUser} destCatalog={destCatalog||[]} />}
           {activo==="radio"        && <RadioModule
             isSupervisor={user.rol==="admin"||user.rol==="director"||user.rol==="supervisor"||user.rol==="especialista_radio"}
             isReadOnly={user.rol==="contador"}/>}
