@@ -49,13 +49,6 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts) {
       ? `<p style="font-size:14px;color:#374151;line-height:1.75;margin:0 0 14px 0;">${ai.descripcion}</p>`
       : "";
 
-    const queIncluyeHtml = (ai.que_incluye || []).length > 0
-      ? `<div style="margin-bottom:14px;">
-          <div style="font-size:11px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">✅ Qué incluye</div>
-          ${ai.que_incluye.map(item => `<div style="font-size:13px;color:#374151;padding:4px 0;border-bottom:1px solid #f0fdf4;">✔ ${item}</div>`).join("")}
-        </div>`
-      : "";
-
     const queHacerHtml = (ai.que_hacer || []).length > 0
       ? `<div style="margin-bottom:14px;">
           <div style="font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">🎯 Experiencias imperdibles</div>
@@ -155,7 +148,7 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts) {
 
     </div>`;
 
-  const text = `Estimado/a ${nombre},\n\nHemos preparado un paquete de viaje exclusivo para usted.\n\nDestinos incluidos: ${destinos.map(d => (d.nombre||d.destId) + " (" + (d.noches||4) + " noches)").join(", ") || "Por confirmar"}\n\nEn X Travel Group llevamos 20+ años haciendo realidad sueños de viaje con precios hasta 70% menores al mercado.\n\nResponda este email para más información.\n\nX Travel Group`;
+  const text = `Estimado/a ${nombre},\n\nHemos preparado un paquete de viaje exclusivo para usted.\n\nDestinos incluidos: ${destinos.map(d => (d.nombre||d.destId) + " (" + (d.noches||4) + " noches)").join(", ") || "Por confirmar"}\n\nEn X Travel Group llevamos muchos años haciendo realidad los sueños de viaje de miles de familias, con precios hasta 70% menores al mercado.\n\nResponda este email para más información.\n\nX Travel Group`;
 
   return {
     subject: `Su paquete de viaje exclusivo — X Travel Group`,
