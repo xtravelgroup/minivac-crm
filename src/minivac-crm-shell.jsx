@@ -413,6 +413,7 @@ export default function MinivacShell() {
   const [col,        setCol]        = useState(true);
   const [checking,   setChecking]   = useState(true);
   const [notifPanel, setNotifPanel] = useState(false);
+  const [initialLeadId, setInitialLeadId] = useState(null);
   const [chatAlertas, limpiarAlertas] = useChatAlertas(user);
 
   // Sesión persistente
@@ -519,8 +520,8 @@ export default function MinivacShell() {
             {activo === "dashboard"    && <ExecutiveSuite />}
             {activo === "radio"        && <RadioModule isSupervisor={["admin","director","supervisor","especialista_radio"].includes(user.rol)} isReadOnly={user.rol === "contador"} />}
             {activo === "kb"           && <KnowledgeBase currentUser={user} />}
-            {activo === "comms"        && <CommunicationsHub currentUser={user} destCatalog={[]} onVerLead={() => setActivo("seller")} />}
-            {activo === "seller"       && <SellerCRM currentUser={user} />}
+            {activo === "comms"        && <CommunicationsHub currentUser={user} destCatalog={[]} onVerLead={(lead) => { setInitialLeadId(lead.id); setActivo("seller"); }} />}
+            {activo === "seller"       && <SellerCRM currentUser={user} initialLeadId={initialLeadId} />}
             {activo === "verificacion" && <VerificationModule currentUser={user} />}
             {activo === "reservas"     && <Reservaciones currentUser={user} />}
             {activo === "cs"           && <CSReservas currentUser={user} />}

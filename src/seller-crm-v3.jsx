@@ -1766,7 +1766,7 @@ function ZohoCardCapture({ lead, onSaved }) {
 // 
 // ROOT
 // 
-export default function SellerCRMv3({ currentUser: shellUser }) {
+export default function SellerCRMv3({ currentUser: shellUser, initialLeadId }) {
   const [leads,        setLeads]      = useState([]);
   const [sbUsers,      setSbUsers]    = useState([]);
   const [loading,      setLoading]    = useState(true);
@@ -1779,6 +1779,31 @@ export default function SellerCRMv3({ currentUser: shellUser }) {
   var SUP_ROLES = ["admin", "director", "supervisor"];
   var isSup     = SUP_ROLES.includes(rolShell);
   var myAuthId  = shellUser ? (shellUser.auth_id || shellUser.id) : null;
+
+  // Auto-abrir lead si viene desde Comunicaciones
+  const initialLeadIdRef = React.useRef(initialLeadId);
+  React.useEffect(() => {
+    if (initialLeadIdRef.current && leads.length > 0) {
+      const lead = leads.find(l => l.id === initialLeadIdRef.current);
+      if (lead) {
+        initialLeadIdRef.current = null;
+        // Trigger open depending on role
+        setTimeout(() => {
+          const evt = new CustomEvent("openLead", { detail: lead });
+          window.dispatchEvent(evt);
+        }, 100);
+      }
+    }
+  }, [leads]);
+
+  // Auto-abrir lead si viene desde Comunicaciones
+  const initialLeadIdRef = React.useRef(initialLeadId);
+  useEffect(() => {
+    if (initialLeadIdRef.current && leads.length > 0) {
+      const found = leads.find(l => l.id === initialLeadIdRef.current);
+      if (found) { initialLeadIdRef.current = null; /* trigger open */ }
+    }
+  }, [leads]);
 
   var mappedUser = shellUser ? {
     id:    myAuthId || "U_shell",
@@ -1810,7 +1835,17 @@ export default function SellerCRMv3({ currentUser: shellUser }) {
     query.then(function(res) {
       setLoading(false);
       if (res.data) {
-        setLeads(res.data.map(dbToLead));
+        const mapped = res.data.map(dbToLead);
+        setLeads(mapped);
+        // Auto-abrir lead si viene desde Comunicaciones
+        if (initialLeadIdRef.current) {
+          const found = mapped.find(l => l.id === initialLeadIdRef.current);
+          if (found) {
+            initialLeadIdRef.current = null;
+            if (isSup) setSelLead(found);
+            else setSel(found);
+          }
+        }
       } else {
         console.error("Error cargando leads:", res.error);
       }
