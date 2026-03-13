@@ -798,6 +798,51 @@ export default function MinivacShell() {
       fontFamily:T.font, fontSize:"13px", color:T.t2,
       display:"flex", flexDirection:"column",
     }}>
+      {/* Popup nuevo mensaje */}
+      {chatAlertas.length > 0 && !notifPanel && (
+        <div style={{position:"fixed",top:"16px",right:"16px",zIndex:9999,maxWidth:"320px"}}>
+          {chatAlertas.slice(-1).map((a,i) => (
+            <div key={i} onClick={function(){ setActivo("comms"); limpiarAlertas(); }}
+              style={{background:"linear-gradient(135deg,#1a3a5c,#1e4d7b)",borderRadius:"12px",padding:"12px 16px",boxShadow:"0 4px 20px rgba(0,0,0,0.3)",display:"flex",gap:"12px",alignItems:"flex-start",cursor:"pointer"}}>
+              <span style={{fontSize:"20px"}}>💬</span>
+              <div style={{flex:1}}>
+                <div style={{color:"#fff",fontWeight:"700",fontSize:"13px"}}>{a.leadNombre} escribió</div>
+                <div style={{color:"#93c5fd",fontSize:"12px",marginTop:"2px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.mensaje}</div>
+                <div style={{color:"#bfdbfe",fontSize:"11px",marginTop:"4px"}}>Toca para abrir →</div>
+              </div>
+              <button onClick={function(e){e.stopPropagation();limpiarAlertas();}} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#fff",borderRadius:"6px",padding:"2px 8px",cursor:"pointer",fontSize:"11px"}}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+      {/* Panel notificaciones */}
+      {notifPanel && (
+        <div style={{position:"fixed",top:"56px",right:"16px",zIndex:9999,background:"#fff",borderRadius:"12px",boxShadow:"0 8px 30px rgba(0,0,0,0.2)",width:"320px",overflow:"hidden"}}>
+          <div style={{background:"linear-gradient(135deg,#1a3a5c,#0f2340)",padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <span style={{color:"#fff",fontWeight:"700",fontSize:"14px"}}>🔔 Notificaciones</span>
+            <div style={{display:"flex",gap:"8px"}}>
+              {chatAlertas.length>0 && <button onClick={limpiarAlertas} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#fff",borderRadius:"6px",padding:"3px 8px",cursor:"pointer",fontSize:"11px"}}>Limpiar</button>}
+              <button onClick={function(){setNotifPanel(false);}} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#fff",borderRadius:"6px",padding:"3px 8px",cursor:"pointer",fontSize:"11px"}}>✕</button>
+            </div>
+          </div>
+          <div style={{maxHeight:"360px",overflowY:"auto"}}>
+            {chatAlertas.length===0 && <div style={{padding:"32px",textAlign:"center",color:"#94a3b8",fontSize:"13px"}}><div style={{fontSize:"32px",marginBottom:"8px"}}>🔕</div>Sin notificaciones</div>}
+            {chatAlertas.map((a,i) => (
+              <div key={i} onClick={function(){ setActivo("comms"); limpiarAlertas(); setNotifPanel(false); }}
+                style={{padding:"12px 16px",borderBottom:"1px solid #f1f5f9",cursor:"pointer",display:"flex",gap:"12px",alignItems:"flex-start"}}
+                onMouseEnter={function(e){e.currentTarget.style.background="#f8fafc";}}
+                onMouseLeave={function(e){e.currentTarget.style.background="#fff";}}>
+                <span style={{fontSize:"20px"}}>💬</span>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:"700",fontSize:"13px",color:"#1a3a5c"}}>{a.leadNombre}</div>
+                  <div style={{fontSize:"12px",color:"#64748b",marginTop:"2px"}}>{a.mensaje}</div>
+                  <div style={{fontSize:"11px",color:"#3b82f6",marginTop:"3px"}}>Abrir en Comunicaciones →</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <Topbar user={user} activo={activo} chatAlertas={chatAlertas} setNotifPanel={setNotifPanel}/>
       <div style={{flex:1, display:"flex", overflow:"hidden", minHeight:"0"}}>
         <Sidebar
