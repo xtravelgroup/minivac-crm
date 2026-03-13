@@ -1252,7 +1252,7 @@ function VendedorView({ leads, users, currentUser, destCatalog, onUpdateLead, in
 function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, onBulkReassign, initialLeadId }) {
   const [tab,           setTab]           = useState("pipeline");
   const [selLead,       setSelLead]       = useState(null);
-  useEffect(() => { if (initialLeadId && leads.length) { const f = leads.find(l => l.id === initialLeadId); if (f) setSelLead(f); } }, [initialLeadId, leads]);
+  useEffect(() => { console.log("initialLeadId effect:", initialLeadId, "leads:", leads.length); if (initialLeadId && leads.length) { const f = leads.find(l => l.id === initialLeadId); console.log("found:", f); if (f) setSelLead(f); } }, [initialLeadId, leads]);
   const [selIds,        setSelIds]        = useState([]);
   const [dragLead,      setDragLead]      = useState(null);
   const [dragOverV,     setDragOverV]     = useState(null);
