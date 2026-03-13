@@ -802,6 +802,11 @@ export default function MinivacShell() {
           onNav={handleNav}
           onToggleCol={function(){setCol(!col);}}
           onLogout={handleLogout}
+          chatAlertas={chatAlertas}
+          limpiarAlertas={limpiarAlertas}
+          notifPanel={notifPanel}
+          setNotifPanel={setNotifPanel}
+          setActivo={setActivo}
         />
         <div style={{
           flex:1, display:"flex", flexDirection:"column",
