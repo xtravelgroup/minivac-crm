@@ -350,6 +350,11 @@ function LoginScreen(props) {
 // 
 function Sidebar(props) {
   var user  = props.user;
+  var chatAlertas = props.chatAlertas || [];
+  var limpiarAlertas = props.limpiarAlertas || function(){};
+  var notifPanel = props.notifPanel || false;
+  var setNotifPanel = props.setNotifPanel || function(){};
+  var setActivo = props.setActivo || function(){};
   var mods  = modulosDelRol(user);
   var col   = props.col;
 
