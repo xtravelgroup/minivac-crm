@@ -7,7 +7,7 @@ const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 
 async function sbGet(path) {
   const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
-    headers: { "apikey": ANON_KEY, "Authorization": `Bearer ${ANON_KEY}` }
+    headers: { "apikey": ANON_KEY, "Authorization": `Bearer ${ANON_KEY}`, "Content-Type": "application/json" }
   });
   return r.json();
 }
