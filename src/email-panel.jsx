@@ -73,7 +73,6 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts) {
           ${highlightsHtml}
           ${descHtml}
           ${queHacerHtml}
-          ${queIncluyeHtml}
         </div>
       </div>`;
   }).join("");
@@ -397,11 +396,9 @@ Para CADA destino genera en español:
 
 2. "descripcion": 3-4 oraciones que EMOCIONEN. Habla de sensaciones, olores, colores, momentos únicos. Personalizado para ${nombre} según su perfil. Que sienta que ya está ahí. Sin mencionar precios ni "membresía".
 
-3. "que_hacer": Array de 4-5 experiencias concretas e irresistibles del destino. Específicas, no genéricas. Ej en vez de "visitar playas" → "Nadar en el agua turquesa de las playas de arena blanca de Cancún". Que den ganas de ir.
+3. "que_hacer": Array de 4-5 experiencias concretas e irresistibles del destino. Específicas, no genéricas. Que den ganas de ir YA. Ej: "Nadar en aguas turquesas de Cancún al amanecer", "Perderte en los mercados coloridos de la ciudad".
 
-4. "que_incluye": Array de 4-5 beneficios incluidos en el paquete. Concretos y valiosos. Ej: ["Alojamiento en hotel de categoría superior", "Traslados aeropuerto↔hotel incluidos", "Acceso completo a las amenidades del resort"].
-
-5. "highlights": Array de 3 frases cortas (máx 3 palabras) que capturan la esencia del destino. Ej: ["Mar cristalino", "Cultura viva", "Sabores únicos"].
+4. "highlights": Array de 3 frases cortas (máx 3 palabras) que capturan la esencia del destino. Ej: ["Mar cristalino", "Cultura viva", "Sabores únicos"].
 
 Responde SOLO con JSON válido, sin texto adicional, sin backticks:
 {
@@ -410,7 +407,6 @@ Responde SOLO con JSON válido, sin texto adicional, sin backticks:
       "titulo_paquete": "...",
       "descripcion": "...",
       "que_hacer": ["...", "..."],
-      "que_incluye": ["...", "..."],
       "highlights": ["...", "..."]
     }
   }
