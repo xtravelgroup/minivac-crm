@@ -519,6 +519,7 @@ function PagoTab({ draft, set, onSave }) {
           </div>
         )}
       </div>
+      <PaymentLinkBtn draft={draft} />
     </div>
   );
 }
