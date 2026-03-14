@@ -40,9 +40,10 @@ async function callClaude(prompt, max = 1000) {
 // 
 // CONSTANTS
 // 
-const STATUS_ORDER = ["nuevo","contactado","interesado","cita","verificacion","venta","no_interesado"];
+const STATUS_ORDER = ["nuevo","no_contesta","contactado","interesado","cita","verificacion","venta","no_interesado"];
 const STATUS_CFG = {
   nuevo:         { label:"Nuevo",         icon:"", color:"#0369a1", bg:"#e0f2fe", border:"#bae6fd"  },
+  no_contesta:   { label:"No Contesta",    icon:"", color:"#b45309", bg:"#fef3c7", border:"#fcd34d"  },
   contactado:    { label:"Contactado",    icon:"", color:"#5b21b6", bg:"#ede9fe", border:"#c4b5fd"  },
   interesado:    { label:"Interesado",    icon:"", color:"#925c0a", bg:"#fef9e7", border:"#f0d080"  },
   cita:          { label:"Cita",          icon:"", color:"#0f766e", bg:"#f0fdfa", border:"#99f6e4"  },
