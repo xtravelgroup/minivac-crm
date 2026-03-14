@@ -397,12 +397,27 @@ export default function EmailPanel({ lead, currentUser, destCatalog }) {
   }
 
   // Buscar foto de Unsplash para cada destino
+  const FOTO_QUERIES = {
+    "Orlando": "Walt Disney World Magic Kingdom castle",
+    "Las Vegas": "Las Vegas Strip night lights",
+    "Cancun": "Cancun beach turquoise water",
+    "Riviera Maya": "Riviera Maya cenote resort",
+    "Los Cabos": "Cabo San Lucas arch",
+    "Myrtle Beach": "Myrtle Beach ocean boardwalk",
+    "Cocoa Beach": "Cocoa Beach Florida sunset",
+    "Daytona Beach": "Daytona Beach Florida ocean",
+    "Branson": "Branson Missouri entertainment",
+    "Gatlinburg": "Gatlinburg Tennessee mountains",
+    "Williamsburg": "Colonial Williamsburg Virginia",
+    "Pocono Mountain": "Pocono Mountains Pennsylvania nature",
+  };
   async function buscarFotoUnsplash(nombreDestino) {
+    const query = FOTO_QUERIES[nombreDestino] || nombreDestino;
     try {
       const res = await fetch(EDGE_URL + "/unsplash-foto", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + ANON_KEY },
-        body: JSON.stringify({ query: nombreDestino }),
+        body: JSON.stringify({ query: query }),
       });
       const data = await res.json();
       return data.url || null;
