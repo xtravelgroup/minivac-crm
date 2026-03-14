@@ -73,7 +73,7 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts, fotosPorDest) {
       <div style="border:1px solid #bfdbfe;border-radius:12px;overflow:hidden;margin-bottom:20px;">
         ${fotoHtml}
         <div style="background:linear-gradient(135deg,#1a3a5c,#1e4d7b);padding:18px 20px;">
-          ${tituloHtml.replace('style="font-size:15px;font-weight:800;color:#1a3a5c;margin-bottom:10px;"', 'style="font-size:17px;font-weight:800;color:#fff;margin-bottom:6px;"')}
+          ${tituloHtml.replace('style="font-size:15px;font-weight:800;color:#1a3a5c;margin-bottom:10px;"', 'style="font-size:17px;font-weight:800;color:#ffffff !important;-webkit-text-fill-color:#ffffff;margin-bottom:6px;"')}
           <div style="font-size:12px;color:#93c5fd;">para hasta 4 personas</div>
         </div>
         <div style="background:#f0f7ff;padding:20px;">
