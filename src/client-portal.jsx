@@ -350,30 +350,43 @@ function TabReservas(props){
       </div>
       {solicitarRes&&(
         <div style={Object.assign({},S.card,{borderColor:"rgba(26,56,90,0.3)",marginBottom:"12px"})}>
-          <div style={{fontSize:"13px",fontWeight:"700",color:"#1a385a",marginBottom:"12px"}}>Nueva solicitud de reserva</div>
-          <div style={{marginBottom:"10px"}}>
-            <label style={S.lbl}>Destino</label>
-            <select style={Object.assign({},S.inp,{cursor:"pointer"})} value={resData.destino} onChange={function(e){setResData(function(p){return Object.assign({},p,{destino:e.target.value});})}}>
-              {u.destinos.map(function(d){return <option key={d.id} value={d.nombre}>{d.nombre} ({d.noches}n)</option>;})}
-            </select>
+          <div style={{fontSize:"13px",fontWeight:"700",color:"#1a385a",marginBottom:"4px"}}>Nueva solicitud de reserva</div>
+          <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"14px"}}>{u.titular} — {u.folio}</div>
+          <div style={Object.assign({},S.g2,{marginBottom:"10px"})}>
+            <div>
+              <label style={S.lbl}>Destino</label>
+              <select style={Object.assign({},S.inp,{cursor:"pointer"})} value={resData.destino} onChange={function(e){setResData(function(p){return Object.assign({},p,{destino:e.target.value});})}}>
+                <option value="">-- Seleccionar --</option>
+                {u.destinos.map(function(d){return <option key={d.id} value={d.nombre}>{d.nombre} · {d.noches}n {(d.tipo||"").toUpperCase()}</option>;})}
+              </select>
+            </div>
+            <div/>
+            <div>
+              <label style={S.lbl}>Fecha check-in</label>
+              <input style={S.inp} type="date" value={resData.checkin||""} onChange={function(e){setResData(function(p){return Object.assign({},p,{checkin:e.target.value});})}}/>
+            </div>
+            <div>
+              <label style={S.lbl}>Fecha check-out</label>
+              <input style={S.inp} type="date" value={resData.checkout||""} min={resData.checkin||""} onChange={function(e){setResData(function(p){return Object.assign({},p,{checkout:e.target.value});})}}/>
+            </div>
           </div>
           <div style={Object.assign({},S.g2,{marginBottom:"10px"})}>
             <div>
-              <label style={S.lbl}>Fecha de viaje</label>
-              <input style={S.inp} type="date" value={resData.fecha} onChange={function(e){setResData(function(p){return Object.assign({},p,{fecha:e.target.value});})}}/>
+              <label style={S.lbl}>Adultos</label>
+              <input style={S.inp} type="number" min="1" max="6" value={resData.adultos||"2"} onChange={function(e){setResData(function(p){return Object.assign({},p,{adultos:e.target.value});})}}/>
             </div>
             <div>
-              <label style={S.lbl}>Personas</label>
-              <input style={S.inp} type="number" min="1" max="6" value={resData.personas} onChange={function(e){setResData(function(p){return Object.assign({},p,{personas:e.target.value});})}}/>
+              <label style={S.lbl}>Niños</label>
+              <input style={S.inp} type="number" min="0" max="6" value={resData.ninos||"0"} onChange={function(e){setResData(function(p){return Object.assign({},p,{ninos:e.target.value});})}}/>
             </div>
           </div>
           <div style={{marginBottom:"12px"}}>
-            <label style={S.lbl}>Solicitudes especiales (opcional)</label>
-            <input style={S.inp} value={resData.notas} onChange={function(e){setResData(function(p){return Object.assign({},p,{notas:e.target.value});})}} placeholder="Vista al mar, piso alto, celebración..."/>
+            <label style={S.lbl}>Notas / solicitudes especiales</label>
+            <textarea style={Object.assign({},S.inp,{minHeight:"60px",resize:"none"})} value={resData.notas||""} onChange={function(e){setResData(function(p){return Object.assign({},p,{notas:e.target.value});})}} placeholder="Preferencias, celebraciones, peticiones..."/>
           </div>
           <div style={{display:"flex",gap:"6px",justifyContent:"flex-end"}}>
             <button style={btnSm("ghost")} onClick={function(){setSolicitarRes(false);}}>Cancelar</button>
-            <button style={Object.assign({},btnSm("indigo"),{background:"#1a385a",color:"#fff",border:"none"})} onClick={function(){setSolicitarRes(false);setResData({destino:u.destinos[0]?u.destinos[0].nombre:"",fecha:"",personas:"2",notas:""});}} disabled={!resData.destino||!resData.fecha}>Enviar solicitud</button>
+            <button style={Object.assign({},btnSm("indigo"),{background:"#1a385a",color:"#fff",border:"none"})} onClick={function(){setSolicitarRes(false);setResData({destino:u.destinos[0]?u.destinos[0].nombre:"",checkin:"",checkout:"",adultos:"2",ninos:"0",notas:""}); }} disabled={!resData.destino||!resData.checkin||!resData.checkout}>Enviar solicitud</button>
           </div>
         </div>
       )}
