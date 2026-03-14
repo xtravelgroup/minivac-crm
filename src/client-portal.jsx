@@ -411,8 +411,9 @@ function TabPagos(props){
     setPagoErr("");
     fetch(BASE_URL+"/create-session",{
       method:"POST",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+ANON_KEY},
+      headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
+        anon_key: ANON_KEY,
         lead_id:  u.folio,
         amount:   montoNum,
         currency: "USD",
