@@ -368,52 +368,36 @@ function DestinosTab({ draft, set, destCatalog }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// PaymentLinkBtn — genera link de pago Zoho y lo manda por email
+// PaymentLinkBtn — genera link de captura de tarjeta y lo manda por email
 function PaymentLinkBtn({ draft }) {
   var [loading, setLoading] = useState(false);
   var [link, setLink] = useState(null);
   var [err, setErr] = useState(null);
   var [sent, setSent] = useState(false);
-  var monto = draft.pagoInicial || draft.salePrice || 0;
 
   function generarYEnviar() {
-    if (!monto || !draft.id) return;
+    if (!draft.id) return;
     setLoading(true); setErr(null); setLink(null); setSent(false);
-    fetch("https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/zoho-payments/payment-link", {
+    fetch("https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/zoho-payments/capture-link", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA" },
-      body: JSON.stringify({ amount: monto, lead_id: draft.id, email: draft.email, nombre: (draft.nombre||"") + " " + (draft.apellido||""), description: "Abono membresía X Travel Group" })
+      body: JSON.stringify({ lead_id: draft.id, nombre: (draft.nombre||"") + " " + (draft.apellido||""), email: draft.email })
     })
     .then(function(r){ return r.json(); })
     .then(function(data) {
       if (data.error) throw new Error(data.error);
-      var url = data.url;
+      var url = data.link;
       setLink(url);
-      // Mandar por email
       if (draft.email && url) {
+        var nombre = (draft.nombre||"") + " " + (draft.apellido||"");
         return fetch("https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/resend-email/send", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA" },
           body: JSON.stringify({
             to_email: draft.email,
-            to_name: (draft.nombre||"") + " " + (draft.apellido||""),
-            subject: "Su link de pago - X Travel Group",
-            body_html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
-              <div style="background:#1a385a;padding:20px;border-radius:12px 12px 0 0;text-align:center">
-                <div style="color:#fff;font-size:20px;font-weight:700">TRAVEL<span style="color:#8aacca">X</span> GROUP</div>
-              </div>
-              <div style="background:#fff;border:1px solid #e0e0e0;padding:24px">
-                <p style="font-size:15px">Estimado/a <strong>${(draft.nombre||"")} ${(draft.apellido||"")}</strong>,</p>
-                <p style="font-size:14px;color:#444">Hemos generado un link de pago seguro por un monto de <strong style="color:#1a385a">$${monto.toLocaleString()} USD</strong>.</p>
-                <div style="text-align:center;margin:24px 0">
-                  <a href="${url}" style="background:#1a385a;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px">Pagar ahora →</a>
-                </div>
-                <p style="font-size:12px;color:#888">Este link es seguro y procesado por Zoho Payments. Si tiene preguntas llame al 1 (800) 927-1490.</p>
-              </div>
-              <div style="background:#0f2340;padding:14px;text-align:center;border-radius:0 0 12px 12px">
-                <div style="font-size:11px;color:#475569">© 2025 X Travel Group · members@xtravelgroup.com</div>
-              </div>
-            </div>`,
+            to_name: nombre,
+            subject: "Registre su método de pago - X Travel Group",
+            body_html: "<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto'><div style='background:#1a385a;padding:20px;border-radius:12px 12px 0 0;text-align:center'><div style='color:#fff;font-size:20px;font-weight:700'>TRAVEL<span style='color:#8aacca'>X</span> GROUP</div></div><div style='background:#fff;border:1px solid #e0e0e0;padding:24px'><p style='font-size:15px'>Estimado/a <strong>" + nombre + "</strong>,</p><p style='font-size:14px;color:#444'>Le invitamos a registrar su método de pago de forma segura a través del siguiente enlace:</p><div style='text-align:center;margin:24px 0'><a href='" + url + "' style='background:#1a385a;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px'>Registrar tarjeta →</a></div><p style='font-size:12px;color:#888'>Sus datos son procesados de forma segura por Zoho Payments. Si tiene preguntas llame al 1 (800) 927-1490.</p></div><div style='background:#0f2340;padding:14px;text-align:center;border-radius:0 0 12px 12px'><div style='font-size:11px;color:#475569'>© 2025 X Travel Group · members@xtravelgroup.com</div></div></div>",
             lead_id: draft.id
           })
         }).then(function(){ setSent(true); setLoading(false); });
@@ -430,7 +414,7 @@ function PaymentLinkBtn({ draft }) {
       {!link && !sent && (
         <button style={{display:"inline-flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:8,background:"#1a385a",color:"#fff",border:"none",fontSize:12,fontWeight:600,cursor:loading?"not-allowed":"pointer",opacity:loading?0.7:1}}
           onClick={generarYEnviar} disabled={loading}>
-          {loading ? "Generando..." : "Generar y enviar link de pago ($" + monto.toLocaleString() + ")"}
+          {loading ? "Generando..." : "📧 Enviar link para captura de tarjeta"}
         </button>
       )}
       {err && <div style={{fontSize:11,color:"#b91c1c",marginTop:6}}>{err}</div>}

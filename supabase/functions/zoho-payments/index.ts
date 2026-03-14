@@ -397,6 +397,22 @@ serve(async (req) => {
     }
   }
 
+  if (req.method === "POST" && path === "/capture-link") {
+    try {
+      const body = await req.json();
+      const { lead_id, nombre, email } = body;
+      if (!lead_id) return new Response(JSON.stringify({ error: "lead_id requerido" }), { status: 400, headers: { ...CORS, "Content-Type": "application/json" } });
+      const SB = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const token = crypto.randomUUID();
+      await SB.from("leads").update({ captura_token: token, captura_enviada_at: new Date().toISOString() }).eq("id", lead_id);
+      const baseUrl = Deno.env.get("CERTIFICATE_BASE_URL") || "https://minivac-crm.vercel.app";
+      const link = `${baseUrl}/captura-tarjeta?lead=${lead_id}&token=${token}`;
+      return new Response(JSON.stringify({ link, token }), { status: 200, headers: { ...CORS, "Content-Type": "application/json" } });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: { ...CORS, "Content-Type": "application/json" } });
+    }
+  }
+
   if (req.method === "POST" && path === "/generar-link") {
     try {
       const body    = await req.json();
