@@ -23,10 +23,10 @@ var DEMO_ACCOUNTS = {
     cardLast4:"4521",cardBanco:"BBVA",cardTipo:"Visa",
     destinos:[
       {id:"D01",nombre:"Cancun",noches:5,tipo:"qc",
-       img:"https://images.unsplash.com/photo-1552074284-5e88ef1aef18?w=600&q=80",
+       img:"https://picsum.photos/seed/cancun/600/400",
        desc:"Playas de arena blanca y aguas turquesa en el Caribe mexicano."},
       {id:"D03",nombre:"Riviera Maya",noches:6,tipo:"qc",
-       img:"https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?w=600&q=80",
+       img:"https://picsum.photos/seed/riviera/600/400",
        desc:"Cenotes, selva y resorts de lujo a lo largo de la costa."},
     ],
     pagos:[
@@ -38,7 +38,7 @@ var DEMO_ACCOUNTS = {
       {id:"R001",destino:"Cancun",fechaViaje:daysFromNow(45),personas:2,
        status:"confirmada",notas:"Preferencia hab. con vista al mar",
        hotel:{nombre:"Krystal Grand Cancun Resort",conf:"KGC-44821",hab:"Deluxe Oceano King",reg:"Todo incluido",
-              img:"https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&q=80"}},
+              img:"https://picsum.photos/seed/hotel1/800/400"}},
       {id:"R002",destino:"Riviera Maya",fechaViaje:daysFromNow(120),personas:2,
        status:"en_proceso",notas:"Zona tranquila preferible",hotel:null},
     ],
@@ -52,7 +52,7 @@ var DEMO_ACCOUNTS = {
     cardLast4:"9834",cardBanco:"Banorte",cardTipo:"Mastercard",
     destinos:[
       {id:"D02",nombre:"Los Cabos",noches:4,tipo:"qc",
-       img:"https://images.unsplash.com/photo-1503917988258-f87a78e3c995?w=600&q=80",
+       img:"https://picsum.photos/seed/loscabos/600/400",
        desc:"Donde el desierto se encuentra con el mar. El Arco y aguas cristalinas."},
     ],
     pagos:[
