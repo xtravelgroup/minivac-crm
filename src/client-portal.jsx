@@ -22,12 +22,12 @@ var DEMO_ACCOUNTS = {
     precioTotal:4800,pagado:2800,
     cardLast4:"4521",cardBanco:"BBVA",cardTipo:"Visa",
     destinos:[
-      {id:"D01",nombre:"Cancun",noches:5,tipo:"qc",
-       img:"https://images.unsplash.com/photo-1552074284-5e88ef1aef18?w=600&q=80&auto=format&fit=crop",
-       desc:"Playas de arena blanca y aguas turquesa en el Caribe mexicano."},
-      {id:"D03",nombre:"Riviera Maya",noches:6,tipo:"qc",
-       img:"https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?w=600&q=80&auto=format&fit=crop",
-       desc:"Cenotes, selva y resorts de lujo a lo largo de la costa."},
+      {id:"D01",nombre:"Orlando",noches:5,tipo:"qc",
+       img:"https://images.unsplash.com/photo-1575089976121-8ed7b2a54265?w=600&q=80&auto=format&fit=crop",
+       desc:"La capital del entretenimiento mundial. Parques temáticos, shows y experiencias únicas para toda la familia."},
+      {id:"D02",nombre:"Las Vegas",noches:4,tipo:"qc",
+       img:"https://images.unsplash.com/photo-1605833556294-ea5c7a74f57d?w=600&q=80&auto=format&fit=crop",
+       desc:"La ciudad del entretenimiento sin igual. Shows de clase mundial, gastronomía y diversión las 24 horas."},
     ],
     pagos:[
       {fecha:daysAgo(365),monto:800,tipo:"Enganche",status:"aprobado",ref:"TXN-001"},
@@ -35,11 +35,11 @@ var DEMO_ACCOUNTS = {
       {fecha:daysAgo(90),monto:1000,tipo:"Abono",status:"aprobado",ref:"TXN-003"},
     ],
     reservaciones:[
-      {id:"R001",destino:"Cancun",fechaViaje:daysFromNow(45),personas:2,
+      {id:"R001",destino:"Orlando",fechaViaje:daysFromNow(45),personas:2,
        status:"confirmada",notas:"Preferencia hab. con vista al mar",
        hotel:{nombre:"Krystal Grand Cancun Resort",conf:"KGC-44821",hab:"Deluxe Oceano King",reg:"Todo incluido",
               img:"https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&q=80&auto=format&fit=crop"}},
-      {id:"R002",destino:"Riviera Maya",fechaViaje:daysFromNow(120),personas:2,
+      {id:"R002",destino:"Las Vegas",fechaViaje:daysFromNow(120),personas:2,
        status:"en_proceso",notas:"Zona tranquila preferible",hotel:null},
     ],
     status:"activo",
@@ -51,9 +51,9 @@ var DEMO_ACCOUNTS = {
     precioTotal:2200,pagado:2200,
     cardLast4:"9834",cardBanco:"Banorte",cardTipo:"Mastercard",
     destinos:[
-      {id:"D02",nombre:"Los Cabos",noches:4,tipo:"qc",
-       img:"https://images.unsplash.com/photo-1503917988258-f87a78e3c995?w=600&q=80&auto=format&fit=crop",
-       desc:"Donde el desierto se encuentra con el mar. El Arco y aguas cristalinas."},
+      {id:"D01",nombre:"Las Vegas",noches:4,tipo:"qc",
+       img:"https://images.unsplash.com/photo-1605833556294-ea5c7a74f57d?w=600&q=80&auto=format&fit=crop",
+       desc:"La ciudad del entretenimiento sin igual. Shows de clase mundial, gastronomía y diversión las 24 horas."},
     ],
     pagos:[
       {fecha:daysAgo(180),monto:2200,tipo:"Pago unico",status:"aprobado",ref:"TXN-010"},
@@ -160,22 +160,9 @@ function TabInicio(props){
         <div style={{fontSize:"20px",fontWeight:"700",color:"#fff",marginBottom:"4px"}}>{u.titular}{u.coProp?" + "+u.coProp:""}</div>
         <div style={{fontSize:"11px",color:"rgba(255,255,255,0.65)"}}>Folio: <span style={{color:"#fff",fontWeight:"600"}}>{u.folio}</span> - {u.destinos.length} destino{u.destinos.length>1?"s":""} incluido{u.destinos.length>1?"s":""}</div>
       </div>
+      <div style={{marginBottom:"12px"}}><div style={Object.assign({},S.card,{borderColor:vigOk?"rgba(74,222,128,0.2)":"rgba(248,113,113,0.2)",["borderLeft"]:"3px solid "+(vigOk?GREEN:RED)})}><div style={S.lbl}>Vigencia de membresía</div><div style={{fontSize:"16px",fontWeight:"700",color:vigOk?GREEN:RED}}>{fmtDate(u.fechaVencimiento)}</div><div style={{fontSize:"11px",color:vigOk?GREEN:RED,marginTop:"4px"}}>{vigOk?dias+" días restantes":"Membresía vencida"}</div></div></div>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"12px"}}>
-        <div style={Object.assign({},S.card,{borderColor:"rgba(14,165,160,0.2)"})}>
-          <div style={S.lbl}>Saldo pendiente</div>
-          <div style={{fontSize:"20px",fontWeight:"800",color:saldo>0?AMBER:GREEN}}>{fmtUSD(saldo)}</div>
-          <div style={{marginTop:"8px",height:"5px",background:"#e5e7eb",borderRadius:"4px",overflow:"hidden"}}>
-            <div style={{height:"100%",width:pct+"%",background:"linear-gradient(90deg,#1a385a,#47718a)",borderRadius:"4px"}}></div>
-          </div>
-          <div style={{fontSize:"10px",color:"#9ca3af",marginTop:"4px"}}>{pct}% pagado ({fmtUSD(u.pagado)} de {fmtUSD(u.precioTotal)})</div>
-        </div>
-        <div style={Object.assign({},S.card,{borderColor:vigOk?"rgba(74,222,128,0.2)":"rgba(248,113,113,0.2)"})}>
-          <div style={S.lbl}>Vigencia</div>
-          <div style={{fontSize:"16px",fontWeight:"700",color:vigOk?GREEN:RED}}>{fmtDate(u.fechaVencimiento)}</div>
-          <div style={{fontSize:"11px",color:vigOk?GREEN:RED,marginTop:"4px"}}>{vigOk?dias+" dias restantes":"Vencida"}</div>
-        </div>
-      </div>
+
 
       {proxRes&&(
         <div style={Object.assign({},S.card,{borderColor:"rgba(14,165,160,0.25)",marginBottom:"12px"})}>
