@@ -330,6 +330,8 @@ function TabDestinos(props){
 
 function TabReservas(props){
   var u=props.user;
+  var [solicitarRes,setSolicitarRes]=useState(false);
+  var [resData,setResData]=useState({destino:u.destinos[0]?u.destinos[0].nombre:"",fecha:"",personas:"2",notas:""});
   if(u.reservaciones.length===0){
     return (
       <div style={{textAlign:"center",padding:"40px 20px"}}>
@@ -343,6 +345,38 @@ function TabReservas(props){
   }
   return (
     <div>
+      <div style={{marginBottom:"12px",display:"flex",justifyContent:"flex-end"}}>
+        <button style={Object.assign({},btnSm("indigo"),{background:"#1a385a",color:"#fff",border:"none",padding:"8px 16px",fontSize:"12px"})} onClick={function(){setSolicitarRes(true);}}>+ Solicitar reserva</button>
+      </div>
+      {solicitarRes&&(
+        <div style={Object.assign({},S.card,{borderColor:"rgba(26,56,90,0.3)",marginBottom:"12px"})}>
+          <div style={{fontSize:"13px",fontWeight:"700",color:"#1a385a",marginBottom:"12px"}}>Nueva solicitud de reserva</div>
+          <div style={{marginBottom:"10px"}}>
+            <label style={S.lbl}>Destino</label>
+            <select style={Object.assign({},S.inp,{cursor:"pointer"})} value={resData.destino} onChange={function(e){setResData(function(p){return Object.assign({},p,{destino:e.target.value});})}}>
+              {u.destinos.map(function(d){return <option key={d.id} value={d.nombre}>{d.nombre} ({d.noches}n)</option>;})}
+            </select>
+          </div>
+          <div style={Object.assign({},S.g2,{marginBottom:"10px"})}>
+            <div>
+              <label style={S.lbl}>Fecha de viaje</label>
+              <input style={S.inp} type="date" value={resData.fecha} onChange={function(e){setResData(function(p){return Object.assign({},p,{fecha:e.target.value});})}}/>
+            </div>
+            <div>
+              <label style={S.lbl}>Personas</label>
+              <input style={S.inp} type="number" min="1" max="6" value={resData.personas} onChange={function(e){setResData(function(p){return Object.assign({},p,{personas:e.target.value});})}}/>
+            </div>
+          </div>
+          <div style={{marginBottom:"12px"}}>
+            <label style={S.lbl}>Solicitudes especiales (opcional)</label>
+            <input style={S.inp} value={resData.notas} onChange={function(e){setResData(function(p){return Object.assign({},p,{notas:e.target.value});})}} placeholder="Vista al mar, piso alto, celebración..."/>
+          </div>
+          <div style={{display:"flex",gap:"6px",justifyContent:"flex-end"}}>
+            <button style={btnSm("ghost")} onClick={function(){setSolicitarRes(false);}}>Cancelar</button>
+            <button style={Object.assign({},btnSm("indigo"),{background:"#1a385a",color:"#fff",border:"none"})} onClick={function(){setSolicitarRes(false);setResData({destino:u.destinos[0]?u.destinos[0].nombre:"",fecha:"",personas:"2",notas:""});}} disabled={!resData.destino||!resData.fecha}>Enviar solicitud</button>
+          </div>
+        </div>
+      )}
       {u.reservaciones.map(function(r){
         var sc=RES_STATUS[r.status]||RES_STATUS.solicitud;
         return (
@@ -962,6 +996,39 @@ function TabChat(props){
 
 
 
+function TabContacto(props){
+  var u=props.user;
+  return (
+    <div>
+      <div style={{background:"linear-gradient(135deg,#1a385a,#47718a)",borderRadius:"12px",padding:"20px 22px",marginBottom:"12px",textAlign:"center"}}>
+        <div style={{fontSize:"22px",fontWeight:"700",color:"#fff",marginBottom:"4px"}}>TRAVEL<span style={{color:"#8aacca"}}>X</span><span style={{fontWeight:"300"}}> GROUP</span></div>
+        <div style={{fontSize:"11px",color:"rgba(255,255,255,0.6)"}}>Estamos aquí para ayudarte</div>
+      </div>
+      <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"12px",padding:"16px 18px",marginBottom:"10px"}}>
+        <div style={{fontSize:"10px",fontWeight:"700",color:"#9ca3af",letterSpacing:".12em",textTransform:"uppercase",marginBottom:"12px"}}>Llámanos</div>
+        <a href="tel:18009271490" style={{display:"flex",alignItems:"center",gap:"12px",textDecoration:"none"}}>
+          <div style={{width:"40px",height:"40px",borderRadius:"50%",background:"#eef2f7",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px"}}>📞</div>
+          <div><div style={{fontSize:"14px",fontWeight:"700",color:"#1a385a"}}>1 (800) 927-1490</div><div style={{fontSize:"11px",color:"#6b7280"}}>Lunes a Viernes 9am - 6pm</div></div>
+        </a>
+      </div>
+      <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"12px",padding:"16px 18px",marginBottom:"10px"}}>
+        <div style={{fontSize:"10px",fontWeight:"700",color:"#9ca3af",letterSpacing:".12em",textTransform:"uppercase",marginBottom:"12px"}}>Escríbenos</div>
+        <a href="mailto:members@xtravelgroup.com" style={{display:"flex",alignItems:"center",gap:"12px",textDecoration:"none"}}>
+          <div style={{width:"40px",height:"40px",borderRadius:"50%",background:"#eef2f7",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px"}}>✉️</div>
+          <div><div style={{fontSize:"14px",fontWeight:"700",color:"#1a385a"}}>members@xtravelgroup.com</div><div style={{fontSize:"11px",color:"#6b7280"}}>Respuesta en 24 horas hábiles</div></div>
+        </a>
+      </div>
+      <div style={{background:"#1a385a",borderRadius:"12px",padding:"16px 18px",marginBottom:"10px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}} onClick={function(){props.onTabChange&&props.onTabChange("chat");}}>
+        <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
+          <div style={{width:"40px",height:"40px",borderRadius:"50%",background:"rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"18px"}}>💬</div>
+          <div><div style={{fontSize:"14px",fontWeight:"700",color:"#fff"}}>Chat en línea</div><div style={{fontSize:"11px",color:"rgba(255,255,255,0.6)"}}>Habla con un asesor ahora</div></div>
+        </div>
+        <div style={{color:"rgba(255,255,255,0.6)",fontSize:"18px"}}>›</div>
+      </div>
+    </div>
+  );
+}
+
 export default function ClientPortal(){
   var [user,setUser]=useState(null);
   var [tab,setTab]=useState("inicio");
@@ -973,6 +1040,7 @@ export default function ClientPortal(){
     {k:"pagos",    l:"Pagos"},
     {k:"chat",     l:"Chat"},
     {k:"perfil",   l:"Perfil"},
+    {k:"contacto", l:"Contacto"},
   ];
 
   if(!user) return <LoginScreen onLogin={function(u){setUser(u);setTab("inicio");}}/>;
@@ -1003,6 +1071,7 @@ export default function ClientPortal(){
         {tab==="pagos"&&<TabPagos user={user}/>}
         {tab==="chat"&&<TabChat user={user}/>}
         {tab==="perfil"&&<TabPerfil user={user} onLogout={function(){setUser(null);setTab("inicio");}}/>}
+        {tab==="contacto"&&<TabContacto user={user}/>}
       </div>
     </div>
   );
