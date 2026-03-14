@@ -93,8 +93,8 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts, fotosPorDest) {
         <div style="display:inline-block;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 20px;margin-bottom:14px;">
           <span style="font-size:13px;color:#93c5fd;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;">✈ X TRAVEL GROUP</span>
         </div>
-        <h1 style="color:#fff;margin:0;font-size:26px;font-weight:800;line-height:1.3;">Su paquete de viaje exclusivo</h1>
-        <div style="color:#bfdbfe;font-size:14px;margin-top:10px;">Preparado especialmente para <strong style="color:#fff;">${nombre}</strong></div>
+        <h1 style="color:#ffffff !important;margin:0;font-size:26px;font-weight:800;line-height:1.3;-webkit-text-fill-color:#ffffff;">Su paquete de viaje exclusivo</h1>
+        <div style="color:#bfdbfe !important;font-size:14px;margin-top:10px;-webkit-text-fill-color:#bfdbfe;">Preparado especialmente para <strong style="color:#ffffff !important;-webkit-text-fill-color:#ffffff;">${nombre}</strong></div>
       </div>
 
       <!-- Saludo -->
@@ -498,12 +498,23 @@ IDs exactos: ${destinos.map(d => d.destId).join(", ")}`;
       ]);
       const fotosPorDest = {};
       fotosArr.forEach(f => { if (f.url) fotosPorDest[f.destId] = f.url; });
-      // Buscar chat_id del lead para el footer
+      // Buscar o crear chat del lead para el footer
       let chatUrl = "";
       try {
         const chatRes = await fetch(`${SB_URL}/rest/v1/chats?lead_id=eq.${lead.id}&limit=1&select=id`, { headers: { "apikey": ANON_KEY, "Authorization": `Bearer ${ANON_KEY}` } });
         const chatData = await chatRes.json();
-        if (chatData?.[0]?.id) chatUrl = `https://minivac-crm.vercel.app/chat/${chatData[0].id}`;
+        if (chatData?.[0]?.id) {
+          chatUrl = `https://minivac-crm.vercel.app/chat/${chatData[0].id}`;
+        } else {
+          // Crear chat si no existe
+          const createRes = await fetch(`${SB_URL}/rest/v1/chats`, {
+            method: "POST",
+            headers: { "apikey": ANON_KEY, "Authorization": `Bearer ${ANON_KEY}`, "Content-Type": "application/json", "Prefer": "return=representation" },
+            body: JSON.stringify({ lead_id: lead.id, usuario_id: null })
+          });
+          const newChat = await createRes.json();
+          if (newChat?.[0]?.id) chatUrl = `https://minivac-crm.vercel.app/chat/${newChat[0].id}`;
+        }
       } catch(e) {}
       const built = buildPaqueteHtml({ ...leadConNombres, chat_url: chatUrl }, hoteles, aiTextsWithHoteles, fotosPorDest);
       setSubject(built.subject);
