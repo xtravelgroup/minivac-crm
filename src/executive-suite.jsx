@@ -683,6 +683,22 @@ function TabRadios(props){
                 });
               }()),
 
+          // Spots individuales con hora
+          delDia.length>0&&React.createElement("div",{key:"spots-horas",style:{borderTop:"1px solid "+C.border}},[
+            React.createElement("div",{key:"sh",style:{display:"grid",gridTemplateColumns:"70px 1fr 100px",padding:"5px 16px",background:"#f8f9fb",borderBottom:"1px solid "+C.border}},[
+              React.createElement("div",{key:"h",style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em"}},"Hora"),
+              React.createElement("div",{key:"e",style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em"}},"Emisora"),
+              React.createElement("div",{key:"c",style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",textAlign:"right"}},"Costo"),
+            ]),
+            delDia.map(function(s,si){
+              return React.createElement("div",{key:si,style:{display:"grid",gridTemplateColumns:"70px 1fr 100px",padding:"6px 16px",background:si%2===0?"#fff":"#fafbfc",borderBottom:"1px solid "+C.border,alignItems:"center"}},[
+                React.createElement("div",{key:"h",style:{fontSize:12,fontWeight:700,color:C.indigo}},s.hora||"--:--"),
+                React.createElement("div",{key:"e",style:{fontSize:12,color:C.text}},emMap[s.emisora_id]||"Sin emisora"),
+                React.createElement("div",{key:"c",style:{fontSize:12,color:"#b91c1c",textAlign:"right",fontWeight:600}},fmtUSD(invSpot(s))),
+              ]);
+            }),
+          ]),
+
           // Footer del día con leads
           leadsDelDia.length>0&&React.createElement("div",{key:"leads-footer",style:{
             padding:"8px 16px",
