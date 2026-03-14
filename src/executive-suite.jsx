@@ -632,72 +632,22 @@ function TabRadios(props){
             ]),
           ]),
 
-          // Columnas header
-          delDia.length>0&&React.createElement("div",{key:"cols",style:{
-            display:"grid",
-            gridTemplateColumns:"1fr 120px 70px 70px 110px",
-            padding:"5px 16px",
-            background:"#fafbfc",
-            borderBottom:"1px solid "+C.border,
-          }},["Emisora","Costo","Leads","Ventas","% Mkt Cost"].map(function(h,i){
-            return React.createElement("div",{key:i,style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",textAlign:i>0?"right":"left"}},h);
-          })),
-
-          // Resumen por emisora del día
+          // Spots individuales con hora
           delDia.length===0
             ? React.createElement("div",{key:"empty",style:{padding:"14px 16px",textAlign:"center",fontSize:12,color:C.muted}},"Sin spots registrados")
-            : React.createElement("div",{key:"spots"},function(){
-                // Agrupar spots por emisora
-                var emDia = {};
-                delDia.forEach(function(s){
-                  var eid = s.emisora_id||"?";
-                  var enm = emMap[eid]||"Sin emisora";
-                  if(!emDia[eid]) emDia[eid]={nombre:enm,costo:0,leads:0,ventas:0,ingresos:0};
-                  emDia[eid].costo += invSpot(s);
-                });
-                leadsDelDia.forEach(function(l){
-                  var eid = l.emisora_id||"?";
-                  if(emDia[eid]){
-                    emDia[eid].leads+=1;
-                    if(l.status==="venta"){ emDia[eid].ventas+=1; emDia[eid].ingresos+=Number(l.sale_price||0); }
-                  }
-                });
-                var rows = Object.values(emDia);
-                return rows.map(function(r,ri){
-                  var mktCost = r.ingresos>0 ? (r.costo/r.ingresos)*100 : null;
-                  var mktColor = mktCost===null?C.muted:mktCost<35?C.green:mktCost<=45?C.amber:"#b91c1c";
-                  return React.createElement("div",{key:ri,style:{
-                    display:"grid",
-                    gridTemplateColumns:"1fr 120px 70px 70px 110px",
-                    padding:"8px 16px",
-                    background:ri%2===0?"#fff":"#fafbfc",
-                    borderBottom:"1px solid "+C.border,
-                    alignItems:"center",
-                  }},[
-                    React.createElement("div",{key:"e",style:{fontSize:12,color:C.text,fontWeight:500}},r.nombre),
-                    React.createElement("div",{key:"c",style:{fontSize:12,color:"#b91c1c",textAlign:"right",fontWeight:600}},fmtUSD(r.costo)),
-                    React.createElement("div",{key:"l",style:{fontSize:12,color:C.indigo,textAlign:"right",fontWeight:600}},r.leads||0),
-                    React.createElement("div",{key:"v",style:{fontSize:12,color:C.green,textAlign:"right",fontWeight:700}},r.ventas||0),
-                    React.createElement("div",{key:"mc",style:{fontSize:12,color:mktColor,textAlign:"right",fontWeight:700}},mktCost!==null?mktCost.toFixed(1)+"%":"--"),
-                  ]);
-                });
-              }()),
-
-          // Spots individuales con hora
-          delDia.length>0&&React.createElement("div",{key:"spots-horas",style:{borderTop:"1px solid "+C.border}},[
-            React.createElement("div",{key:"sh",style:{display:"grid",gridTemplateColumns:"70px 1fr 100px",padding:"5px 16px",background:"#f8f9fb",borderBottom:"1px solid "+C.border}},[
-              React.createElement("div",{key:"h",style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em"}},"Hora"),
-              React.createElement("div",{key:"e",style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em"}},"Emisora"),
-              React.createElement("div",{key:"c",style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",textAlign:"right"}},"Costo"),
-            ]),
-            delDia.map(function(s,si){
-              return React.createElement("div",{key:si,style:{display:"grid",gridTemplateColumns:"70px 1fr 100px",padding:"6px 16px",background:si%2===0?"#fff":"#fafbfc",borderBottom:"1px solid "+C.border,alignItems:"center"}},[
-                React.createElement("div",{key:"h",style:{fontSize:12,fontWeight:700,color:C.indigo}},s.hora||"--:--"),
-                React.createElement("div",{key:"e",style:{fontSize:12,color:C.text}},emMap[s.emisora_id]||"Sin emisora"),
-                React.createElement("div",{key:"c",style:{fontSize:12,color:"#b91c1c",textAlign:"right",fontWeight:600}},fmtUSD(invSpot(s))),
-              ]);
-            }),
-          ]),
+            : React.createElement("div",{key:"spots-horas"},[
+                React.createElement("div",{key:"sh",style:{display:"grid",gridTemplateColumns:"70px 1fr 100px",padding:"5px 16px",background:"#f8f9fb",borderBottom:"1px solid "+C.border}},[
+                  React.createElement("div",{key:"h",style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em"}},"Hora"),
+                  React.createElement("div",{key:"e",style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em"}},"Emisora"),
+                  React.createElement("div",{key:"c",style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",textAlign:"right"}},"Costo"),
+                ]),
+              ].concat(delDia.map(function(s,si){
+                return React.createElement("div",{key:si,style:{display:"grid",gridTemplateColumns:"70px 1fr 100px",padding:"6px 16px",background:si%2===0?"#fff":"#fafbfc",borderBottom:"1px solid "+C.border,alignItems:"center"}},[
+                  React.createElement("div",{key:"h",style:{fontSize:12,fontWeight:700,color:C.indigo}},s.hora||"--:--"),
+                  React.createElement("div",{key:"e",style:{fontSize:12,color:C.text}},emMap[s.emisora_id]||"Sin emisora"),
+                  React.createElement("div",{key:"c",style:{fontSize:12,color:"#b91c1c",textAlign:"right",fontWeight:600}},fmtUSD(invSpot(s))),
+                ]);
+              }))),
 
           // Footer del día con leads
           leadsDelDia.length>0&&React.createElement("div",{key:"leads-footer",style:{
