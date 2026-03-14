@@ -429,5 +429,45 @@ serve(async (req) => {
     }
   }
 
-  return new Response("Not found", { status: 404 });
+if (path === "/guardar-firma") {
+    try {
+      const body = await req.json();
+      const { lead_id, token, firma_contrato, firma_autorizacion, firma_terminos, firmado_en } = body;
+      if (!lead_id) return new Response(JSON.stringify({ error: "lead_id requerido" }), { status: 400, headers: { ...CORS, "Content-Type": "application/json" } });
+
+      const SB = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      // Verificar token
+      const { data: leads } = await SB.from("leads").select("id, firma_token, verificacion").eq("id", lead_id).limit(1);
+      const lead = leads?.[0];
+      if (!lead) return new Response(JSON.stringify({ error: "Lead no encontrado" }), { status: 404, headers: { ...CORS, "Content-Type": "application/json" } });
+      if (lead.firma_token && lead.firma_token !== token) return new Response(JSON.stringify({ error: "Token inválido" }), { status: 403, headers: { ...CORS, "Content-Type": "application/json" } });
+
+      // Actualizar verificacion con datos de firma
+      const verifActual = lead.verificacion || {};
+      await SB.from("leads").update({
+        firma_firmada_at: firmado_en || new Date().toISOString(),
+        firma_contrato:      firma_contrato      || null,
+        firma_autorizacion:  firma_autorizacion  || null,
+        firma_terminos:      firma_terminos       || null,
+        verificacion: {
+          ...verifActual,
+          docsSigned: true,
+          docsSignedAt: firmado_en || new Date().toISOString(),
+        },
+      }).eq("id", lead_id);
+
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: { ...CORS, "Content-Type": "application/json" } });
+    }
+  }
+
+    return new Response("Not found", { status: 404 });
 });
