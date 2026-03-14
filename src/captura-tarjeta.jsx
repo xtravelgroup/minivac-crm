@@ -19,7 +19,7 @@ export default function CapturaTarjeta() {
 
   useEffect(function() {
     if (!leadId || !token) { setStep("invalido"); setLoading(false); return; }
-    fetch(SB_URL + "/rest/v1/leads?id=eq." + leadId + "&captura_token=eq." + token + "&select=id,nombre,apellido,email,salePrice,pagoInicial", {
+    fetch(SB_URL + "/rest/v1/leads?id=eq." + leadId + "&captura_token=eq." + token + "&select=id,nombre,apellido,email,sale_price,pago_inicial", {
       headers: { "apikey": ANON_KEY, "Authorization": "Bearer " + ANON_KEY }
     })
     .then(function(r){ return r.json(); })
