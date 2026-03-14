@@ -60,15 +60,15 @@ async function getZohoToken(): Promise<string> {
 }
 
 // ---- Crear Payment Session en Zoho ----
-async function createPaymentSession(token: string, body: {
+async function createPaymentLink(token: string, body: {
   amount: number;
   currency: string;
   reference_number: string;
   description: string;
-  invoice_number?: string;
+  customer_email?: string;
 }) {
   const res = await fetch(
-    `https://payments.zoho.com/api/v1/paymentsessions?account_id=${ZOHO_ACCOUNT_ID}`,
+    `https://payments.zoho.com/api/v1/paymentlinks?account_id=${ZOHO_ACCOUNT_ID}`,
     {
       method: "POST",
       headers: {
@@ -76,17 +76,16 @@ async function createPaymentSession(token: string, body: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        amount:           body.amount,
-        currency:         body.currency || "USD",
-        description:      body.description,
-        reference_number: body.reference_number,
-        invoice_number:   body.invoice_number || body.reference_number,
+        amount:      String(Number(body.amount).toFixed(2)),
+        currency:    body.currency || "USD",
+        description: body.description || "Abono Mini-Vac",
       }),
     }
   );
   const data = await res.json();
-  if (!data.payments_session) throw new Error("Error creando session: " + JSON.stringify(data));
-  return data.payments_session;
+  console.log("createPaymentLink response:", JSON.stringify(data));
+  if (!data.payment_links) throw new Error("Error creando payment link: " + JSON.stringify(data));
+  return data.payment_links;
 }
 
 // ---- Crear Customer en Zoho ----
@@ -231,29 +230,29 @@ serve(async (req) => {
   if (req.method === "POST" && path === "/create-session") {
     try {
       const body = await req.json();
-      const { lead_id, amount, currency, folio, nombre } = body;
+      const { lead_id, amount, currency, folio, nombre, email } = body;
 
-      if (!lead_id || !amount) {
+      if (!amount) {
         return new Response(
-          JSON.stringify({ error: "lead_id y amount son requeridos" }),
+          JSON.stringify({ error: "amount es requerido" }),
           { status: 400, headers: { ...CORS, "Content-Type": "application/json" } }
         );
       }
 
       const token   = await getZohoToken();
-      const session = await createPaymentSession(token, {
+      const link = await createPaymentLink(token, {
         amount:           Number(amount),
         currency:         currency || "USD",
-        reference_number: folio || lead_id,
-        description:      "Mini-Vac enganche - " + (nombre || lead_id),
-        invoice_number:   folio || lead_id,
+        reference_number: folio || lead_id || ("MV-" + Date.now()),
+        description:      "Abono Mini-Vac - " + (nombre || folio || ""),
+        customer_email:   email || undefined,
       });
 
       return new Response(
         JSON.stringify({
-          payments_session_id: session.payments_session_id,
-          amount:              session.amount,
-          currency:            session.currency,
+          payments_session_id: link.payment_link_id,
+          payment_url:         link.url,
+          amount:              link.amount,
         }),
         { status: 200, headers: { ...CORS, "Content-Type": "application/json" } }
       );
@@ -385,6 +384,19 @@ serve(async (req) => {
   }
 
   // POST /generar-link
+  if (req.method === "POST" && path === "/payment-link") {
+    try {
+      const body = await req.json();
+      const { amount, lead_id, email, nombre, description } = body;
+      if (!amount || !lead_id) return new Response(JSON.stringify({ error: "amount y lead_id requeridos" }), { status: 400, headers: { ...CORS, "Content-Type": "application/json" } });
+      const token = await getZohoToken();
+      const link = await createPaymentLink(token, { amount: String(amount), currency: "USD", reference_number: lead_id, description: description || "Abono Mini-Vac - " + (nombre || lead_id), customer_email: email });
+      return new Response(JSON.stringify({ url: link.link_url || link.url || link.short_url, link }), { status: 200, headers: { ...CORS, "Content-Type": "application/json" } });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: { ...CORS, "Content-Type": "application/json" } });
+    }
+  }
+
   if (req.method === "POST" && path === "/generar-link") {
     try {
       const body    = await req.json();
