@@ -424,7 +424,6 @@ function PaymentLinkBtn({ draft }) {
     .catch(function(e){ setErr(String(e)); setLoading(false); });
   }
 
-  if (!monto) return null;
   return (
     <div style={{marginTop:12,padding:"12px 14px",borderRadius:10,background:"rgba(26,56,90,0.05)",border:"1px solid rgba(26,56,90,0.2)"}}>
       <div style={{fontSize:11,fontWeight:700,color:"#1a385a",marginBottom:8}}>📧 LINK DE PAGO POR EMAIL</div>
