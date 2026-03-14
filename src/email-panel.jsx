@@ -85,6 +85,16 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts, fotosPorDest) {
   }).join("");
 
   const html = `
+    <style>
+      @media (prefers-color-scheme: dark) {
+        .email-header h1 { color: #ffffff !important; }
+        .email-header .subtitle { color: #bfdbfe !important; }
+        .email-header .nombre { color: #ffffff !important; }
+        .dest-title { color: #ffffff !important; }
+        .dest-subtitle { color: rgba(255,255,255,0.8) !important; }
+        .body-text { color: #222222 !important; background-color: #ffffff !important; }
+      }
+    </style>
     <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;color:#222;">
 
       <!-- Header con logo -->
@@ -93,8 +103,8 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts, fotosPorDest) {
         <div style="display:inline-block;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 20px;margin-bottom:14px;">
           <span style="font-size:13px;color:#93c5fd;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;">✈ X TRAVEL GROUP</span>
         </div>
-        <h1 style="color:#ffffff !important;margin:0;font-size:26px;font-weight:800;line-height:1.3;-webkit-text-fill-color:#ffffff;">Su paquete de viaje exclusivo</h1>
-        <div style="color:#bfdbfe !important;font-size:14px;margin-top:10px;-webkit-text-fill-color:#bfdbfe;">Preparado especialmente para <strong style="color:#ffffff !important;-webkit-text-fill-color:#ffffff;">${nombre}</strong></div>
+        <h1 class="email-header" style="color:#ffffff !important;margin:0;font-size:26px;font-weight:800;line-height:1.3;">Su paquete de viaje exclusivo</h1>
+        <div class="subtitle" style="color:#bfdbfe;font-size:14px;margin-top:10px;">Preparado especialmente para <strong class="nombre" style="color:#ffffff;">${nombre}</strong></div>
       </div>
 
       <!-- Saludo -->
