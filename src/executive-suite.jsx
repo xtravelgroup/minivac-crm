@@ -636,16 +636,29 @@ function TabRadios(props){
           delDia.length===0
             ? React.createElement("div",{key:"empty",style:{padding:"14px 16px",textAlign:"center",fontSize:12,color:C.muted}},"Sin spots registrados")
             : React.createElement("div",{key:"spots-horas"},[
-                React.createElement("div",{key:"sh",style:{display:"grid",gridTemplateColumns:"70px 1fr 100px",padding:"5px 16px",background:"#f8f9fb",borderBottom:"1px solid "+C.border}},[
+                React.createElement("div",{key:"sh",style:{display:"grid",gridTemplateColumns:"70px 1fr 90px 60px 60px 90px",padding:"5px 16px",background:"#f8f9fb",borderBottom:"1px solid "+C.border}},[
                   React.createElement("div",{key:"h",style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em"}},"Hora"),
                   React.createElement("div",{key:"e",style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em"}},"Emisora"),
                   React.createElement("div",{key:"c",style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",textAlign:"right"}},"Costo"),
+                  React.createElement("div",{key:"l",style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",textAlign:"right"}},"Leads"),
+                  React.createElement("div",{key:"v",style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",textAlign:"right"}},"Ventas"),
+                  React.createElement("div",{key:"m",style:{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em",textAlign:"right"}},"% Mkt"),
                 ]),
               ].concat(delDia.map(function(s,si){
-                return React.createElement("div",{key:si,style:{display:"grid",gridTemplateColumns:"70px 1fr 100px",padding:"6px 16px",background:si%2===0?"#fff":"#fafbfc",borderBottom:"1px solid "+C.border,alignItems:"center"}},[
+                var eid = s.emisora_id||"?";
+                var leadsSpot = leadsDelDia.filter(function(l){ return (l.emisora_id||"?")=== eid; });
+                var ventasSpot = leadsSpot.filter(function(l){ return l.status==="venta"; });
+                var ingSpot = ventasSpot.reduce(function(t,l){ return t+Number(l.sale_price||0); },0);
+                var costoSpot = invSpot(s);
+                var mktSpot = ingSpot>0 ? (costoSpot/ingSpot)*100 : null;
+                var mktColor = mktSpot===null?C.muted:mktSpot<35?C.green:mktSpot<=45?C.amber:"#b91c1c";
+                return React.createElement("div",{key:si,style:{display:"grid",gridTemplateColumns:"70px 1fr 90px 60px 60px 90px",padding:"6px 16px",background:si%2===0?"#fff":"#fafbfc",borderBottom:"1px solid "+C.border,alignItems:"center"}},[
                   React.createElement("div",{key:"h",style:{fontSize:12,fontWeight:700,color:C.indigo}},s.hora||"--:--"),
                   React.createElement("div",{key:"e",style:{fontSize:12,color:C.text}},emMap[s.emisora_id]||"Sin emisora"),
-                  React.createElement("div",{key:"c",style:{fontSize:12,color:"#b91c1c",textAlign:"right",fontWeight:600}},fmtUSD(invSpot(s))),
+                  React.createElement("div",{key:"c",style:{fontSize:12,color:"#b91c1c",textAlign:"right",fontWeight:600}},fmtUSD(costoSpot)),
+                  React.createElement("div",{key:"l",style:{fontSize:12,color:C.indigo,textAlign:"right",fontWeight:600}},leadsSpot.length||0),
+                  React.createElement("div",{key:"v",style:{fontSize:12,color:C.green,textAlign:"right",fontWeight:700}},ventasSpot.length||0),
+                  React.createElement("div",{key:"m",style:{fontSize:12,textAlign:"right",fontWeight:700,color:mktColor}},mktSpot!==null?mktSpot.toFixed(1)+"%":"--"),
                 ]);
               }))),
 
