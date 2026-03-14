@@ -98,14 +98,16 @@ function buildPaqueteHtml(lead, hotelesPorDest, aiTexts, fotosPorDest) {
     <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;color:#222;">
 
       <!-- Header con logo -->
-      <div style="background:linear-gradient(135deg,#1a3a5c 0%,#0f2340 100%);padding:32px 24px;border-radius:12px 12px 0 0;text-align:center;">
-        <img src="https://minivac-crm.vercel.app/logo.png" alt="X Travel Group" style="height:60px;object-fit:contain;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;" onerror="this.style.display='none'" />
-        <div style="display:inline-block;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 20px;margin-bottom:14px;">
-          <span style="font-size:13px;color:#93c5fd;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;">✈ X TRAVEL GROUP</span>
-        </div>
-        <h1 class="email-header" style="color:#ffffff !important;margin:0;font-size:26px;font-weight:800;line-height:1.3;">Su paquete de viaje exclusivo</h1>
-        <div class="subtitle" style="color:#bfdbfe;font-size:14px;margin-top:10px;">Preparado especialmente para <strong class="nombre" style="color:#ffffff;">${nombre}</strong></div>
-      </div>
+      <table width="100%" cellpadding="0" cellspacing="0" bgcolor="#1a3a5c" style="background:#1a3a5c;border-radius:12px 12px 0 0;">
+        <tr><td align="center" style="padding:32px 24px;background:#1a3a5c;">
+          <img src="https://minivac-crm.vercel.app/logo.png" alt="X Travel Group" style="height:60px;object-fit:contain;margin-bottom:16px;display:block;" onerror="this.style.display='none'" />
+          <table cellpadding="0" cellspacing="0"><tr><td style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 20px;margin-bottom:14px;">
+            <span style="font-size:13px;color:#93c5fd;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;">✈ X TRAVEL GROUP</span>
+          </td></tr></table>
+          <h1 style="color:#ffffff;margin:14px 0 0 0;font-size:26px;font-weight:800;line-height:1.3;font-family:Arial,sans-serif;">Su paquete de viaje exclusivo</h1>
+          <p style="color:#bfdbfe;font-size:14px;margin:10px 0 0 0;font-family:Arial,sans-serif;">Preparado especialmente para <strong style="color:#ffffff;">${nombre}</strong></p>
+        </td></tr>
+      </table>
 
       <!-- Saludo -->
       <div style="background:#fff;padding:28px 24px;border-left:1px solid #e0e0e0;border-right:1px solid #e0e0e0;">
