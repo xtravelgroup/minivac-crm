@@ -495,7 +495,6 @@ function PagoTab({ draft, set, onSave }) {
             }}
           />
         )}
-        <PaymentLinkBtn draft={draft} />
 
         {draft.salePrice > 0 && (
           <div style={{display:"flex",gap:12,padding:"10px 12px",borderRadius:9,background:"#fffce5",border:"1px solid rgba(251,191,36,0.2)",flexWrap:"wrap",marginTop:10}}>
