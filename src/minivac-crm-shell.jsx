@@ -517,7 +517,7 @@ export default function MinivacShell() {
           {!activo && <Bienvenida user={user} onNav={handleNav} />}
 
           <Suspense fallback={SUSPENSE_FB}>
-            {activo === "dashboard"    && <ExecutiveSuite />}
+            {activo === "dashboard"    && <ExecutiveSuite currentUser={user} />}
             {activo === "radio"        && <RadioModule isSupervisor={["admin","director","supervisor","especialista_radio"].includes(user.rol)} isReadOnly={user.rol === "contador"} />}
             {activo === "kb"           && <KnowledgeBase currentUser={user} />}
             {activo === "comms"        && <CommunicationsHub currentUser={user} destCatalog={[]} onVerLead={(lead) => { initialLeadIdRef.current = lead.id; setActivo("seller"); }} />}

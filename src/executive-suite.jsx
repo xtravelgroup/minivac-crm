@@ -84,8 +84,12 @@ var TABS = [
   {id:"radios",     l:"Radios / ROI"},
 ];
 
-export default function ExecutiveSuite() {
-  var [tab, setTab] = useState("resumen");
+export default function ExecutiveSuite({ currentUser }) {
+  var rol = currentUser ? currentUser.rol : "admin";
+  var TABS_VISIBLE = rol === "supervisor"
+    ? TABS.filter(function(t){ return t.id !== "resumen" && t.id !== "reservas"; })
+    : TABS;
+  var [tab, setTab] = useState(rol === "supervisor" ? "ventas" : "resumen");
   var [data, setData] = useState(null);
   var [loading, setLoading] = useState(true);
 
@@ -122,7 +126,7 @@ export default function ExecutiveSuite() {
     React.createElement("div", {key:"top", style:S.topbar}, [
       React.createElement("div", {key:"brand", style:{fontWeight:800, fontSize:15, color:C.text, letterSpacing:0.5}}, "Dashboard Ejecutivo"),
       React.createElement("div", {key:"tabs", style:{display:"flex"}},
-        TABS.map(function(t){
+        TABS_VISIBLE.map(function(t){
           return React.createElement("button", {key:t.id, style:S.tab(tab===t.id), onClick:function(){setTab(t.id);}}, t.l);
         })
       ),
