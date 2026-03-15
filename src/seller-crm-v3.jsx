@@ -968,10 +968,12 @@ function NuevoLeadModal({ currentUser, users, onClose, onSave }) {
     if (!valid) return;
     const sp = spots.find(s => s.id === spotId);
     const emLabel = sp ? (emNombre(sp.emisora_id) + " - " + fmtHora(sp.hora) + " " + fmtFechaCort(sp)) : emisora;
+    const sp2 = spots.find(s => s.id === spotId);
     onSave(mkLead({
       id: "L"+Date.now(), folio:"F"+Date.now().toString().slice(-5),
       nombre:nombre.trim(), tel:tel.trim(),
       emisora: emLabel,
+      emisoraId: sp2 ? sp2.emisora_id : null,
       spotId: spotId !== "__manual__" ? spotId : null,
       vendedorId:asignarA, status:"nuevo",
       fecha:TODAY, ultimoContacto:TODAY,
