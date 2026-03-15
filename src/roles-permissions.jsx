@@ -475,7 +475,7 @@ function ModalEditarUsuario(props){
   function save(){
     if(!nombre.trim())return;
     setSaving(true);setApiErr("");
-    SB.from("usuarios").update({nombre:nombre.trim(),rol:rol,activo:activo}).eq("id",u.id).then(function(res){
+    SB.from("usuarios").update({nombre:nombre.trim(),rol:rol,activo:activo,comision_pct:comPct}).eq("id",u.id).then(function(res){
       setSaving(false);
       if(res.error){setApiErr(res.error.message);return;}
       props.onGuardado(Object.assign({},u,{nombre:nombre.trim(),rol:rol,activo:activo}));
@@ -503,6 +503,12 @@ function ModalEditarUsuario(props){
               {ROLES_META.map(function(r){return <option key={r.id} value={r.id}>{r.label}</option>;})}
             </select>
           </div>
+          {(rol==="vendedor"||rol==="verificador")&&(
+            <div style={{marginBottom:"12px"}}>
+              <label style={S.lbl}>% Comisión</label>
+              <input style={INP_S} type="number" min="0" max="100" step="0.5" value={comPct} onChange={function(e){setComPct(Number(e.target.value));}} placeholder="10"/>
+            </div>
+          )}
           <div style={{marginBottom:"16px",display:"flex",alignItems:"center",gap:"10px",padding:"10px 12px",background:T.bg,borderRadius:"8px",border:"1px solid "+T.borderL}}>
             <div style={{flex:1}}>
               <div style={{fontSize:"12px",fontWeight:"600",color:T.t2}}>Estado</div>
