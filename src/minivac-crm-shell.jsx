@@ -129,7 +129,7 @@ var MODULOS = [
   { id: "destinos",     label: "Destinos",       icon: "destinos",     section: "Catalogo",  roles: ["admin","director"] },
   { id: "hoteles",      label: "Hoteles",        icon: "hoteles",      section: "Catalogo",  roles: ["admin","director"] },
   { id: "paquetes",     label: "Paquetes",       icon: "paquetes",     section: "Catalogo",  roles: ["admin","director"] },
-  { id: "comisiones",   label: "Comisiones",     icon: "comisiones",   section: "Finanzas",  roles: ["admin","director","supervisor","vendedor","contador"] },
+  { id: "comisiones",   label: "Comisiones",     icon: "comisiones",   section: "Finanzas",  roles: ["admin","director","supervisor","vendedor","contador","verificador"] },
   { id: "usuarios",     label: "Usuarios",       icon: "usuarios",     section: "Config",    roles: ["admin","director"] },
   { id: "vonage",       label: "Telefonia",      icon: "vonage",       section: "Config",    roles: ["admin","director","supervisor"] },
 ];
