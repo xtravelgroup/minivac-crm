@@ -40,7 +40,7 @@ async function callClaude(prompt, max = 1000) {
 // 
 // CONSTANTS
 // 
-const STATUS_ORDER = ["nuevo","no_contesta","contactado","interesado","cita","verificacion","venta","no_interesado"];
+const STATUS_ORDER = ["nuevo","no_contesta","contactado","interesado","cita","verificacion","venta","tarjeta_rechazada","no_interesado"];
 const STATUS_CFG = {
   nuevo:         { label:"Nuevo",         icon:"", color:"#0369a1", bg:"#e0f2fe", border:"#bae6fd"  },
   no_contesta:   { label:"No Contesta",    icon:"", color:"#b45309", bg:"#fef3c7", border:"#fcd34d"  },
@@ -49,6 +49,7 @@ const STATUS_CFG = {
   cita:          { label:"Cita",          icon:"", color:"#0f766e", bg:"#f0fdfa", border:"#99f6e4"  },
   verificacion:  { label:"Verificacion",  icon:"", color:"#1a7f3c", bg:"#edf7ee", border:"#a3d9a5"  },
   venta:         { label:"Venta",         icon:"", color:"#1a385a", bg:"#eaf0f7", border:"#b8cfe0"  },
+  tarjeta_rechazada: { label:"Tarjeta Rechazada", icon:"", color:"#b91c1c", bg:"#fef2f2", border:"#fecaca"  },
   no_interesado: { label:"No interesado", icon:"", color:"#6b7280", bg:"#f4f5f7", border:"#e3e6ea"  },
 };
 
