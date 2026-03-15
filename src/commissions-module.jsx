@@ -860,6 +860,26 @@ export default function CommissionsModule({ currentUser: shellUser }) {
   const [toast,       setToast]       = useState(null);
 
   // Cargar ventas reales de Supabase
+  function cargarNumeros() {
+    SB.from("leads")
+      .select("id, vendedor_id, created_at")
+      .order("created_at", { ascending: false })
+      .then(function(res) {
+        if (!res.error && res.data) {
+          var grouped = {};
+          res.data.forEach(function(r) {
+            var vid = r.vendedor_id;
+            var fecha = (r.created_at||"").slice(0,10);
+            if (!vid || !fecha) return;
+            var key = vid + "|" + fecha;
+            if (!grouped[key]) grouped[key] = { vendedorId: vid, fecha: fecha, count: 0 };
+            grouped[key].count++;
+          });
+          setNumeros(Object.values(grouped));
+        }
+      });
+  }
+
   function cargarVentas() {
     SB.from("leads")
       .select("*")
@@ -917,7 +937,7 @@ export default function CommissionsModule({ currentUser: shellUser }) {
 
   useEffect(function() {
     console.log("CommissionsModule useEffect ejecutando");
-    try { cargarVentas(); } catch(e) { console.error("cargarVentas error:", e); }
+    try { cargarVentas(); cargarNumeros(); } catch(e) { console.error("cargarVentas error:", e); }
     try { cargarUsers(); } catch(e) { console.error("cargarUsers error:", e); }
     var interval = setInterval(cargarVentas, 30000);
     return function() { clearInterval(interval); };
