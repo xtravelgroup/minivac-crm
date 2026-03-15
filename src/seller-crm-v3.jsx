@@ -601,16 +601,39 @@ Responde con EXACTAMENTE este JSON:
 // 
 // LEAD MODAL
 // 
-function EmisoraSelect({value, onChange, disabled}){
+function SpotSelect({value, onChange, disabled}){
   var [opts, setOpts] = useState([]);
   useEffect(function(){
-    SB.from("emisoras").select("id,nombre").order("nombre").then(function(r){
-      if(r.data) setOpts(r.data);
+    var hoy = new Date().toISOString().split("T")[0];
+    Promise.all([
+      SB.from("radio_spots").select("id,emisora_id,hora,fecha").order("fecha",{ascending:false}).limit(100),
+      SB.from("emisoras").select("id,nombre")
+    ]).then(function(res){
+      var spots = res[0].data || [];
+      var ems = res[1].data || [];
+      var emMap = {};
+      ems.forEach(function(e){ emMap[e.id]=e.nombre; });
+      var mapped = spots.map(function(s){
+        var d = new Date(s.fecha+"T12:00:00");
+        var fmtFecha = d.toLocaleDateString("es-MX",{weekday:"short",day:"2-digit",month:"short"});
+        var h = s.hora||"";
+        var parts = h.split(":");
+        var hr = parseInt(parts[0]);
+        var min = parts[1]||"00";
+        var ampm = hr>=12?"PM":"AM";
+        var hr12 = hr===0?12:hr>12?hr-12:hr;
+        var fmtHora = hr12+":"+min+" "+ampm;
+        return {id:s.id, label:(emMap[s.emisora_id]||"Sin emisora")+" - "+fmtHora+" "+fmtFecha, emisora_id:s.emisora_id};
+      });
+      setOpts(mapped);
     });
   },[]);
-  return <select style={{width:"100%",background:"#f8f9fb",border:"1px solid #e3e6ea",borderRadius:"8px",padding:"9px 12px",color:"#3d4554",fontSize:"13px",outline:"none"}} value={value} onChange={function(e){onChange(e.target.value);}} disabled={disabled}>
-    <option value="">-- Sin emisora --</option>
-    {opts.map(function(em){return <option key={em.id} value={em.id}>{em.nombre}</option>;})}
+  return <select style={{width:"100%",background:"#f8f9fb",border:"1px solid #e3e6ea",borderRadius:"8px",padding:"9px 12px",color:"#3d4554",fontSize:"13px",outline:"none"}} value={value||""} onChange={function(e){
+    var sp = opts.find(function(o){return o.id===e.target.value;});
+    onChange(e.target.value, sp ? sp.emisora_id : null);
+  }} disabled={disabled}>
+    <option value="">-- Sin spot --</option>
+    {opts.map(function(s){return <option key={s.id} value={s.id}>{s.label}</option>;})}
   </select>;
 }
 
@@ -728,8 +751,8 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
                 <div style={S.label}>Direccion</div>
                 <input style={S.input} value={draft.direccion||""} onChange={e => set("direccion",e.target.value)} disabled={!canEdit} />
               <div style={{ gridColumn:"1/-1" }}>
-                <div style={S.label}>Emisora de radio</div>
-                <EmisoraSelect value={draft.emisoraId||""} onChange={function(v){ set("emisoraId",v||null); }} disabled={!canEdit}/>
+                <div style={S.label}>Spot de radio</div>
+                <SpotSelect value={draft.spotId||""} onChange={function(spotId, emisoraId){ set("spotId",spotId||null); set("emisoraId",emisoraId||null); }} disabled={!canEdit}/>
               </div>              </div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 100px 1fr", gap:"8px" }}>
                 <div>
