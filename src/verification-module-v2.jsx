@@ -2067,10 +2067,14 @@ export default function VerificationModule() {
     });
   };
 
-  const detailLead = leads.find(function(l){ return l.id === detail; });
-  const pending    = leads.filter(l => !(l.verificacion && l.verificacion.result));
-  const done       = leads.filter(l =>   l.verificacion && l.verificacion.result);
-  const ventas     = done.filter(l => l.verificacion.result==="venta");
+  const detailLead      = leads.find(function(l){ return l.id === detail; });
+  const colVerificacion = leads.filter(function(l){ return !(l.verificacion && l.verificacion.result); });
+  const colPendientePago= leads.filter(function(l){ return l.verificacion && (l.verificacion.result==="tarjeta_rechazada" || l.verificacion.paymentStatus==="declined"); });
+  const colPendienteFirma= leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && !l.firma_firmada_at && l.firma_enviada_at; });
+  const colVentas       = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && l.firma_firmada_at; });
+  const pending         = colVerificacion;
+  const done            = leads.filter(l => l.verificacion && l.verificacion.result);
+  const ventas          = colVentas;
 
   return (
     <div style={S.wrap}>
@@ -2113,18 +2117,27 @@ export default function VerificationModule() {
                   No hay expedientes en cola. Los leads en "Verificacion" aparecen aqui automaticamente.
                 </div>
               )}
-              {pending.length > 0 && (
-                <div>
-                  <div style={S.sTitle}>Pendientes de verificar</div>
-                  {pending.map(function(l){ return <QueueCard key={l.id} lead={l} onOpen={function(l){ setDetail(l.id); }} />; })}
-                </div>
-              )}
-              {done.length > 0 && (
-                <div style={{ marginTop:"22px" }}>
-                  <div style={S.sTitle}>Verificados hoy</div>
-                  {done.map(function(l){ return <QueueCard key={l.id} lead={l} onOpen={function(l){ setDetail(l.id); }} />; })}
-                </div>
-              )}
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", alignItems:"start" }}>
+                {[
+                  { label:"Verificaciones", leads:colVerificacion, color:"#925c0a", bg:"#fffbe0", bd:"rgba(251,191,36,0.3)" },
+                  { label:"Pendiente Pago",  leads:colPendientePago, color:"#b91c1c", bg:"#fef2f2", bd:"rgba(185,28,28,0.2)" },
+                  { label:"Pend. Firma",     leads:colPendienteFirma, color:"#1565c0", bg:"#e8f0fe", bd:"rgba(21,101,192,0.2)" },
+                  { label:"Ventas",          leads:colVentas, color:"#1a7f3c", bg:"rgba(74,222,128,0.06)", bd:"rgba(74,222,128,0.2)" },
+                ].map(function(col){
+                  return (
+                    <div key={col.label} style={{ background:col.bg, border:"1px solid "+col.bd, borderRadius:"12px", overflow:"hidden" }}>
+                      <div style={{ padding:"10px 14px", borderBottom:"1px solid "+col.bd, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                        <div style={{ fontSize:"12px", fontWeight:"700", color:col.color, textTransform:"uppercase", letterSpacing:"0.08em" }}>{col.label}</div>
+                        <span style={{ fontSize:"12px", fontWeight:"700", color:col.color, background:"rgba(255,255,255,0.6)", padding:"2px 8px", borderRadius:"20px", border:"1px solid "+col.bd }}>{col.leads.length}</span>
+                      </div>
+                      <div style={{ padding:"8px", display:"flex", flexDirection:"column", gap:"6px", maxHeight:"600px", overflowY:"auto" }}>
+                        {col.leads.length===0 && <div style={{ textAlign:"center", padding:"20px 10px", fontSize:"11px", color:"#9ca3af" }}>Sin expedientes</div>}
+                        {col.leads.map(function(l){ return <QueueCard key={l.id} lead={l} onOpen={function(l){ setDetail(l.id); }} />; })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
