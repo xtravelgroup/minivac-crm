@@ -469,6 +469,7 @@ function ModalEditarUsuario(props){
   var [nombre,setNombre]=useState(u.nombre);
   var [rol,setRol]=useState(u.rol);
   var [activo,setActivo]=useState(u.activo);
+  var [comPct,setComPct]=useState(u.comision_pct||10);
   var [saving,setSaving]=useState(false);
   var [apiErr,setApiErr]=useState("");
 
