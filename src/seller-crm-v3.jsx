@@ -2063,14 +2063,22 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId }) {
     var meEnUsuarios = sbUsers.find(function(u){ return u.id === myAuthId || u.authId === myAuthId; });
     var vendedorDbId = meEnUsuarios ? meEnUsuarios.dbId : myAuthId;
     if (vendedorDbId) dbRow.vendedor_id = vendedorDbId;
-    SB.from("leads").insert(dbRow).select().then(function(res) {
+    SB.from("leads").insert(dbRow).then(function(res) {
       if (res.error) {
         notify("Error al crear lead: " + res.error.message, false);
-      } else if (res.data && res.data[0]) {
-        var nuevo = dbToLead(res.data[0]);
-        setLeads(function(p){ return [nuevo, ...p]; });
-        notify("Lead agregado - " + nuevo.nombre);
-        registrarEvento(nuevo.id, "status", "Lead creado · status: " + (nuevo.status||"nuevo"), null, mappedUser);
+      } else {
+        // Buscar el lead recien creado por folio
+        SB.from("leads").select("*").eq("folio", dbRow.folio).limit(1).then(function(res2) {
+          if (res2.data && res2.data[0]) {
+            var nuevo = dbToLead(res2.data[0]);
+            setLeads(function(p){ return [nuevo, ...p]; });
+            notify("Lead agregado - " + nuevo.nombre);
+            registrarEvento(nuevo.id, "status", "Lead creado · status: " + (nuevo.status||"nuevo"), null, mappedUser);
+          } else {
+            notify("Lead creado");
+            cargarLeads();
+          }
+        });
       }
     });
   };
