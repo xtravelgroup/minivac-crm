@@ -1325,14 +1325,14 @@ function VendedorView({ leads, users, currentUser, destCatalog, onUpdateLead, in
           </div>
           <div style={{ display:"flex", gap:"8px", marginBottom:"14px", flexWrap:"wrap" }}>
             <input style={{ ...S.input, maxWidth:"220px" }} placeholder=" Buscar..." value={search} onChange={e=>setSearch(e.target.value)} />
-            {["all",...STATUS_ORDER.filter(s=>s!=="no_interesado")].map(s => (
+            {["all",...STATUS_ORDER].map(s => (
               <button key={s} style={S.tab(fStatus===s, s==="all"?"#1565c0":STATUS_CFG[s]?.color)} onClick={()=>setFStatus(s)}>
                 {s==="all"?"Todos":STATUS_CFG[s].label}
               </button>
             ))}
           </div>
           <div style={{ display:"flex", gap:"10px", overflowX:"auto", paddingBottom:"12px" }}>
-            {STATUS_ORDER.filter(s=>s!=="no_interesado").map(status => (
+            {STATUS_ORDER.map(status => (
               <KanbanCol key={status} status={status} leads={filtered.filter(l=>l.status===status)}
                 isSupervisor={false} onCardClick={setSel} onAI={setAiLead} />
             ))}
@@ -1506,7 +1506,7 @@ function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, 
             )}
           </div>
           <div style={{ display:"flex", gap:"10px", overflowX:"auto", paddingBottom:"12px" }}>
-            {STATUS_ORDER.filter(s=>s!=="no_interesado").map(status=>(
+            {STATUS_ORDER.map(status=>(
               <KanbanCol key={status} status={status} leads={filtered.filter(l=>l.status===status)}
                 isSupervisor={true} selectedIds={selIds} onSelect={toggleSel} onCardClick={setSelLead} onDragStart={handleDragStart} />
             ))}
