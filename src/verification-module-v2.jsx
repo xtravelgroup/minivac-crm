@@ -1708,7 +1708,7 @@ function DetailView({ lead, destCatalog, destMap, onBack, onUpdate }) {
   const handleFinish = (result, notes) => {
     const cleanExp = limpiarTarjeta(exp);
     const v = { result, notes, verifiedAt:TODAY, verifiedBy:"Verificador", paymentStatus:(verif||{}).paymentStatus||null, chargeAttempts:(verif||{}).chargeAttempts||[], docsSent:(verif||{}).docsSent||false };
-    const newStatus = result==="venta" ? "venta" : (result==="tarjeta_rechazada"||result==="cliente_no_interesado") ? "no_interesado" : "verificacion";
+    const newStatus = result==="venta" ? "venta" : result==="tarjeta_rechazada" ? "tarjeta_rechazada" : result==="cliente_no_interesado" ? "no_interesado" : "verificacion";
     setExp(cleanExp); setVerif(v);
     pushUpdate(cleanExp, v, { status:newStatus });
     setFinishModal(null);
@@ -1978,7 +1978,7 @@ export default function VerificationModule() {
   function cargarLeads() {
     SB.from("leads")
       .select("*, firma_enviada_at, firma_firmada_at")
-      .or("status.eq.verificacion,status.eq.venta,status.eq.no_interesado")
+      .or("status.eq.verificacion,status.eq.venta,status.eq.no_interesado,status.eq.tarjeta_rechazada")
       .order("created_at", { ascending: false })
       .then(function(res) {
         setLoading(false);
@@ -1993,7 +1993,7 @@ export default function VerificationModule() {
           });
           // Mostrar: verificacion pendientes + ventas + no_interesado
           var filtrados = mapped.filter(function(l) {
-            return l.status === "verificacion" || l.status === "venta" || l.status === "no_interesado";
+            return l.status === "verificacion" || l.status === "venta" || l.status === "no_interesado" || l.status === "tarjeta_rechazada";
           });
           setLeads(filtrados);
         } else {
