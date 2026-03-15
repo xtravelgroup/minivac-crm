@@ -96,7 +96,7 @@ export default function ExecutiveSuite({ currentUser }) {
   useEffect(function(){
     // Cargar datos en paralelo
     Promise.all([
-      SB.from("leads").select("id, nombre, estado_civil, status, emisora_id, emisora, created_at, sale_price, pago_inicial, vendedor_id, usuarios(nombre)"),
+      SB.from("leads").select("id, nombre, estado_civil, status, emisora_id, emisora, created_at, sale_price, pago_inicial, vendedor_id"),
       SB.from("reservaciones").select("id, folio, status, total, fee, checkin, checkout, agente_nombre, created_at, destino_nombre, hotel"),
       SB.from("radio_spots").select("id, emisora_id, costo, talento, precio_equipo, fecha, semana, dia_semana, hora, duracion, tipo, incidencia"),
       SB.from("emisoras").select("id, nombre"),
