@@ -862,7 +862,7 @@ export default function CommissionsModule({ currentUser: shellUser }) {
   // Cargar ventas reales de Supabase
   function cargarVentas() {
     SB.from("leads")
-      .select("*, vendedor:vendedor_id(id, nombre)")
+      .select("*")
       .eq("status", "venta")
       .order("updated_at", { ascending: false })
       .then(function(res) {
