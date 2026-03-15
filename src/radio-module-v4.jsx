@@ -48,6 +48,8 @@ var STATUS_META = {
 var INC_META = {
   no_salio:  {label:"No salio",  color:C.red,   bg:C.redBg,   bd:C.redBd,  credito:true},
   salio_mal: {label:"Salio mal", color:C.amber, bg:C.amberBg, bd:C.amberBd,credito:false},
+  aircheck:  {label:"Aircheck",  color:"#1565c0", bg:"#e8f0fe", bd:"#aac4f0",credito:false},
+  otros:     {label:"Otros",     color:"#5b21b6", bg:"#ede9fe", bd:"#c4b5fd",credito:false},
 };
 
 // Helpers de fecha
