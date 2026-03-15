@@ -751,10 +751,7 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
               <div style={{ gridColumn:"1/-1" }}>
                 <div style={S.label}>Direccion</div>
                 <input style={S.input} value={draft.direccion||""} onChange={e => set("direccion",e.target.value)} disabled={!canEdit} />
-              <div style={{ gridColumn:"1/-1" }}>
-                <div style={S.label}>Spot de radio</div>
-                <SpotSelect value={draft.spotId||""} onChange={function(spotId, emisoraId){ set("spotId",spotId||null); set("emisoraId",emisoraId||null); }} disabled={!canEdit}/>
-              </div>              </div>
+              </div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 100px 1fr", gap:"8px" }}>
                 <div>
                   <div style={S.label}>Ciudad</div>
@@ -768,6 +765,10 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
                   <div style={S.label}>ZIP Code</div>
                   <input style={S.input} value={draft.zip||""} onChange={e => set("zip",e.target.value)} disabled={!canEdit} placeholder="00000" />
                 </div>
+              </div>
+              <div style={{ gridColumn:"1/-1" }}>
+                <div style={S.label}>Spot de radio</div>
+                <SpotSelect value={draft.spotId||""} onChange={function(spotId, emisoraId){ set("spotId",spotId||null); set("emisoraId",emisoraId||null); }} disabled={!canEdit}/>
               </div>
             </div>
             {(draft.estadoCivil==="Casado" || draft.estadoCivil==="Union libre") && (
