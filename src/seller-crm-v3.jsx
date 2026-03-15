@@ -601,6 +601,19 @@ Responde con EXACTAMENTE este JSON:
 // 
 // LEAD MODAL
 // 
+function EmisoraSelect({value, onChange, disabled}){
+  var [opts, setOpts] = useState([]);
+  useEffect(function(){
+    SB.from("emisoras").select("id,nombre").order("nombre").then(function(r){
+      if(r.data) setOpts(r.data);
+    });
+  },[]);
+  return <select style={{width:"100%",background:"#f8f9fb",border:"1px solid #e3e6ea",borderRadius:"8px",padding:"9px 12px",color:"#3d4554",fontSize:"13px",outline:"none"}} value={value} onChange={function(e){onChange(e.target.value);}} disabled={disabled}>
+    <option value="">-- Sin emisora --</option>
+    {opts.map(function(em){return <option key={em.id} value={em.id}>{em.nombre}</option>;})}
+  </select>;
+}
+
 function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClose, onSave, onBlock, onUnblock }) {
   const [draft, setDraft]           = useState({ ...lead, notas: (lead.notas||[]).map(n => typeof n === "string" ? {ts:TODAY,autor:currentUser.name,tipo:"nota",nota:n} : n) });
   const [tab, setTab]               = useState("datos");
@@ -714,7 +727,10 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
               <div style={{ gridColumn:"1/-1" }}>
                 <div style={S.label}>Direccion</div>
                 <input style={S.input} value={draft.direccion||""} onChange={e => set("direccion",e.target.value)} disabled={!canEdit} />
-              </div>
+              <div style={{ gridColumn:"1/-1" }}>
+                <div style={S.label}>Emisora de radio</div>
+                <EmisoraSelect value={draft.emisoraId||""} onChange={function(v){ set("emisoraId",v||null); }} disabled={!canEdit}/>
+              </div>              </div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 100px 1fr", gap:"8px" }}>
                 <div>
                   <div style={S.label}>Ciudad</div>
