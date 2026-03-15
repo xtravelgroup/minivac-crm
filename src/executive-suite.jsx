@@ -705,15 +705,18 @@ function TabRadios(props){
               }))),
 
           // Footer del día con leads
-          leadsDelDia.length>0&&React.createElement("div",{key:"leads-footer",style:{
+          React.createElement("div",{key:"leads-footer",style:{
             padding:"8px 16px",
             background:"rgba(26,127,60,0.04)",
             borderTop:"1px solid "+C.border,
-            display:"flex",gap:16,alignItems:"center",fontSize:11,color:C.muted,
+            display:"flex",gap:16,alignItems:"center",fontSize:11,flexWrap:"wrap",
           }},[
-            React.createElement("span",{key:"l",style:{color:C.green,fontWeight:600}},leadsDelDia.length+" leads de radio"),
+            React.createElement("span",{key:"sp",style:{color:C.muted}},delDia.length+" spot"+(delDia.length!==1?"s":"")),
+            invDelDia>0&&React.createElement("span",{key:"inv",style:{color:"#b91c1c",fontWeight:600}},fmtUSD(invDelDia)+" inversión"),
+            React.createElement("span",{key:"l",style:{color:C.green,fontWeight:600}},leadsDelDia.length+" lead"+(leadsDelDia.length!==1?"s":"")),
             ventasDelDia.length>0&&React.createElement("span",{key:"v",style:{color:C.green,fontWeight:700}},ventasDelDia.length+" venta"+(ventasDelDia.length!==1?"s":"")),
             ingDelDia>0&&React.createElement("span",{key:"ing",style:{color:C.green,fontWeight:700}},fmtUSD(ingDelDia)+" ingresos"),
+            roiDia!==null&&React.createElement("span",{key:"roi",style:{color:roiDia<35?C.green:roiDia<=45?C.amber:"#b91c1c",fontWeight:700}},roiDia.toFixed(1)+"% Mkt Cost"),
           ]),
         ]);
       })
