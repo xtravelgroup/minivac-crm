@@ -1946,7 +1946,7 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId }) {
   // Cargar usuarios del equipo para el supervisor
   function cargarUsuarios() {
     SB.from("usuarios").select("id,nombre,rol,auth_id,activo")
-      .in("rol", ["vendedor","supervisor","admin","director"])
+      .in("rol", ["vendedor","supervisor","admin","director","verificador"])
       .eq("activo", true)
       .order("nombre")
       .then(function(res) {
@@ -1979,7 +1979,7 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId }) {
     cargarDestinos();
     // Cargar usuarios primero, luego leads
     SB.from("usuarios").select("id,nombre,rol,auth_id,activo")
-      .in("rol", ["vendedor","supervisor","admin","director"])
+      .in("rol", ["vendedor","supervisor","admin","director","verificador"])
       .eq("activo", true)
       .order("nombre")
       .then(function(res) {
