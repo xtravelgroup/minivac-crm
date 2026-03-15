@@ -373,12 +373,18 @@ function VerificadorCard({ user, ventas, week, isAdmin, onConfig }) {
   const ventasSem  = ventas.filter(v => v.verificadorId===user.id && inWeek(v.fechaVenta, week) && !v.cancelada);
   const cancelSem  = ventas.filter(v => v.verificadorId===user.id && v.cancelada && inWeek(v.fechaCancelacion||v.fechaVenta, week));
   const ventasHoy  = ventas.filter(v => v.verificadorId===user.id && v.fechaVenta===TODAY && !v.cancelada);
-  const montoSem   = ventasSem.reduce((a,v) => a+Number(v.salePrice), 0);
-  const montoHoy   = ventasHoy.reduce((a,v) => a+Number(v.salePrice), 0);
-  const commSem    = montoSem * user.commPct / 100;
-  const commHoy    = montoHoy * user.commPct / 100;
-  const descCancel = cancelSem.reduce((a,v) => a+Number(v.salePrice)*user.commPct/100, 0);
-  const totalSem   = commSem - descCancel;
+  const montoSem    = ventasSem.reduce((a,v) => a+Number(v.salePrice), 0);
+  const montoHoy    = ventasHoy.reduce((a,v) => a+Number(v.salePrice), 0);
+  const upsaleSem   = ventasSem.reduce((a,v) => a+Number(v.upsaleMonto||0), 0);
+  const upsaleHoy   = ventasHoy.reduce((a,v) => a+Number(v.upsaleMonto||0), 0);
+  const baseCommSem = montoSem * user.commPct / 100;
+  const baseCommHoy = montoHoy * user.commPct / 100;
+  const upCommSem   = upsaleSem * (10 + user.commPct) / 100;
+  const upCommHoy   = upsaleHoy * (10 + user.commPct) / 100;
+  const commSem     = baseCommSem + upCommSem;
+  const commHoy     = baseCommHoy + upCommHoy;
+  const descCancel  = cancelSem.reduce((a,v) => a+Number(v.salePrice)*user.commPct/100, 0);
+  const totalSem    = commSem - descCancel;
 
   return (
     <div style={S.card}>
@@ -414,9 +420,15 @@ function VerificadorCard({ user, ventas, week, isAdmin, onConfig }) {
         <div style={S.sTitle}>Comision semana</div>
         <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
           <div style={{ display:"flex", justifyContent:"space-between", fontSize:13 }}>
-            <span style={{ color:"#6b7280" }}>Base ({ventasSem.length} verificaciones x {user.commPct}%)</span>
-            <span style={{ color:"#1a7f3c", fontWeight:600 }}>{fmtUSD(commSem)}</span>
+            <span style={{ color:"#6b7280" }}>Base ({ventasSem.length} verif. x {user.commPct}%)</span>
+            <span style={{ color:"#1a7f3c", fontWeight:600 }}>{fmtUSD(baseCommSem)}</span>
           </div>
+          {upCommSem > 0 && (
+            <div style={{ display:"flex", justifyContent:"space-between", fontSize:13 }}>
+              <span style={{ color:"#6b7280" }}>Upsale ({fmtUSD(upsaleSem)} x {10+user.commPct}%)</span>
+              <span style={{ color:"#1565c0", fontWeight:600 }}>{fmtUSD(upCommSem)}</span>
+            </div>
+          )}
           {descCancel > 0 && (
             <div style={{ display:"flex", justifyContent:"space-between", fontSize:13 }}>
               <span style={{ color:"#6b7280" }}>Descuento cancelaciones</span>
@@ -896,6 +908,7 @@ export default function CommissionsModule({ currentUser: shellUser }) {
               verificadorId:    "",
               fechaVenta:       (r.updated_at || r.created_at || TODAY).split("T")[0],
               salePrice:        Number(r.sale_price) || 0,
+              upsaleMonto:      Number(r.upsale_monto) || 0,
               pagoInicial:      Number(r.pago_inicial) || 0,
               pagosHistorial:   Array.isArray(r.pagos_historial) ? r.pagos_historial : [],
               cancelada:        false,

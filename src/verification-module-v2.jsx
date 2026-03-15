@@ -721,13 +721,14 @@ function UpsalePanel({ exp, onSave }) {
   const handleAddDestino = () => {
     if (!destId || !destPrecio) return;
     const newDestinos = [...(exp.destinos||[]), { destId, tipo:destTipo, noches:destNoches, regalo:null }];
-    onSave({ ...exp, destinos:newDestinos, salePrice:(exp.salePrice||0)+Number(destPrecio) });
+    const montoUp = Number(destPrecio);
+    onSave({ ...exp, destinos:newDestinos, salePrice:(exp.salePrice||0)+montoUp, upsaleMonto:(exp.upsaleMonto||0)+montoUp });
     setDestId(""); setDestPrecio(""); setOpen(false);
   };
 
   const handleAddBeneficios = () => {
     if (!selBenef.length) return;
-    onSave({ ...exp, salePrice:(exp.salePrice||0)+totalBenef });
+    onSave({ ...exp, salePrice:(exp.salePrice||0)+totalBenef, upsaleMonto:(exp.upsaleMonto||0)+totalBenef });
     setSelBenef([]); setPrecioOvr({}); setOpen(false);
   };
 
@@ -2025,6 +2026,10 @@ export default function VerificationModule() {
       direccion:         u.exp.address         || null,
     };
     // Campos que requieren la migración SQL — solo incluir si tienen valor
+    if (u.exp.salePrice)      dbUpdate.sale_price         = u.exp.salePrice;
+    if (u.exp.upsaleMonto)    dbUpdate.upsale_monto       = u.exp.upsaleMonto;
+    if (u.exp.salePrice)      dbUpdate.sale_price         = u.exp.salePrice;
+    if (u.exp.upsaleMonto)    dbUpdate.upsale_monto       = u.exp.upsaleMonto;
     if (u.exp.tFechaNac)      dbUpdate.fecha_nac          = u.exp.tFechaNac;
     if (u.exp.pLastName)      dbUpdate.co_prop_apellido   = u.exp.pLastName;
     if (u.exp.pFechaNac)      dbUpdate.co_prop_fecha_nac  = u.exp.pFechaNac;
