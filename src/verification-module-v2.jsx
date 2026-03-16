@@ -518,6 +518,7 @@ function SendDocsModal({ lead, onClose, onSent }) {
   const [mailSent, setMailSent] = useState(false);
   const exp  = lead.exp;
   const SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
+  const EDGE_RESEND = "https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/resend-email";
   const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA";
   const HDR  = { "Content-Type":"application/json", "Authorization":"Bearer "+SB_KEY };
   const nombre = (exp.tFirstName||"") + " " + (exp.tLastName||"");
@@ -1245,6 +1246,7 @@ var AUTH_HDR    = { "Content-Type": "application/json", "Authorization": "Bearer
 
 function SectionFirma({ lead, exp, verif, onSendDocs }) {
   const SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
+  const EDGE_RESEND = "https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/resend-email";
   const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA";
   const HDR = { "Content-Type":"application/json", "Authorization":"Bearer "+SB_KEY, "apikey":SB_KEY };
 
