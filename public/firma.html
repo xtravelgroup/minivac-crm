@@ -488,6 +488,7 @@ var SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
 var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA";
 var EDGE   = "https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1";
 var HDR    = {"Content-Type":"application/json","Authorization":"Bearer "+SB_KEY};
+var SB_HDR = {"Content-Type":"application/json","Authorization":"Bearer "+SB_KEY,"apikey":SB_KEY};
 
 var QS    = new URLSearchParams(window.location.search);
 var LEAD  = QS.get("lead") || "";
@@ -533,7 +534,7 @@ function addDays(s, days) {
 
 function loadLead() {
   if (!LEAD) { document.getElementById("mName").textContent = "Invalid link. Contact your advisor."; return; }
-  fetch(SB_URL + "/rest/v1/leads?id=eq." + LEAD + "&select=*", { headers: HDR })
+  fetch(SB_URL + "/rest/v1/leads?id=eq." + LEAD + "&select=*", { headers: SB_HDR })
     .then(function(r){ return r.json(); })
     .then(function(data) {
       if (!data || !data[0]) { document.getElementById("mName").textContent = "Certificate not found."; return; }
