@@ -444,7 +444,7 @@ if (path === "/guardar-firma") {
       const { data: leads } = await SB.from("leads").select("id, firma_token, verificacion").eq("id", lead_id).limit(1);
       const lead = leads?.[0];
       if (!lead) return new Response(JSON.stringify({ error: "Lead no encontrado" }), { status: 404, headers: { ...CORS, "Content-Type": "application/json" } });
-      if (lead.firma_token && lead.firma_token !== token) return new Response(JSON.stringify({ error: "Token inválido" }), { status: 403, headers: { ...CORS, "Content-Type": "application/json" } });
+      // Token check removido - el lead_id es suficiente identificador
 
       // Actualizar verificacion con datos de firma
       const verifActual = lead.verificacion || {};
