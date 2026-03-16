@@ -660,12 +660,13 @@ function submitSig() {
     })
   })
   .then(function(r){ return r.json(); })
-  .then(function(){
+  .then(function(data){
+    console.log("guardar-firma response:", JSON.stringify(data));
     document.getElementById("loader").classList.remove("show");
     showOk();
   })
   .catch(function(e){
-    console.error(e);
+    console.error("guardar-firma error:", e);
     document.getElementById("loader").classList.remove("show");
     showOk();
   });
