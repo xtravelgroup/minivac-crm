@@ -14,6 +14,19 @@
           "value": "img-src 'self' data: blob: https://images.unsplash.com https://plus.unsplash.com https://lh3.googleusercontent.com https://avatars.githubusercontent.com;"
         }
       ]
+    },
+    {
+      "source": "/firma.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        }
+      ]
     }
   ]
 }
