@@ -2027,8 +2027,10 @@ export default function VerificationModule() {
     };
     // Campos que requieren la migración SQL — solo incluir si tienen valor
     if (u.exp.salePrice)      dbUpdate.sale_price         = u.exp.salePrice;
+    if (u.exp.pagoInicial)    dbUpdate.pago_inicial       = u.exp.pagoInicial;
     if (u.exp.upsaleMonto)    dbUpdate.upsale_monto       = u.exp.upsaleMonto;
     if (u.exp.salePrice)      dbUpdate.sale_price         = u.exp.salePrice;
+    if (u.exp.pagoInicial)    dbUpdate.pago_inicial       = u.exp.pagoInicial;
     if (u.exp.upsaleMonto)    dbUpdate.upsale_monto       = u.exp.upsaleMonto;
     if (u.exp.tFechaNac)      dbUpdate.fecha_nac          = u.exp.tFechaNac;
     if (u.exp.pLastName)      dbUpdate.co_prop_apellido   = u.exp.pLastName;
