@@ -543,10 +543,32 @@ function SendDocsModal({ lead, onClose, onSent }) {
       var waNum = phone.startsWith("1") ? phone : "1" + phone;
       var waUrl = "https://api.whatsapp.com/send?phone=" + waNum + "&text=" + encodeURIComponent(waMsg);
 
-      // 3. Enviar email via mailto (abre cliente de correo del agente)
-      var emailSubj = "Tu Travel Certificate - X Travel Group";
-      var emailBody = "Hola " + nombre.trim() + ",\n\nTe enviamos tu Travel Certificate de X Travel Group para firma digital.\n\nHaz clic en el siguiente link para revisar y firmar:\n" + firmaLink + "\n\nEste link es personal e intransferible. Si tienes dudas contactanos al 1.800.430.4640.\n\nGracias,\nX Travel Group Inc\nmembers@xtravelgroup.com";
-      var mailUrl = "mailto:" + email + "?subject=" + encodeURIComponent(emailSubj) + "&body=" + encodeURIComponent(emailBody);
+      // 3. Enviar email via Resend
+      var emailHtml = "<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto'>"
+        + "<table width='100%' cellpadding='0' cellspacing='0' bgcolor='#1a385a' style='background:#1a385a;border-radius:12px 12px 0 0'><tr><td align='center' style='padding:24px;background:#1a385a'>"
+        + "<h1 style='color:#ffffff;margin:0;font-size:22px;font-family:Arial,sans-serif'>TRAVEL<span style='color:#8aacca'>X</span> GROUP</h1>"
+        + "<p style='color:rgba(255,255,255,0.6);font-size:12px;margin:4px 0 0'>Travel Certificate</p>"
+        + "</td></tr></table>"
+        + "<div style='background:#fff;border:1px solid #e0e0e0;padding:28px'>"
+        + "<p style='font-size:15px'>Hola <strong>" + nombre.trim() + "</strong>,</p>"
+        + "<p style='font-size:14px;color:#444'>Te enviamos tu Travel Certificate de X Travel Group para firma digital. Por favor haz clic en el botón para revisar y firmar tu certificado.</p>"
+        + "<div style='text-align:center;margin:24px 0'><a href='" + firmaLink + "' style='background:#1a385a;color:#ffffff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px'>✍️ Firmar mi certificado</a></div>"
+        + "<p style='font-size:12px;color:#888'>Este link es personal e intransferible. Si tienes dudas llámanos al 1 (800) 927-1490.</p>"
+        + "</div>"
+        + "<div style='background:#0f2340;padding:14px;text-align:center;border-radius:0 0 12px 12px'><div style='font-size:11px;color:#475569'>© 2025 X Travel Group · members@xtravelgroup.com</div></div>"
+        + "</div>";
+
+      fetch(EDGE_RESEND + "/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + ANON_KEY },
+        body: JSON.stringify({
+          to_email: email,
+          to_name: nombre.trim(),
+          subject: "Tu Travel Certificate - X Travel Group",
+          body_html: emailHtml,
+          lead_id: lead.id
+        })
+      }).then(function(){ setMailSent(true); }).catch(function(){});
 
       setPhase("ready_to_send");
 
@@ -556,10 +578,8 @@ function SendDocsModal({ lead, onClose, onSent }) {
         body: JSON.stringify({ firma_token: data.token, firma_enviada_at: new Date().toISOString() })
       });
 
-      // Auto-abrir WhatsApp primero
+      // Auto-abrir WhatsApp
       setTimeout(function() { window.open(waUrl, "_blank"); setWaSent(true); }, 400);
-      // Auto-abrir email despues
-      setTimeout(function() { window.open(mailUrl, "_blank"); setMailSent(true); }, 1200);
 
     } catch(e) {
       setError(e.message || "Error al generar el link");
