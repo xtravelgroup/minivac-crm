@@ -1356,6 +1356,7 @@ function FichaMiembro(props) {
           {perms.crearNota&&<button style={S.btn("ghost")} onClick={function(){props.onNota(c);}}>+ Nota</button>}
           {perms.crearCaso&&<button style={S.btn("indigo")} onClick={function(){props.onCaso(c);}}>+ Caso</button>}
           {perms.crearOperacion&&<button style={S.btn("warn")} onClick={function(){props.onOp(c);}}>+ Op.</button>}
+          {c.firma_contrato&&<button style={S.btn("indigo")} onClick={function(){props.onVerFirma(c);}}>📄 Ver certificado</button>}
           <CommPanelTrigger cliente={c} onOpen={props.onComm}/>
           {perms.iniciarRetencion&&c.statusCliente==="activo"&&(
             <button style={S.btn("danger")} onClick={function(){props.onRetencion(c);}}>Retención</button>
@@ -1901,11 +1902,13 @@ export default function CsReservasV3() {
     });
   }
 
+  var [firmaModal, setFirmaModal] = useState(null);
+
   var fichaProps = {
     currentUser:currentUser, perms:perms, rol:rolActual,
     reservas:reservas, interacciones:interacciones, casos:casos, ops:operaciones,
     onNuevaReserva:handleNuevaReserva, onVerReserva:handleVerReserva,
-    onNota:handleNota, onCaso:handleCaso, onOp:handleOp,
+    onNota:handleNota, onCaso:handleCaso, onOp:handleOp, onVerFirma:function(cl){ setFirmaModal(cl); },
     onRetencion:handleRetencion, onComm:comm.open,
     onAbono:function(nuevosAbonos){
       cargarMiembros();
@@ -1939,6 +1942,29 @@ export default function CsReservasV3() {
 
   return (
     <div style={S.wrap}>
+      {firmaModal && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}} onClick={function(){setFirmaModal(null);}}>
+          <div style={{background:"#fff",borderRadius:12,padding:"20px",maxWidth:"500px",width:"100%"}} onClick={function(e){e.stopPropagation();}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}}>
+              <div style={{fontSize:"14px",fontWeight:"700",color:"#1a1f2e"}}>Certificado firmado — {firmaModal.nombre}</div>
+              <button style={{background:"none",border:"none",cursor:"pointer",fontSize:"18px",color:"#9ca3af"}} onClick={function(){setFirmaModal(null);}}>✕</button>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px"}}>
+              {[{key:"firma_contrato",label:"Contrato"},{key:"firma_autorizacion",label:"Autorización"},{key:"firma_terminos",label:"Términos"}].map(function(doc){
+                var img = firmaModal[doc.key];
+                return (
+                  <div key={doc.key} style={{border:"1px solid #e3e6ea",borderRadius:"8px",overflow:"hidden"}}>
+                    <div style={{fontSize:"10px",fontWeight:"600",color:"#9ca3af",padding:"5px 8px",background:"#f9fafb",borderBottom:"1px solid #e3e6ea",textTransform:"uppercase"}}>{doc.label}</div>
+                    {img ? <img src={img} alt={doc.label} style={{width:"100%",height:"80px",objectFit:"contain",background:"#fff",display:"block"}} />
+                         : <div style={{height:"80px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"11px",color:"#d1d5db"}}>sin firma</div>}
+                  </div>
+                );
+              })}
+            </div>
+            {firmaModal.firma_firmada_at && <div style={{fontSize:"11px",color:"#9ca3af",marginTop:"10px",textAlign:"center"}}>Firmado el {new Date(firmaModal.firma_firmada_at).toLocaleString("es-MX",{day:"2-digit",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"})}</div>}
+          </div>
+        </div>
+      )}
 
       {/* TOPBAR */}
       <div style={S.topbar}>
