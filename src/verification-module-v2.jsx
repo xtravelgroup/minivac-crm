@@ -304,7 +304,7 @@ function EditExpedienteModal({ exp, destCatalog, destMap, onClose, onSave }) {
           <div style={S.g2}>
             <div style={{gridColumn:"1/-1"}}><div style={S.label}>Calle y número</div><input style={S.input} value={d.address||""} onChange={function(e){ set("address",e.target.value); }} /></div>
             <div><div style={S.label}>Ciudad</div><input style={S.input} value={d.city||""} onChange={function(e){ set("city",e.target.value); }} /></div>
-            <div><div style={S.label}>Estado / ZIP</div><input style={S.input} value={(d.state||"")+" "+(d.zip||"")} onChange={function(e){ set("state",e.target.value); }} /></div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}><div><div style={S.label}>Estado</div><input style={S.input} value={d.state||""} onChange={function(e){ set("state",e.target.value); }} placeholder="FL"/></div><div><div style={S.label}>ZIP Code</div><input style={S.input} value={d.zip||""} onChange={function(e){ set("zip",e.target.value); }} placeholder="00000"/></div></div>
           </div>
         </div>
 
