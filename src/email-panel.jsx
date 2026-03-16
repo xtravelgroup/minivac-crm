@@ -202,101 +202,12 @@ function buildTemplates(lead) {
 
   return [
     {
-      id:      "certificado",
-      label:   "📄 Certificado de viaje",
-      subject: "Su certificado de viaje - X Travel Group",
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#222;">
-          <div style="background:#1a3a5c;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
-            <h1 style="color:#fff;margin:0;font-size:22px;">X Travel Group</h1>
-          </div>
-          <div style="background:#f9f9f9;padding:30px;border-radius:0 0 8px 8px;border:1px solid #e0e0e0;">
-            <p>Estimado/a <strong>${nombre}</strong>,</p>
-            <p>Es un placer confirmarle su membresía de viaje con X Travel Group.</p>
-            <p>Por favor, haga clic en el siguiente botón para revisar y firmar su certificado de viaje:</p>
-            <div style="text-align:center;margin:30px 0;">
-              <a href="${firmaUrl || "#"}" style="background:#1a3a5c;color:#fff;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:16px;">
-                Ver y Firmar Certificado
-              </a>
-            </div>
-            <p style="font-size:13px;color:#666;">Si el botón no funciona, copie este enlace: <br/><a href="${firmaUrl || "#"}">${firmaUrl || "Link no disponible"}</a></p>
-            <hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0;"/>
-            <p style="font-size:13px;color:#888;">X Travel Group · members@xtravelgroup.com</p>
-          </div>
-        </div>`,
-      text: `Estimado/a ${nombre},\n\nPor favor firme su certificado de viaje en: ${firmaUrl || "Link no disponible"}\n\nX Travel Group`,
-      disabled: !firmaUrl,
-      disabledMsg: "Genera el link de firma primero en el tab de Pago",
-    },
-    {
       id:      "paquete",
       label:   "🗺️ Presentación de paquete",
       subject: "",
       html:    "",
       text:    "",
       isPaquete: true,
-    },
-    {
-      id:      "bienvenida",
-      label:   "👋 Bienvenida",
-      subject: "Bienvenido a X Travel Group",
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#222;">
-          <div style="background:#1a3a5c;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
-            <h1 style="color:#fff;margin:0;font-size:22px;">X Travel Group</h1>
-          </div>
-          <div style="background:#f9f9f9;padding:30px;border-radius:0 0 8px 8px;border:1px solid #e0e0e0;">
-            <p>Estimado/a <strong>${nombre}</strong>,</p>
-            <p>¡Bienvenido/a a la familia X Travel Group! 🎉</p>
-            <p>Nos complace informarle que su membresía de viaje ha sido procesada exitosamente.</p>
-            <p>Pronto uno de nuestros especialistas se pondrá en contacto con usted para coordinar los detalles de su experiencia de viaje.</p>
-            <p>Si tiene alguna pregunta, no dude en responder a este correo.</p>
-            <hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0;"/>
-            <p style="font-size:13px;color:#888;">X Travel Group · members@xtravelgroup.com</p>
-          </div>
-        </div>`,
-      text: `Estimado/a ${nombre},\n\n¡Bienvenido/a a X Travel Group! Su membresía ha sido procesada. Pronto nos pondremos en contacto.\n\nX Travel Group`,
-    },
-    {
-      id:      "seguimiento",
-      label:   "📞 Seguimiento",
-      subject: "Seguimiento de su membresía - X Travel Group",
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#222;">
-          <div style="background:#1a3a5c;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
-            <h1 style="color:#fff;margin:0;font-size:22px;">X Travel Group</h1>
-          </div>
-          <div style="background:#f9f9f9;padding:30px;border-radius:0 0 8px 8px;border:1px solid #e0e0e0;">
-            <p>Estimado/a <strong>${nombre}</strong>,</p>
-            <p>Nos comunicamos para darle seguimiento a su membresía de viaje con X Travel Group.</p>
-            <p>Queremos asegurarnos de que tenga toda la información necesaria y responder cualquier pregunta que pueda tener.</p>
-            <p>No dude en responder a este correo o contactarnos directamente.</p>
-            <hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0;"/>
-            <p style="font-size:13px;color:#888;">X Travel Group · members@xtravelgroup.com</p>
-          </div>
-        </div>`,
-      text: `Estimado/a ${nombre},\n\nNos comunicamos para darle seguimiento a su membresía. Por favor contáctenos si tiene preguntas.\n\nX Travel Group`,
-    },
-    {
-      id:      "confirmacion",
-      label:   "✅ Confirmación de venta",
-      subject: `Confirmación de su membresía - X Travel Group`,
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#222;">
-          <div style="background:#1a7f3c;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
-            <h1 style="color:#fff;margin:0;font-size:22px;">✅ Membresía Confirmada</h1>
-          </div>
-          <div style="background:#f9f9f9;padding:30px;border-radius:0 0 8px 8px;border:1px solid #e0e0e0;">
-            <p>Estimado/a <strong>${nombre}</strong>,</p>
-            <p>¡Felicitaciones! Su membresía de viaje con X Travel Group ha sido <strong>confirmada</strong>.</p>
-            ${precio ? `<p><strong>Inversión total:</strong> ${precio}</p>` : ""}
-            ${destinos ? `<p><strong>Destinos incluidos:</strong> ${destinos}</p>` : ""}
-            <p>En los próximos días recibirá toda la documentación de su membresía.</p>
-            <hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0;"/>
-            <p style="font-size:13px;color:#888;">X Travel Group · members@xtravelgroup.com</p>
-          </div>
-        </div>`,
-      text: `Estimado/a ${nombre},\n\n¡Felicitaciones! Su membresía ha sido confirmada.${precio ? " Inversión: "+precio+"." : ""}\n\nX Travel Group`,
     },
     {
       id:      "libre",
