@@ -432,7 +432,7 @@ serve(async (req) => {
 if (path === "/guardar-firma") {
     try {
       const body = await req.json();
-      const { lead_id, token, firma_contrato, firma_autorizacion, firma_terminos, firmado_en } = body;
+      const { lead_id, token, firma_contrato, firma_autorizacion, firma_terminos, firmado_en, firma_ip, firma_device, firma_location } = body;
       if (!lead_id) return new Response(JSON.stringify({ error: "lead_id requerido" }), { status: 400, headers: { ...CORS, "Content-Type": "application/json" } });
 
       const SB = createClient(
@@ -453,6 +453,9 @@ if (path === "/guardar-firma") {
         firma_contrato:      firma_contrato      || null,
         firma_autorizacion:  firma_autorizacion  || null,
         firma_terminos:      firma_terminos       || null,
+        firma_ip:            firma_ip            || null,
+        firma_device:        firma_device        || null,
+        firma_location:      firma_location      || null,
         verificacion: {
           ...verifActual,
           docsSigned: true,

@@ -651,25 +651,34 @@ function submitSig() {
   document.getElementById("loader").classList.add("show");
   var img = canvCust.toDataURL("image/png");
 
-  fetch(EDGE + "/zoho-payments/guardar-firma", {
-    method:"POST", headers:HDR,
-    body: JSON.stringify({
-      lead_id: LEAD, token: TOKEN,
-      firma_contrato: img, firma_autorizacion: img, firma_terminos: img,
-      firmado_en: new Date().toISOString()
-    })
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(data){
-    console.log("guardar-firma response:", JSON.stringify(data));
-    document.getElementById("loader").classList.remove("show");
-    showOk();
-  })
-  .catch(function(e){
-    console.error("guardar-firma error:", e);
-    document.getElementById("loader").classList.remove("show");
-    showOk();
-  });
+  // Obtener IP del cliente
+  fetch("https://api.ipify.org?format=json")
+    .then(function(r){ return r.json(); })
+    .catch(function(){ return {ip:"desconocida"}; })
+    .then(function(ipData){
+      fetch(EDGE + "/zoho-payments/guardar-firma", {
+        method:"POST", headers:HDR,
+        body: JSON.stringify({
+          lead_id: LEAD, token: TOKEN,
+          firma_contrato: img, firma_autorizacion: img, firma_terminos: img,
+          firmado_en: new Date().toISOString(),
+          firma_ip: ipData.ip || "desconocida",
+          firma_device: navigator.userAgent,
+          firma_location: Intl.DateTimeFormat().resolvedOptions().timeZone || ""
+        })
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        console.log("guardar-firma response:", JSON.stringify(data));
+        document.getElementById("loader").classList.remove("show");
+        showOk();
+      })
+      .catch(function(e){
+        console.error("guardar-firma error:", e);
+        document.getElementById("loader").classList.remove("show");
+        showOk();
+      });
+    });
 }
 
 function showOk() {
