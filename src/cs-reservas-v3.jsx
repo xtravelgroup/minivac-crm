@@ -228,6 +228,9 @@ function leadToMiembro(r) {
     firma_autorizacion:  r.firma_autorizacion  || null,
     firma_terminos:      r.firma_terminos       || null,
     firma_firmada_at:    r.firma_firmada_at     || null,
+    firma_ip:            r.firma_ip             || null,
+    firma_device:        r.firma_device         || null,
+    firma_location:      r.firma_location       || null,
     zohoPaymentMethodId: r.zoho_payment_method_id || "",
     zohoCustomerId:      r.zoho_customer_id       || "",
     tarjetaLast4:        r.tarjeta_last4           || "",
@@ -1965,7 +1968,17 @@ export default function CsReservasV3() {
                 );
               })}
             </div>
-            {firmaModal.firma_firmada_at && <div style={{fontSize:"11px",color:"#9ca3af",marginTop:"10px",textAlign:"center"}}>Firmado el {new Date(firmaModal.firma_firmada_at).toLocaleString("es-MX",{day:"2-digit",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"})}</div>}
+            {firmaModal.firma_firmada_at && (
+              <div style={{marginTop:"14px",padding:"12px",background:"#f8f9fb",borderRadius:"8px",border:"1px solid #e3e6ea"}}>
+                <div style={{fontSize:"11px",fontWeight:"700",color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"8px"}}>Hoja de confirmación</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px",fontSize:"12px"}}>
+                  <div><span style={{color:"#9ca3af"}}>Firmado:</span> <strong>{new Date(firmaModal.firma_firmada_at).toLocaleString("es-MX",{day:"2-digit",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"})}</strong></div>
+                  <div><span style={{color:"#9ca3af"}}>IP:</span> <strong>{firmaModal.firma_ip||"—"}</strong></div>
+                  <div><span style={{color:"#9ca3af"}}>Zona horaria:</span> <strong>{firmaModal.firma_location||"—"}</strong></div>
+                  <div style={{gridColumn:"1/-1"}}><span style={{color:"#9ca3af"}}>Dispositivo:</span> <strong style={{fontSize:"10px",wordBreak:"break-all"}}>{firmaModal.firma_device||"—"}</strong></div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
