@@ -720,9 +720,13 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
         {tab === "datos" && (
           <div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px", marginBottom:"12px" }}>
-              <div style={{ gridColumn:"1/-1" }}>
+              <div>
                 <div style={S.label}>Nombre *</div>
                 <input style={S.input} value={draft.nombre||""} onChange={e => set("nombre",e.target.value)} disabled={!canEdit} />
+              </div>
+              <div>
+                <div style={S.label}>Apellido</div>
+                <input style={S.input} value={draft.apellido||""} onChange={e => set("apellido",e.target.value)} disabled={!canEdit} />
               </div>
               <div>
                 <div style={S.label}>Edad</div>
@@ -776,6 +780,7 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
               <div style={S.sTitle}> Co-propietario</div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 70px 1fr", gap:"8px" }}>
                 <div><div style={S.label}>Nombre</div><input style={S.input} value={draft.coProp||""} onChange={e=>set("coProp",e.target.value)} disabled={!canEdit} placeholder="-" /></div>
+                <div><div style={S.label}>Apellido</div><input style={S.input} value={draft.coPropApellido||""} onChange={e=>set("coPropApellido",e.target.value)} disabled={!canEdit} placeholder="-" /></div>
                 <div><div style={S.label}>Edad</div><input style={S.input} type="number" min="18" value={draft.coPropEdad||""} onChange={e=>set("coPropEdad",Number(e.target.value))} disabled={!canEdit} /></div>
                 <div><div style={S.label}>Telefono</div><input style={S.input} value={draft.coPropTel||""} onChange={e=>set("coPropTel",e.target.value)} disabled={!canEdit} placeholder="-" /></div>
               </div>
