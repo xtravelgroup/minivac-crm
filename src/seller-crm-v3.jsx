@@ -631,7 +631,7 @@ function SpotSelect({value, onChange, disabled}){
   },[]);
   return <select style={{width:"100%",background:"#f8f9fb",border:"1px solid #e3e6ea",borderRadius:"8px",padding:"9px 12px",color:"#3d4554",fontSize:"13px",outline:"none"}} value={value||""} onChange={function(e){
     var sp = opts.find(function(o){return o.id===e.target.value;});
-    onChange(e.target.value, sp ? sp.emisora_id : null);
+    onChange(e.target.value, sp ? sp.emisora_id : null, sp ? sp.label : null);
   }} disabled={disabled}>
     <option value="">-- Sin spot --</option>
     {opts.map(function(s){return <option key={s.id} value={s.id}>{s.label}</option>;})}
@@ -773,7 +773,7 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
               </div>
               <div style={{ gridColumn:"1/-1" }}>
                 <div style={S.label}>Spot de radio</div>
-                <SpotSelect value={draft.spotId||""} onChange={function(spotId, emisoraId){ set("spotId",spotId||null); set("emisoraId",emisoraId||null); }} disabled={!canEdit}/>
+                <SpotSelect value={draft.spotId||""} onChange={function(spotId, emisoraId, label){ set("spotId",spotId||null); set("emisoraId",emisoraId||null); if(label) set("emisora",label); }} disabled={!canEdit}/>
               </div>
             </div>
             {(draft.estadoCivil==="Casado" || draft.estadoCivil==="Union libre") && (
