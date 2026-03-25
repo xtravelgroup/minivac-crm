@@ -607,7 +607,7 @@ function SpotSelect({value, onChange, disabled}){
   useEffect(function(){
     var hoy = new Date().toISOString().split("T")[0];
     Promise.all([
-      SB.from("radio_spots").select("id,emisora_id,hora,fecha").order("fecha",{ascending:false}).limit(100),
+      SB.from("radio_spots").select("id,emisora_id,hora,fecha").lte("fecha", new Date().toISOString().split("T")[0]).order("fecha",{ascending:false}).limit(100),
       SB.from("emisoras").select("id,nombre")
     ]).then(function(res){
       var spots = res[0].data || [];
