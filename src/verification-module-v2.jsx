@@ -2107,9 +2107,10 @@ export default function VerificationModule() {
     var d = new Date(fechaStr.split("T")[0]+"T12:00:00");
     return d >= lunD && d <= domD;
   }
-  const colPendienteFirma = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && getSaldo(l)<=0 && !l.firma_firmada_at && l.firma_enviada_at; });
-  const colVentas         = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && getSaldo(l)<=0 && l.firma_firmada_at && estaEnSemana(l.firma_firmada_at); });
+  // Columnas NO excluyentes — un lead puede aparecer en varias
   const colCobranzaPend   = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && getSaldo(l) > 0; });
+  const colPendienteFirma = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && !l.firma_firmada_at && l.firma_enviada_at; });
+  const colVentas         = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && getSaldo(l)<=0 && l.firma_firmada_at && estaEnSemana(l.firma_firmada_at||l.verificacion.verifiedAt); });
   const pending         = colVerificacion;
   const done            = leads.filter(l => l.verificacion && l.verificacion.result);
   const ventas          = colVentas;
@@ -2155,7 +2156,7 @@ export default function VerificationModule() {
                   No hay expedientes en cola. Los leads en "Verificacion" aparecen aqui automaticamente.
                 </div>
               )}
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", alignItems:"start" }}>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:"16px", alignItems:"start" }}>
                 {[
                   { label:"Verificaciones", leads:colVerificacion, color:"#925c0a", bg:"#fffbe0", bd:"rgba(251,191,36,0.3)" },
                   { label:"Pendiente Pago",  leads:colPendientePago,  color:"#b91c1c", bg:"#fef2f2", bd:"rgba(185,28,28,0.2)" },
