@@ -2111,7 +2111,7 @@ export default function VerificationModule() {
   // Columnas NO excluyentes — un lead puede aparecer en varias
   const colCobranzaPend   = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && getSaldo(l) > 0; });
   const colPendienteFirma = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && !l.firma_firmada_at && l.firma_enviada_at; });
-  const colVentas         = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && getSaldo(l)<=0 && l.firma_firmada_at && estaEnSemana(l.firma_firmada_at||l.verificacion.verifiedAt); });
+  const colVentas         = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && estaEnSemana(l.verificacion.verifiedAt||l.firma_firmada_at); });
   const pending         = colVerificacion;
   const done            = leads.filter(l => l.verificacion && l.verificacion.result);
   const ventas          = colVentas;
