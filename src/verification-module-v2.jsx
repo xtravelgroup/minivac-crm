@@ -1999,7 +1999,7 @@ export default function VerificationModule() {
   // Cargar leads en verificacion o con resultado de verificacion de hoy
   function cargarLeads() {
     SB.from("leads")
-      .select("*, firma_enviada_at, firma_firmada_at")
+      .select("*, firma_enviada_at, firma_firmada_at, pagos_historial, sale_price, pago_inicial")
       .or("status.eq.verificacion,status.eq.venta,status.eq.no_interesado,status.eq.tarjeta_rechazada")
       .order("created_at", { ascending: false })
       .then(function(res) {
@@ -2094,8 +2094,9 @@ export default function VerificationModule() {
   const detailLead      = leads.find(function(l){ return l.id === detail; });
   const colVerificacion = leads.filter(function(l){ return !(l.verificacion && l.verificacion.result); });
   const colPendientePago= leads.filter(function(l){ return l.verificacion && (l.verificacion.result==="tarjeta_rechazada" || l.verificacion.paymentStatus==="declined"); });
-  const colPendienteFirma= leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && !l.firma_firmada_at && l.firma_enviada_at; });
-  const colVentas       = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && l.firma_firmada_at; });
+  const colPendienteFirma = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && getSaldo(l)<=0 && !l.firma_firmada_at && l.firma_enviada_at; });
+  const colVentas         = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && getSaldo(l)<=0 && l.firma_firmada_at && estaEnSemana(l.firma_firmada_at); });
+  const colCobranzaPend   = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && getSaldo(l) > 0; });
   const pending         = colVerificacion;
   const done            = leads.filter(l => l.verificacion && l.verificacion.result);
   const ventas          = colVentas;
@@ -2144,9 +2145,10 @@ export default function VerificationModule() {
               <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", alignItems:"start" }}>
                 {[
                   { label:"Verificaciones", leads:colVerificacion, color:"#925c0a", bg:"#fffbe0", bd:"rgba(251,191,36,0.3)" },
-                  { label:"Pendiente Pago",  leads:colPendientePago, color:"#b91c1c", bg:"#fef2f2", bd:"rgba(185,28,28,0.2)" },
+                  { label:"Pendiente Pago",  leads:colPendientePago,  color:"#b91c1c", bg:"#fef2f2", bd:"rgba(185,28,28,0.2)" },
+                  { label:"Cobranza Pend.",  leads:colCobranzaPend,   color:"#925c0a", bg:"#fffbe0", bd:"rgba(251,191,36,0.3)" },
                   { label:"Pend. Firma",     leads:colPendienteFirma, color:"#1565c0", bg:"#e8f0fe", bd:"rgba(21,101,192,0.2)" },
-                  { label:"Ventas",          leads:colVentas, color:"#1a7f3c", bg:"rgba(74,222,128,0.06)", bd:"rgba(74,222,128,0.2)" },
+                  { label:"Ventas (semana)", leads:colVentas,         color:"#1a7f3c", bg:"rgba(74,222,128,0.06)", bd:"rgba(74,222,128,0.2)" },
                 ].map(function(col){
                   return (
                     <div key={col.label} style={{ background:col.bg, border:"1px solid "+col.bd, borderRadius:"12px", overflow:"hidden" }}>
