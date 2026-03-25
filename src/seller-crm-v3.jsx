@@ -680,7 +680,7 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"14px" }}>
           <div>
             <div style={{ fontSize:"17px", fontWeight:"700", color:"#1a1f2e" }}>{draft.nombre}</div>
-            <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"2px" }}>{lead.folio} . {lead.emisora} . {vendedor?.name}</div>
+            <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"2px" }}>{lead.folio} . {draft.emisora||lead.emisora} . {vendedor?.name}</div>
           </div>
           <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", justifyContent:"flex-end" }}>
             {lead.bloqueado && <span style={S.badge("#b91c1c","#fef2f2","#f7c0c0")}>Bloqueado</span>}
