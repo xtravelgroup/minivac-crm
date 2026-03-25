@@ -1722,6 +1722,7 @@ function leadToDb(l) {
     destinos:            l.destinos            || [],
     emisora:             l.emisora             || null,
     emisora_id:          l.emisoraId           || null,
+    spot_id:             l.spotId              || null,
     status:              l.status              || "nuevo",
     vendedor_id:         l.vendedorId          || null,
     supervisor_id:       l.supervisorId        || null,
