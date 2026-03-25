@@ -2095,8 +2095,9 @@ export default function VerificationModule() {
   const colVerificacion = leads.filter(function(l){ return !(l.verificacion && l.verificacion.result); });
   const colPendientePago= leads.filter(function(l){ return l.verificacion && (l.verificacion.result==="tarjeta_rechazada" || l.verificacion.paymentStatus==="declined"); });
   function getSaldo(l) {
-    var total = Number(l.sale_price||0);
-    var pagado = Number(l.pago_inicial||0) + ((l.pagos_historial||[]).reduce(function(s,p){ return s+Number(p.monto||0); },0));
+    var exp = l.exp || {};
+    var total = Number(exp.salePrice||l.sale_price||0);
+    var pagado = Number(exp.pagoInicial||l.pago_inicial||0) + ((exp.pagosHistorial||l.pagos_historial||[]).reduce(function(s,p){ return s+Number(p.monto||0); },0));
     return Math.max(0, total - pagado);
   }
   var hoyD = new Date(); hoyD.setHours(0,0,0,0);
