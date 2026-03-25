@@ -2094,6 +2094,19 @@ export default function VerificationModule() {
   const detailLead      = leads.find(function(l){ return l.id === detail; });
   const colVerificacion = leads.filter(function(l){ return !(l.verificacion && l.verificacion.result); });
   const colPendientePago= leads.filter(function(l){ return l.verificacion && (l.verificacion.result==="tarjeta_rechazada" || l.verificacion.paymentStatus==="declined"); });
+  function getSaldo(l) {
+    var total = Number(l.sale_price||0);
+    var pagado = Number(l.pago_inicial||0) + ((l.pagos_historial||[]).reduce(function(s,p){ return s+Number(p.monto||0); },0));
+    return Math.max(0, total - pagado);
+  }
+  var hoyD = new Date(); hoyD.setHours(0,0,0,0);
+  var lunD = new Date(hoyD); lunD.setDate(hoyD.getDate() - (hoyD.getDay()===0?6:hoyD.getDay()-1));
+  var domD = new Date(lunD); domD.setDate(lunD.getDate()+6);
+  function estaEnSemana(fechaStr) {
+    if (!fechaStr) return false;
+    var d = new Date(fechaStr.split("T")[0]+"T12:00:00");
+    return d >= lunD && d <= domD;
+  }
   const colPendienteFirma = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && getSaldo(l)<=0 && !l.firma_firmada_at && l.firma_enviada_at; });
   const colVentas         = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && getSaldo(l)<=0 && l.firma_firmada_at && estaEnSemana(l.firma_firmada_at); });
   const colCobranzaPend   = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && getSaldo(l) > 0; });
