@@ -730,7 +730,7 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
               </div>
               <div>
                 <div style={S.label}>Edad</div>
-                <input style={S.input} type="number" min="18" max="99" value={draft.edad||""} onChange={e => set("edad",Number(e.target.value))} disabled={!canEdit} />
+                <input style={{...S.input,MozAppearance:"textfield",WebkitAppearance:"none"}} type="number" min="18" max="99" value={draft.edad||""} onChange={e => set("edad",Number(e.target.value))} disabled={!canEdit} />
               </div>
               <div>
                 <div style={S.label}>Estado civil</div>
@@ -778,11 +778,13 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
             {(draft.estadoCivil==="Casado" || draft.estadoCivil==="Union libre") && (
             <div style={{ padding:"12px 14px", borderRadius:"10px", background:"#f9fafb", border:"1px solid #e3e6ea" }}>
               <div style={S.sTitle}> Co-propietario</div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 70px 1fr", gap:"8px" }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px", marginBottom:"8px" }}>
                 <div><div style={S.label}>Nombre</div><input style={S.input} value={draft.coProp||""} onChange={e=>set("coProp",e.target.value)} disabled={!canEdit} placeholder="-" /></div>
                 <div><div style={S.label}>Apellido</div><input style={S.input} value={draft.coPropApellido||""} onChange={e=>set("coPropApellido",e.target.value)} disabled={!canEdit} placeholder="-" /></div>
-                <div><div style={S.label}>Edad</div><input style={S.input} type="number" min="18" value={draft.coPropEdad||""} onChange={e=>set("coPropEdad",Number(e.target.value))} disabled={!canEdit} /></div>
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 80px", gap:"8px" }}>
                 <div><div style={S.label}>Telefono</div><input style={S.input} value={draft.coPropTel||""} onChange={e=>set("coPropTel",e.target.value)} disabled={!canEdit} placeholder="-" /></div>
+                <div><div style={S.label}>Edad</div><input style={{...S.input,MozAppearance:"textfield",WebkitAppearance:"none"}} type="number" min="18" value={draft.coPropEdad||""} onChange={e=>set("coPropEdad",Number(e.target.value))} disabled={!canEdit} /></div>
               </div>
             </div>
             )}
