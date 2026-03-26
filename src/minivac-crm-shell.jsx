@@ -122,7 +122,7 @@ var MODULOS = [
   { id: "radio",        label: "Radio",          icon: "radio",        section: "Principal", roles: ["admin","director","especialista_radio","contador"] },
   { id: "kb",           label: "Knowledge Base", icon: "grid",         section: "Principal", roles: ["admin","director"] },
   { id: "comms",        label: "Comunicaciones", icon: "cs",           section: "Principal", roles: ["admin","director","supervisor","vendedor"] },
-  { id: "seller",       label: "Vendedores",     icon: "seller",       section: "Principal", roles: ["admin","director","supervisor","vendedor","verificador"] },
+  { id: "seller",       label: "Ventas",     icon: "seller",       section: "Principal", roles: ["admin","director","supervisor","vendedor","verificador"] },
   { id: "verificacion", label: "Verificacion",   icon: "verificacion", section: "Principal", roles: ["admin","director","supervisor","verificador"] },
   { id: "cs",           label: "Membresias",     icon: "cs",           section: "Operacion", roles: ["admin","director","cs"] },
   { id: "reservas",     label: "Reservaciones",  icon: "reservas",     section: "Operacion", roles: ["admin","director","cs"] },

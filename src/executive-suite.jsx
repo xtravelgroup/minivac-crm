@@ -80,7 +80,7 @@ var TABS = [
   {id:"ventas",     l:"Ventas"},
   {id:"reservas",   l:"Reservas"},
   {id:"cobranza",   l:"Cobranza"},
-  {id:"vendedores", l:"Vendedores"},
+  {id:"vendedores", l:"Ventas"},
   {id:"radios",     l:"Radios / ROI"},
 ];
 
@@ -138,7 +138,7 @@ export default function ExecutiveSuite({ currentUser }) {
       tab==="ventas"     && React.createElement(TabVentas,     {data:data}) ||
       tab==="reservas"   && React.createElement(TabReservas,   {data:data}) ||
       tab==="cobranza"   && React.createElement(TabCobranza,   {data:data}) ||
-      tab==="vendedores" && React.createElement(TabVendedores, {data:data}) ||
+      tab==="vendedores" && React.createElement(TabVentas, {data:data}) ||
       tab==="radios"     && React.createElement(TabRadios,     {data:data})
     ),
   ]);
@@ -412,7 +412,7 @@ function TabCobranza(props){
 }
 
 // ── TAB VENDEDORES ──
-function TabVendedores(props){
+function TabVentas(props){
   var leads = props.data.leads;
   var profiles = props.data.profiles;
 
@@ -430,7 +430,7 @@ function TabVendedores(props){
 
   return React.createElement("div", {style:S.page}, [
     React.createElement("div", {key:"kpis", style:{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12}}, [
-      React.createElement(KpiCard, {key:"a", label:"Vendedores Activos", value:vList.length, color:C.indigo}),
+      React.createElement(KpiCard, {key:"a", label:"Ventas Activos", value:vList.length, color:C.indigo}),
       React.createElement(KpiCard, {key:"b", label:"Total Ventas", value:vList.reduce(function(s,v){return s+v.ventas;},0), color:C.green}),
       React.createElement(KpiCard, {key:"c", label:"Total Cobrado", value:fmtUSD(vList.reduce(function(s,v){return s+v.pagado;},0)), color:C.green}),
     ]),

@@ -1497,7 +1497,7 @@ function InsightsAI({ spots, emisoras, semana }) {
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px", marginBottom:"18px" }}>
             {insights.proyeccion&&<div style={{ padding:"12px 16px", borderRadius:"10px", background:"rgba(99,102,241,0.07)", border:"1px solid rgba(99,102,241,0.2)" }}><div style={{ fontSize:"10px", fontWeight:"700", color:"#818cf8", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:"4px" }}>📊 Proyección</div><div style={{ fontSize:"12px", color:"#94a3b8", lineHeight:1.6 }}>{insights.proyeccion}</div></div>}
-            {insights.insight_vendedores&&<div style={{ padding:"12px 16px", borderRadius:"10px", background:"rgba(251,191,36,0.07)", border:"1px solid rgba(251,191,36,0.2)" }}><div style={{ fontSize:"10px", fontWeight:"700", color:"#fbbf24", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:"4px" }}>👥 Vendedores</div><div style={{ fontSize:"12px", color:"#94a3b8", lineHeight:1.6 }}>{insights.insight_vendedores}</div></div>}
+            {insights.insight_vendedores&&<div style={{ padding:"12px 16px", borderRadius:"10px", background:"rgba(251,191,36,0.07)", border:"1px solid rgba(251,191,36,0.2)" }}><div style={{ fontSize:"10px", fontWeight:"700", color:"#fbbf24", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:"4px" }}>👥 Ventas</div><div style={{ fontSize:"12px", color:"#94a3b8", lineHeight:1.6 }}>{insights.insight_vendedores}</div></div>}
           </div>
           <div style={S.sTitle}>🎯 Recomendaciones — {insights.recomendaciones?.length}</div>
           <div style={{ display:"flex", flexDirection:"column", gap:"10px" }}>

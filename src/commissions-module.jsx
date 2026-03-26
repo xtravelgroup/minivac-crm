@@ -645,7 +645,7 @@ function AprobacionModal({ meta, users, onClose, onDecision }) {
         </div>
 
         <div style={{ marginBottom:16 }}>
-          <div style={{ fontSize:11, fontWeight:700, color:"#9ca3af", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Vendedores incluidos</div>
+          <div style={{ fontSize:11, fontWeight:700, color:"#9ca3af", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Ventas incluidos</div>
           <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
             {vendedores.map(u => (
               <span key={u.id} style={S.badge("#1a7f3c","rgba(74,222,128,0.08)","#b0deb2")}>{u.name}</span>
@@ -784,7 +784,7 @@ function SpiffPanel({ users, week, notify, role }) {
                 <div style={{ fontSize:12, color:"#9ca3af" }}>{fmtDate(meta.fechaInicio)} - {fmtDate(meta.fechaFin)}</div>
               </div>
               <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
-                <span style={{ fontSize:11, color:"#9ca3af" }}>Vendedores:</span>
+                <span style={{ fontSize:11, color:"#9ca3af" }}>Ventas:</span>
                 {vendsMeta.map(u => <span key={u.id} style={S.badge("#1a7f3c","rgba(74,222,128,0.07)","rgba(74,222,128,0.2)")}>{u.name}</span>)}
               </div>
               {(meta.aprobadaPor || meta.motivoRechazo) && (
@@ -1094,7 +1094,7 @@ export default function CommissionsModule({ currentUser: shellUser }) {
       </div>
 
       <div style={{ padding:"0 24px", display:"flex", gap:4, borderBottom:"1px solid #e3e6ea", background:"#ffffff" }}>
-        {(isAdmin || isVend)  && <button style={S.tab(tab==="vendedores")}    onClick={function(){ setTab("vendedores"); }}>Vendedores</button>}
+        {(isAdmin || isVend)  && <button style={S.tab(tab==="vendedores")}    onClick={function(){ setTab("vendedores"); }}>Ventas</button>}
         {(isAdmin || isVerif) && <button style={S.tab(tab==="verificadores")} onClick={function(){ setTab("verificadores"); }}>Verificadores</button>}
         {isAdmin              && <button style={S.tab(tab==="spiffs")}        onClick={function(){ setTab("spiffs"); }}>Metas y Spiffs</button>}
         {isAdmin              && <button style={S.tab(tab==="resumen")}       onClick={function(){ setTab("resumen"); }}>Resumen ejecutivo</button>}
