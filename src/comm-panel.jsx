@@ -698,29 +698,29 @@ export default function CommPanel(props){
     <div style={{position:"fixed",inset:0,zIndex:800,pointerEvents:"none"}}>
 
       <div
-        style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.4)",pointerEvents:"auto",backdropFilter:"blur(2px)"}}
+        style={{position:"absolute",inset:0,background:"rgba(26,56,90,0.18)",pointerEvents:"auto",backdropFilter:"blur(1px)"}}
         onClick={onClose}
       />
 
       <div style={{
         position:"absolute",top:0,right:0,bottom:0,
         width:"360px",
-        background:"#0a0d19",
-        borderLeft:"1px solid rgba(255,255,255,0.08)",
+        background:"#f4f5f7",
+        borderLeft:"1px solid #e3e6ea",
         display:"flex",flexDirection:"column",
         pointerEvents:"auto",
-        boxShadow:"-24px 0 64px rgba(0,0,0,0.5)",
+        boxShadow:"-8px 0 32px rgba(26,56,90,0.12)",
         fontFamily:"'DM Sans','Segoe UI',-apple-system,sans-serif",
       }} onClick={function(e){e.stopPropagation();}}>
 
-        <div style={{padding:"16px 20px",borderBottom:"1px solid #e3e6ea",background:"rgba(255,255,255,0.012)",flexShrink:0}}>
+        <div style={{padding:"16px 20px",borderBottom:"1px solid #e3e6ea",background:"#ffffff",flexShrink:0}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"10px"}}>
             <div>
-              <div style={{fontSize:"14px",fontWeight:"700",color:"#3d4554"}}>{cliente.nombre}</div>
-              <div style={{fontSize:"11px",color:"#9ca3af"}}>{cliente.folio} - {cliente.membresia}</div>
+              <div style={{fontSize:"14px",fontWeight:"700",color:"#1a1f2e"}}>{cliente.nombre}</div>
+              <div style={{fontSize:"11px",color:"#6b7280"}}>{cliente.folio} - {cliente.membresia}</div>
             </div>
-            <button onClick={onClose} style={{background:"#f8f9fb",border:"1px solid #dde0e5",borderRadius:"7px",padding:"5px",cursor:"pointer",color:"#9ca3af",display:"flex",alignItems:"center"}}>
-              <Icon name="close" fill="#9ca3af" size={16}/>
+            <button onClick={onClose} style={{background:"#f4f5f7",border:"1px solid #e3e6ea",borderRadius:"7px",padding:"5px",cursor:"pointer",color:"#6b7280",display:"flex",alignItems:"center"}}>
+              <Icon name="close" fill="#6b7280" size={16}/>
             </button>
           </div>
 
@@ -736,13 +736,13 @@ export default function CommPanel(props){
                     padding:"5px 10px",borderRadius:"7px",
                     fontSize:"11px",fontWeight:active?"700":"500",
                     cursor:"pointer",
-                    background:active?ch.bg:"#f9fafb",
-                    color:active?ch.color:"#9ca3af",
-                    border:active?"1px solid "+ch.br:"1px solid rgba(255,255,255,0.06)",
+                    background:active?ch.bg:"#f4f5f7",
+                    color:active?ch.color:"#6b7280",
+                    border:active?"1px solid "+ch.br:"1px solid #e3e6ea",
                     transition:"all 0.12s",
                   }}
                 >
-                  <Icon name={ch.icon} fill={active?ch.color:"#9ca3af"} size={12}/>
+                  <Icon name={ch.icon} fill={active?ch.color:"#6b7280"} size={12}/>
                   {ch.label}
                 </button>
               );
@@ -754,19 +754,19 @@ export default function CommPanel(props){
                 padding:"5px 10px",borderRadius:"7px",
                 fontSize:"11px",fontWeight:canal==="historial"?"700":"500",
                 cursor:"pointer",
-                background:canal==="historial"?"rgba(100,116,139,0.15)":"#f9fafb",
-                color:canal==="historial"?"#6b7280":"#9ca3af",
-                border:canal==="historial"?"1px solid rgba(100,116,139,0.3)":"1px solid rgba(255,255,255,0.06)",
+                background:canal==="historial"?"#eaf0f7":"#f4f5f7",
+                color:canal==="historial"?"#1a385a":"#6b7280",
+                border:canal==="historial"?"1px solid #b8cfe0":"1px solid #e3e6ea",
                 transition:"all 0.12s",
               }}
             >
-              <Icon name="hist" fill={canal==="historial"?"#6b7280":"#9ca3af"} size={12}/>
+              <Icon name="hist" fill={canal==="historial"?"#1a385a":"#6b7280"} size={12}/>
               Historial
             </button>
           </div>
         </div>
 
-        <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}>
+        <div style={{flex:1,overflowY:"auto",padding:"16px 20px",background:"#f4f5f7"}}>
           {canal==="llamada"  &&<PanelLlamada  cliente={cliente} currentUser={currentUser} onLog={handleLog}/>}
           {canal==="sms"      &&<PanelSMS      cliente={cliente} currentUser={currentUser} onLog={handleLog}/>}
           {canal==="whatsapp" &&<PanelWhatsApp cliente={cliente} currentUser={currentUser} onLog={handleLog}/>}
@@ -774,8 +774,8 @@ export default function CommPanel(props){
           {canal==="historial"&&<PanelHistorial cliente={cliente} logs={logs}/>}
         </div>
 
-        <div style={{padding:"10px 20px",borderTop:"1px solid #e3e6ea",background:"rgba(255,255,255,0.008)",flexShrink:0}}>
-          <div style={{fontSize:"10px",color:"#b0b8c4",textAlign:"center"}}>
+        <div style={{padding:"10px 20px",borderTop:"1px solid #e3e6ea",background:"#ffffff",flexShrink:0}}>
+          <div style={{fontSize:"10px",color:"#9ca3af",textAlign:"center"}}>
             Mini-Vac CRM - Vonage SMS/Voice + Resend Email + WhatsApp Business
           </div>
         </div>
