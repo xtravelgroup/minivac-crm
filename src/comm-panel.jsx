@@ -212,7 +212,7 @@ export function useCommPanel(){
 // ?? Estilos internos ??
 var SI = {
   inp: { width:"100%", background:"#f8f9fb", border:"1px solid #d8dbe0", borderRadius:"8px", padding:"8px 12px", color:"#3d4554", fontSize:"13px", outline:"none", boxSizing:"border-box", fontFamily:"inherit" },
-  ta:  { width:"100%", background:"#f8f9fb", border:"1px solid #d8dbe0", borderRadius:"8px", padding:"8px 12px", color:"#3d4554", fontSize:"13px", outline:"none", resize:"vertical", boxSizing:"border-box", fontFamily:"inherit", minHeight:"72px" },
+  ta:  { width:"100%", background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:"8px", padding:"8px 12px", color:"#1a1f2e", fontSize:"13px", outline:"none", resize:"vertical", boxSizing:"border-box", fontFamily:"inherit", minHeight:"72px" },
   sel: { width:"100%", background:"rgba(10,13,25,0.98)", border:"1px solid #d8dbe0", borderRadius:"8px", padding:"8px 12px", color:"#3d4554", fontSize:"13px", outline:"none", cursor:"pointer", fontFamily:"inherit", boxSizing:"border-box" },
   lbl: { fontSize:"10px", color:"#9ca3af", marginBottom:"4px", fontWeight:"600", display:"block", textTransform:"uppercase", letterSpacing:"0.07em" },
   row: { display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"6px" },
