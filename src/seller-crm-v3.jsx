@@ -126,7 +126,7 @@ const SEED_USERS = [
 
 const mkLead = (o) => ({
   bloqueado:false, bloqueadoNota:"", proximoSeguimiento:null,
-  salePrice:0, pagoInicial:0, metodoPago:"",
+  salePrice:0, pagoInicial:0, metodoPago:"tarjeta",
   destinos:[], notas:[], edad:0, estadoCivil:"",
   email:"", whatsapp:"", coProp:"", coPropEdad:0, coPropTel:"",
   direccion:"", ciudad:"Miami", estado:"FL", zip:"",
@@ -449,17 +449,10 @@ function PagoTab({ draft, set, onSave }) {
         <div style={{marginBottom:10}}>
           <div style={S.label}>Método de pago</div>
           <div style={{display:"flex",gap:8}}>
-            {[{val:"tarjeta",label:"💳 Tarjeta"},{val:"transferencia",label:"🏦 Transferencia"}].map(function(op){
-              var sel = draft.metodoPago === op.val;
-              return (
-                <div key={op.val} onClick={function(){ set("metodoPago",op.val); }}
-                  style={{flex:1,padding:"10px 14px",borderRadius:10,cursor:"pointer",textAlign:"center",fontWeight:700,fontSize:13,
-                    background:sel?"#e8f0fe":"#f8f9fb",border:"2px solid "+(sel?"#aac4f0":"#f0f1f4"),
-                    color:sel?"#1565c0":"#9ca3af",transition:"all 0.15s"}}>
-                  {op.label}
-                </div>
-              );
-            })}
+            <div style={{flex:1,padding:"10px 14px",borderRadius:10,textAlign:"center",fontWeight:700,fontSize:13,
+                background:"#e8f0fe",border:"2px solid #aac4f0",color:"#1565c0"}}>
+              💳 Tarjeta
+            </div>
           </div>
         </div>
 
