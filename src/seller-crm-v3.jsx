@@ -631,6 +631,80 @@ function SpotSelect({value, onChange, disabled}){
   </select>;
 }
 
+// RESUMEN VENTA (solo lectura para vendedor)
+// ─────────────────────────────────────────────────────────────
+function VentaResumen({ draft, destCatalog }) {
+  var catalog  = (destCatalog && destCatalog.length > 0) ? destCatalog : DESTINOS_CATALOG;
+  var destinos = (draft.destinos || []).map(function(d) {
+    var cat = catalog.find(function(c){ return c.id === d.destId; }) || {};
+    return Object.assign({}, d, { nombre: cat.nombre || cat.name || d.destId });
+  });
+  var total    = Number(draft.salePrice || 0);
+  var inicial  = Number(draft.pagoInicial || 0);
+  var pagos    = (draft.pagosAdicionales || []).reduce(function(a,p){ return a + Number(p.monto||0); }, 0);
+  var cobrado  = inicial + pagos;
+  var saldo    = Math.max(0, total - cobrado);
+
+  var rowStyle = { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid #f0f1f4" };
+  var labelStyle = { fontSize:12, color:"#6b7280" };
+  var valStyle   = { fontSize:13, fontWeight:700, color:"#1a1f2e" };
+
+  return (
+    <div>
+      {/* Destinos */}
+      <div style={{ marginBottom:14 }}>
+        <div style={{ fontSize:10, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>🗺️ Destinos contratados</div>
+        {destinos.length === 0
+          ? <div style={{ fontSize:12, color:"#9ca3af" }}>Sin destinos registrados</div>
+          : destinos.map(function(d, i) {
+              return (
+                <div key={i} style={{ padding:"10px 12px", borderRadius:9, background:"#f8f9fb", border:"1px solid #e8eaf0", marginBottom:6 }}>
+                  <div style={{ fontSize:13, fontWeight:700, color:"#1a1f2e" }}>{d.nombre}</div>
+                  <div style={{ fontSize:11, color:"#6b7280", marginTop:2 }}>
+                    {d.tipo ? d.tipo.toUpperCase() : ""} · {d.noches || 0} noches
+                    {d.regalo ? " · 🎁 " + d.regalo.label : ""}
+                  </div>
+                </div>
+              );
+            })
+        }
+      </div>
+
+      {/* Resumen financiero */}
+      <div style={{ padding:"12px 14px", borderRadius:10, background:"#fffce5", border:"1px solid rgba(251,191,36,0.25)" }}>
+        <div style={{ fontSize:10, fontWeight:700, color:"#92400e", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>💰 Resumen financiero</div>
+        <div style={rowStyle}>
+          <span style={labelStyle}>Monto total</span>
+          <span style={{ fontSize:15, fontWeight:800, color:"#925c0a" }}>${total.toLocaleString()}</span>
+        </div>
+        <div style={rowStyle}>
+          <span style={labelStyle}>Pago inicial</span>
+          <span style={valStyle}>${inicial.toLocaleString()}</span>
+        </div>
+        {(draft.pagosAdicionales||[]).map(function(p, i){
+          return (
+            <div key={i} style={rowStyle}>
+              <span style={labelStyle}>{p.concepto || "Abono " + (i+1)} · {(p.fecha||"").slice(0,10)}</span>
+              <span style={valStyle}>${Number(p.monto||0).toLocaleString()}</span>
+            </div>
+          );
+        })}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0 0 0", marginTop:4 }}>
+          <span style={{ fontSize:12, fontWeight:700, color: saldo > 0 ? "#b91c1c" : "#1a7f3c" }}>Saldo pendiente</span>
+          <span style={{ fontSize:16, fontWeight:800, color: saldo > 0 ? "#b91c1c" : "#1a7f3c" }}>${saldo.toLocaleString()}</span>
+        </div>
+      </div>
+
+      {/* Tarjeta */}
+      {draft.tarjetaLast4 && (
+        <div style={{ marginTop:10, padding:"8px 12px", borderRadius:9, background:"#e8f0fe", border:"1px solid #aac4f0", fontSize:12, color:"#1565c0", fontWeight:600 }}>
+          💳 {draft.tarjetaBrand || "Tarjeta"} *{draft.tarjetaLast4}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClose, onSave, onBlock, onUnblock }) {
   const [draft, setDraft]           = useState({ ...lead, notas: (lead.notas||[]).map(n => typeof n === "string" ? {ts:TODAY,autor:currentUser.name,tipo:"nota",nota:n} : n) });
   const [tab, setTab]               = useState("datos");
@@ -844,7 +918,9 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
 
         {/* TAB: PAGO */}
         {tab === "pago" && canSeePaquete && (
-          <PagoTab draft={draft} set={set} onSave={onSave} />
+          (!isSupervisor && draft.status === "venta")
+            ? <VentaResumen draft={draft} destCatalog={destCatalog} />
+            : <PagoTab draft={draft} set={set} onSave={onSave} />
         )}
 
         {/* TAB: EMAILS */}
