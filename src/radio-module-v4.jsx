@@ -1962,8 +1962,8 @@ function ExpedienteEmisora(props) {
 function TabIncidencias({ spots, emisoras, semana }) {
   var emMap = {};
   emisoras.forEach(function(e){ emMap[e.id] = e; });
-  var [filtroTipo, setFiltroTipo] = React.useState("all");
-  var [filtroSemana, setFiltroSemana] = React.useState("actual");
+  var [filtroTipo, setFiltroTipo] = useState("all");
+  var [filtroSemana, setFiltroSemana] = useState("actual");
   var spotsConInc = spots.filter(function(s){
     if (!s.incidencia) return false;
     if (filtroTipo !== "all" && s.incidencia !== filtroTipo) return false;
