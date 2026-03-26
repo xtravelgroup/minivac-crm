@@ -226,6 +226,7 @@ function VendedorCard({ user, ventas, pagos, numeros, week, isAdmin, onConfig })
   const ventasHoy    = ventas.filter(v => v.vendedorId===user.id && v.fechaVenta===TODAY && !v.cancelada);
   const ventasSem    = ventas.filter(v => v.vendedorId===user.id && inWeek(v.fechaVenta, week) && !v.cancelada);
   const cancelSem    = ventas.filter(v => v.vendedorId===user.id && v.cancelada && inWeek(v.fechaCancelacion||v.fechaVenta, week));
+  console.log("VendedorCard user.id:", user.id, "TODAY:", TODAY, "numeros sample:", JSON.stringify(numeros.slice(0,2)));
   const numHoy       = numeros.filter(n => n.vendedorId===user.id && n.fecha===TODAY).reduce((a,b) => a+b.count, 0);
   const numSem       = numeros.filter(n => n.vendedorId===user.id && inWeek(n.fecha, week)).reduce((a,b) => a+b.count, 0);
 
