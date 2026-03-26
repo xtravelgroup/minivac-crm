@@ -832,7 +832,9 @@ function TabEmisoras(props) {
     var incs    = sps.filter(function(s){return s.incidencia;}).length;
     var pendPago= sps.filter(function(s){return s.status!=="pagado";});
     var pendTotal = pendPago.reduce(function(t,s){return t+precioEquipoCalc(s);},0);
-    return {total:total, equipo:equipo, incs:incs, spots:sps.length, pendTotal:pendTotal};
+    var sinInc = sps.filter(function(s){ return !s.incidencia; });
+    var ultima = sinInc.sort(function(a,b){ return (b.fecha+b.hora).localeCompare(a.fecha+a.hora); })[0] || null;
+    return {total:total, equipo:equipo, incs:incs, spots:sps.length, pendTotal:pendTotal, ultima:ultima};
   }
 
   var emisorasFiltradas = emisoras.filter(function(em) {
@@ -927,6 +929,12 @@ function TabEmisoras(props) {
                   {em.notas}
                 </div>
               )}
+              <div style={{marginTop:"8px",fontSize:"11px",color:k.ultima?C.text3:C.text4}}>
+                {k.ultima
+                  ? <span>📅 Última aparición: <b>{k.ultima.fecha}</b> · {fmtHora(k.ultima.hora)}</span>
+                  : <span style={{color:C.text4}}>Sin apariciones registradas</span>
+                }
+              </div>
               <div style={{marginTop:"10px",display:"flex",justifyContent:"flex-end",gap:"6px"}}>
                 <Btn v="ghost" sm onClick={function(e){e.stopPropagation();props.onEditEmisora(em);}}>
                   Editar
