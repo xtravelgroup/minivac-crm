@@ -1991,7 +1991,7 @@ function TabIncidencias({ spots, emisoras, semana, setSpots }) {
         var nuevoSpot = {
           emisora_id: repEmisora,
           fecha: repFecha,
-          dia_semana: new Date(repFecha+"T12:00:00").toLocaleDateString("es-MX",{weekday:"long"}),
+          dia_semana: (function(){ var d=new Date(repFecha+"T12:00:00").toLocaleDateString("es-MX",{weekday:"long"}); return d.charAt(0).toUpperCase()+d.slice(1).replace("é","e").replace("á","a").replace("ó","o"); })(),
           hora: repHora,
           tipo: accionModal.tipo,
           costo: 0,
