@@ -1009,6 +1009,7 @@ function NuevoLeadModal({ currentUser, users, onClose, onSave }) {
   const isSup      = currentUser.role === "supervisor";
   const isVerif    = currentUser.role === "verificador";
   const canAssign  = isSup || isVerif;
+  console.log("NuevoLeadModal role:", currentUser.role, "canAssign:", canAssign, "vendedores:", vendedores.length);
   const vendedores = (users||[]).filter(u => u.role==="vendedor");
   const [nombre,   setNombre]   = useState("");
   const [tel,      setTel]      = useState("");
