@@ -1007,13 +1007,15 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
 // 
 function NuevoLeadModal({ currentUser, users, onClose, onSave }) {
   const isSup      = currentUser.role === "supervisor";
+  const isVerif    = currentUser.role === "verificador";
+  const canAssign  = isSup || isVerif;
   const vendedores = (users||[]).filter(u => u.role==="vendedor");
   const [nombre,   setNombre]   = useState("");
   const [tel,      setTel]      = useState("");
   const [spotId,   setSpotId]   = useState("");
   const [emisora,  setEmisora]  = useState("");
   const [nota,     setNota]     = useState("");
-  const [asignarA, setAsignarA] = useState(isSup ? (vendedores[0]?.id||"") : currentUser.id);
+  const [asignarA, setAsignarA] = useState(canAssign ? "__self__" : currentUser.id);
   const [spots,    setSpots]    = useState([]);
   const [emisoras, setEmisoras] = useState([]);
   const [loadingSpots, setLoadingSpots] = useState(true);
@@ -1093,7 +1095,7 @@ function NuevoLeadModal({ currentUser, users, onClose, onSave }) {
       emisora: emLabel,
       emisoraId: sp2 ? sp2.emisora_id : null,
       spotId: spotId !== "__manual__" ? spotId : null,
-      vendedorId:asignarA, status:"nuevo",
+      vendedorId: asignarA === "__self__" ? currentUser.id : asignarA, status:"nuevo",
       fecha:TODAY, ultimoContacto:TODAY,
       notas: nota.trim() ? [{ts:TODAY,autor:currentUser.name,tipo:"llamada",nota:nota.trim()}] : [],
     }));
@@ -1144,10 +1146,11 @@ function NuevoLeadModal({ currentUser, users, onClose, onSave }) {
           )}
         </div>
 
-        {isSup && (
+        {canAssign && (
           <div style={{ marginBottom:"16px" }}>
             <div style={S.label}>Asignar a *</div>
             <select style={{ ...S.select, borderColor:"#a3d9a5" }} value={asignarA} onChange={e=>setAsignarA(e.target.value)}>
+              <option value="__self__">— Yo mismo ({currentUser.name}) —</option>
               {vendedores.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}
             </select>
           </div>
