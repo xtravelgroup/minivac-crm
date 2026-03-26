@@ -1375,6 +1375,128 @@ JSON: {"estadoGeneral":"bueno|regular|critico","resumenEjecutivo":"","acciones":
   );
 }
 
+// ─────────────────────────────────────────────────────────────
+// COBRANZA VENDEDOR
+// ─────────────────────────────────────────────────────────────
+function CobranzaVendedor({ leads, currentUser, onUpdateLead }) {
+  const [selLead, setSelLead] = useState(null);
+  const [nota, setNota] = useState("");
+
+  var ventasConSaldo = leads.filter(function(l) {
+    return l.vendedorId === currentUser.id && l.status === "venta" && Number(l.salePrice||0) > 0;
+  }).map(function(l) {
+    var pagos = (l.pagosAdicionales||[]).reduce(function(a,p){ return a+Number(p.monto||0); }, 0);
+    var cobrado = Number(l.pagoInicial||0) + pagos;
+    var saldo = Math.max(0, Number(l.salePrice||0) - cobrado);
+    return Object.assign({}, l, { cobrado, saldo });
+  }).filter(function(l) { return l.saldo > 0; })
+    .sort(function(a,b) { return b.saldo - a.saldo; });
+
+  function handleAddNota() {
+    if (!nota.trim() || !selLead) return;
+    var updated = Object.assign({}, selLead, {
+      notas: [...(selLead.notas||[]), { ts: new Date().toISOString(), autor: currentUser.name, tipo: "nota", nota: nota.trim() }]
+    });
+    onUpdateLead(updated);
+    setSelLead(updated);
+    setNota("");
+  }
+
+  return (
+    <div>
+      <div style={{ display:"flex", gap:"12px", marginBottom:"18px", flexWrap:"wrap" }}>
+        <div style={{ flex:1, minWidth:"120px", padding:"14px 16px", borderRadius:"12px", background:"rgba(185,28,28,0.06)", border:"1px solid rgba(185,28,28,0.15)" }}>
+          <div style={{ fontSize:"9px", fontWeight:"700", color:"#b91c1c", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:"4px" }}>Saldo total pendiente</div>
+          <div style={{ fontSize:"22px", fontWeight:"800", color:"#b91c1c" }}>${ventasConSaldo.reduce(function(a,l){ return a+l.saldo; },0).toLocaleString()}</div>
+        </div>
+        <div style={{ flex:1, minWidth:"120px", padding:"14px 16px", borderRadius:"12px", background:"rgba(21,101,192,0.06)", border:"1px solid rgba(21,101,192,0.15)" }}>
+          <div style={{ fontSize:"9px", fontWeight:"700", color:"#1565c0", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:"4px" }}>Clientes con saldo</div>
+          <div style={{ fontSize:"22px", fontWeight:"800", color:"#1565c0" }}>{ventasConSaldo.length}</div>
+        </div>
+        <div style={{ flex:1, minWidth:"120px", padding:"14px 16px", borderRadius:"12px", background:"rgba(26,127,60,0.06)", border:"1px solid rgba(26,127,60,0.15)" }}>
+          <div style={{ fontSize:"9px", fontWeight:"700", color:"#1a7f3c", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:"4px" }}>Total cobrado</div>
+          <div style={{ fontSize:"22px", fontWeight:"800", color:"#1a7f3c" }}>${ventasConSaldo.reduce(function(a,l){ return a+l.cobrado; },0).toLocaleString()}</div>
+        </div>
+      </div>
+
+      {ventasConSaldo.length === 0 && (
+        <div style={{ textAlign:"center", padding:"40px", color:"#9ca3af", fontSize:"14px" }}>
+          ✅ Sin saldos pendientes
+        </div>
+      )}
+
+      <div style={{ display:"grid", gridTemplateColumns: selLead ? "1fr 340px" : "1fr", gap:"14px" }}>
+        <div>
+          {ventasConSaldo.map(function(l) {
+            var pct = Math.round((l.cobrado / Number(l.salePrice||1)) * 100);
+            var isSel = selLead && selLead.id === l.id;
+            return (
+              <div key={l.id} onClick={function(){ setSelLead(isSel ? null : l); setNota(""); }}
+                style={{ padding:"14px 16px", borderRadius:"12px", background: isSel ? "#f0f4ff" : "#fff",
+                  border:"1px solid " + (isSel ? "#aac4f0" : "#e3e6ea"),
+                  marginBottom:"10px", cursor:"pointer", transition:"all 0.15s" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"8px" }}>
+                  <div>
+                    <div style={{ fontSize:"14px", fontWeight:"700", color:"#1a1f2e" }}>{l.nombre} {l.apellido||""}</div>
+                    <div style={{ fontSize:"11px", color:"#9ca3af", marginTop:"2px" }}>{l.folio} · {l.tel||"—"}</div>
+                  </div>
+                  <div style={{ textAlign:"right" }}>
+                    <div style={{ fontSize:"15px", fontWeight:"800", color:"#b91c1c" }}>${l.saldo.toLocaleString()} pendiente</div>
+                    <div style={{ fontSize:"11px", color:"#6b7280" }}>de ${Number(l.salePrice).toLocaleString()} total</div>
+                  </div>
+                </div>
+                <div style={{ background:"#f3f4f6", borderRadius:"6px", height:"6px", marginBottom:"6px" }}>
+                  <div style={{ background:"#1a7f3c", borderRadius:"6px", height:"6px", width: pct + "%" }} />
+                </div>
+                <div style={{ display:"flex", justifyContent:"space-between", fontSize:"11px", color:"#6b7280" }}>
+                  <span>Cobrado: <b style={{color:"#1a7f3c"}}>${l.cobrado.toLocaleString()}</b></span>
+                  <span>{pct}% pagado</span>
+                  {l.tarjetaLast4 && <span>💳 *{l.tarjetaLast4}</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {selLead && (
+          <div style={{ padding:"16px", borderRadius:"12px", background:"#f9fafb", border:"1px solid #e3e6ea", alignSelf:"start" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"12px" }}>
+              <div style={{ fontSize:"13px", fontWeight:"700", color:"#1a1f2e" }}>Perfil del cliente</div>
+              <button style={{ ...S.btn("ghost"), padding:"3px 8px", fontSize:"11px" }} onClick={function(){ setSelLead(null); }}>✕</button>
+            </div>
+            <div style={{ fontSize:"12px", color:"#6b7280", lineHeight:1.8 }}>
+              <div><b>Tel:</b> {selLead.tel||"—"}</div>
+              <div><b>WhatsApp:</b> {selLead.whatsapp||"—"}</div>
+              <div><b>Email:</b> {selLead.email||"—"}</div>
+              <div><b>Dirección:</b> {selLead.direccion||"—"}</div>
+              {selLead.coProp && <div><b>Co-prop:</b> {selLead.coProp} · {selLead.coPropTel||"—"}</div>}
+              {selLead.tarjetaLast4 && <div><b>Tarjeta:</b> {selLead.tarjetaBrand||"Tarjeta"} *{selLead.tarjetaLast4}</div>}
+            </div>
+
+            <div style={{ marginTop:"14px", borderTop:"1px solid #e3e6ea", paddingTop:"12px" }}>
+              <div style={{ fontSize:"10px", fontWeight:"700", color:"#6b7280", textTransform:"uppercase", marginBottom:"8px" }}>Notas</div>
+              {(selLead.notas||[]).slice(-5).reverse().map(function(n, i) {
+                return (
+                  <div key={i} style={{ marginBottom:"6px", padding:"7px 10px", borderRadius:"8px", background:"#fff", border:"1px solid #e3e6ea" }}>
+                    <div style={{ fontSize:"10px", color:"#9ca3af", marginBottom:"2px" }}>{n.autor} · {(n.ts||"").slice(0,10)}</div>
+                    <div style={{ fontSize:"12px", color:"#374151" }}>{n.nota}</div>
+                  </div>
+                );
+              })}
+              <div style={{ display:"flex", gap:"6px", marginTop:"8px" }}>
+                <input style={{ ...S.input, flex:1, fontSize:"12px" }} placeholder="Agregar nota..." value={nota}
+                  onChange={function(e){ setNota(e.target.value); }}
+                  onKeyDown={function(e){ if(e.key==="Enter") handleAddNota(); }} />
+                <button style={{ ...S.btn("primary"), padding:"6px 10px", fontSize:"12px" }} onClick={handleAddNota}>+</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // 
 // VENDEDOR VIEW
 // 
@@ -1413,9 +1535,11 @@ function VendedorView({ leads, users, currentUser, destCatalog, onUpdateLead, in
       )}
       <div style={{ display:"flex", gap:"6px", marginBottom:"16px" }}>
         <button style={S.tab(tab==="kanban")} onClick={()=>setTab("kanban")}> Mis leads</button>
+        <button style={S.tab(tab==="cobranza","#b91c1c")} onClick={()=>setTab("cobranza")}>💰 Cobranza</button>
         <button style={S.tab(tab==="prioridades","#1565c0")} onClick={()=>setTab("prioridades")}> Prioridades AI</button>
       </div>
       {tab==="prioridades" && <PrioridadesAI leads={leads} currentUser={currentUser} />}
+      {tab==="cobranza" && <CobranzaVendedor leads={leads} currentUser={currentUser} onUpdateLead={onUpdateLead} />}
       {tab==="kanban" && (
         <>
           <div style={{ display:"flex", gap:"10px", marginBottom:"18px", flexWrap:"wrap" }}>
