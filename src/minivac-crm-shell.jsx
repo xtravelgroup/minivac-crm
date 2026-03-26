@@ -111,6 +111,7 @@ var ICONS = {
   chevLeft:     "M15 18l-6-6 6-6",
   chevRight:    "M9 18l6-6-6-6",
   logout:       "M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1",
+  lock:         "M12 2a4 4 0 0 0-4 4v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h-2V6a4 4 0 0 0-4-4zm0 2a2 2 0 0 1 2 2v2h-4V6a2 2 0 0 1 2-2zm0 8a2 2 0 1 1 0 4 2 2 0 0 1 0-4z",
   menu:         "M3 12h18M3 6h18M3 18h18",
   bell:         "M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V5a2 2 0 1 0-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9",
   search:       "M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z",
@@ -247,7 +248,7 @@ function LoginScreen({ onLogin }) {
 }
 
 // ─── Sidebar ──────────────────────────────────────────────────
-function Sidebar({ user, activo, col, onNav, onToggleCol, onLogout }) {
+function Sidebar({ user, activo, col, onNav, onToggleCol, onLogout, onCambiarClave }) {
   const mods = modulosDelRol(user);
   const sections = [...new Set(mods.map(m => m.section))];
   const meta = ROL_META[user.rol] || ROL_META.vendedor;
@@ -315,6 +316,12 @@ function Sidebar({ user, activo, col, onNav, onToggleCol, onLogout }) {
           {col && <span style={{ fontSize: "12px", color: T.t3 }}>Colapsar</span>}
         </div>
 
+        <div onClick={onCambiarClave} style={{ display: "flex", alignItems: "center", gap: "8px", padding: col ? "6px 8px" : "7px", borderRadius: T.r, cursor: "pointer", justifyContent: col ? "flex-start" : "center" }}
+          onMouseEnter={e => e.currentTarget.style.background = T.bg}
+          onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+          <Icon name="lock" size={14} color={T.t3} />
+          {col && <span style={{ fontSize: "12px", color: T.t3, fontWeight: "500" }}>Cambiar contraseña</span>}
+        </div>
         <div onClick={onLogout} style={{ display: "flex", alignItems: "center", gap: "8px", padding: col ? "6px 8px" : "7px", borderRadius: T.r, cursor: "pointer", justifyContent: col ? "flex-start" : "center" }}
           onMouseEnter={e => e.currentTarget.style.background = T.redBg}
           onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
@@ -597,7 +604,7 @@ export default function MinivacShell() {
       <Topbar user={user} activo={activo} chatAlertas={chatAlertas} setNotifPanel={setNotifPanel} />
 
       <div style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: "0" }}>
-        <Sidebar user={user} activo={activo} col={col} onNav={handleNav} onToggleCol={() => setCol(!col)} onLogout={handleLogout} />
+        <Sidebar user={user} activo={activo} col={col} onNav={handleNav} onToggleCol={() => setCol(!col)} onLogout={handleLogout} onCambiarClave={() => setShowCambiarClave(true)} />
 
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "auto", background: T.bg, minHeight: "0" }}>
           {!activo && <Bienvenida user={user} onNav={handleNav} />}
