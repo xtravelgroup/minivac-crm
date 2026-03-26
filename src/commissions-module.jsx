@@ -1038,7 +1038,12 @@ export default function CommissionsModule({ currentUser: shellUser }) {
   const [tab, setTab] = useState(tabInicial);
 
   const notify = function(msg) { setToast(msg); setTimeout(function(){ setToast(null); }, 3000); };
-  var week        = WEEK;
+  const [weekOffset, setWeekOffset] = useState(0);
+  var week = (function(){
+    var base = new Date(TODAY + "T12:00:00");
+    base.setDate(base.getDate() + weekOffset * 7);
+    return getWeekRange(base.toISOString().split("T")[0]);
+  })();
   var vendedores    = users.filter(function(u){ return u.role==="vendedor"    && u.active; });
   var verificadores = users.filter(function(u){ return u.role==="verificador" && u.active; });
 
@@ -1103,9 +1108,17 @@ export default function CommissionsModule({ currentUser: shellUser }) {
 
       <div style={{ padding:"24px 28px", maxWidth:1100, margin:"0 auto" }}>
         <div style={{ marginBottom:18, display:"flex", alignItems:"center", gap:10 }}>
+          <button onClick={function(){ if(weekOffset > -4) setWeekOffset(weekOffset - 1); }}
+            disabled={weekOffset <= -4}
+            style={{ background:"none", border:"1px solid #aac4f0", borderRadius:6, padding:"3px 10px", cursor: weekOffset <= -4 ? "not-allowed" : "pointer", color: weekOffset <= -4 ? "#c0c0c0" : "#1565c0", fontSize:16, lineHeight:1 }}>&#8249;</button>
           <span style={S.badge("#1565c0","#e8f0fe","#aac4f0")}>
             {"Semana: " + fmtDate(week.mon) + " - " + fmtDate(week.sun)}
           </span>
+          <button onClick={function(){ if(weekOffset < 0) setWeekOffset(weekOffset + 1); }}
+            disabled={weekOffset >= 0}
+            style={{ background:"none", border:"1px solid #aac4f0", borderRadius:6, padding:"3px 10px", cursor: weekOffset >= 0 ? "not-allowed" : "pointer", color: weekOffset >= 0 ? "#c0c0c0" : "#1565c0", fontSize:16, lineHeight:1 }}>&#8250;</button>
+          {weekOffset < 0 && <button onClick={function(){ setWeekOffset(0); }}
+            style={{ background:"none", border:"1px solid #9ca3af", borderRadius:6, padding:"3px 8px", cursor:"pointer", color:"#6b7280", fontSize:11 }}>Hoy</button>}
           <span style={{ fontSize:12, color:"#9ca3af" }}>Lunes a Domingo - Comisiones calculadas al cierre del domingo</span>
         </div>
 
