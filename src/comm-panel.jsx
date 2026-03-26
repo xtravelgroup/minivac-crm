@@ -711,7 +711,7 @@ export default function CommPanel(props){
         pointerEvents:"auto",
         boxShadow:"-24px 0 64px rgba(0,0,0,0.5)",
         fontFamily:"'DM Sans','Segoe UI',-apple-system,sans-serif",
-      }}>
+      }} onClick={function(e){e.stopPropagation();}}>
 
         <div style={{padding:"16px 20px",borderBottom:"1px solid #e3e6ea",background:"rgba(255,255,255,0.012)",flexShrink:0}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"10px"}}>
