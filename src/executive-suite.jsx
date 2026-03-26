@@ -138,7 +138,7 @@ export default function ExecutiveSuite({ currentUser }) {
       tab==="ventas"     && React.createElement(TabVentas,     {data:data}) ||
       tab==="reservas"   && React.createElement(TabReservas,   {data:data}) ||
       tab==="cobranza"   && React.createElement(TabCobranza,   {data:data}) ||
-      tab==="vendedores" && React.createElement(TabVentas, {data:data}) ||
+      tab==="vendedores" && React.createElement(TabVendedoresList, {data:data}) ||
       tab==="radios"     && React.createElement(TabRadios,     {data:data})
     ),
   ]);
@@ -412,7 +412,7 @@ function TabCobranza(props){
 }
 
 // ── TAB VENDEDORES ──
-function TabVentas(props){
+function TabVendedoresList(props){
   var leads = props.data.leads;
   var profiles = props.data.profiles;
 
