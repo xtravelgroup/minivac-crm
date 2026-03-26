@@ -195,7 +195,7 @@ function LoginScreen({ onLogin }) {
           <div style={{ width: "52px", height: "52px", borderRadius: "12px", background: T.brand, margin: "0 auto 14px", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <img src="/logo.png" alt="TX" style={{ width: "38px", height: "38px", objectFit: "contain" }} />
           </div>
-          <div style={{ fontSize: "18px", fontWeight: "700", color: T.t1, marginBottom: "4px" }}>Travel X Group</div>
+          <div style={{ fontSize: "18px", fontWeight: "700", color: T.t1, marginBottom: "4px" }}>X Travel Group</div>
           <div style={{ fontSize: "13px", color: T.t3 }}>Sistema interno de gestión</div>
         </div>
 
@@ -323,7 +323,7 @@ function Topbar({ user, activo, chatAlertas = [], setNotifPanel }) {
     <div style={{ height: "52px", background: T.surface, borderBottom: "1px solid " + T.border, display: "flex", alignItems: "center", padding: "0 20px", gap: "14px", flexShrink: 0 }}>
 
       <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px" }}>
-        <span style={{ fontSize: "12px", color: T.t4 }}>Travel X Group</span>
+        <span style={{ fontSize: "12px", color: T.t4 }}>X Travel Group</span>
         {mod && <><span style={{ fontSize: "11px", color: T.t4 }}>/</span><span style={{ fontSize: "13px", fontWeight: "600", color: T.t1 }}>{mod.label}</span></>}
       </div>
 

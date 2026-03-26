@@ -1,5 +1,5 @@
 // ============================================================
-// CRM THEME — Travel X Group
+// CRM THEME — X Travel Group
 // Sistema de diseno centralizado estilo Zoho CRM
 // Importar en todos los modulos: import { Z, ZC, ZBtn, ZBadge, ZTable, ZModal, ZCard, ZInp, ZSel } from "./crm-theme.js";
 // ============================================================
@@ -25,7 +25,7 @@ export var Z = {
   t4:  "#9ca3af",   // placeholder, muted
   t5:  "#c4c9d4",   // muy sutil
 
-  // Brand — azul marino Travel X Group
+  // Brand — azul marino X Travel Group
   brand:    "#1a385a",
   brandMid: "#2e5c8a",
   brandLt:  "#e8edf5",
