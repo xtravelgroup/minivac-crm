@@ -862,6 +862,28 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
                  Llena <b>edad</b> y <b>estado civil</b> para ver los destinos disponibles en la pestana  Paquete
               </div>
             )}
+            {/* Reasignacion - solo roles con permisos */}
+            {(["supervisor","verificador","director","admin"].includes(currentUser.role)) && ["verificacion","venta"].includes(draft.status) && (
+              <div style={{ marginTop:12, padding:"12px 14px", borderRadius:10, background:"#f0f4ff", border:"1px solid #c7d7f8" }}>
+                <div style={{ fontSize:10, fontWeight:700, color:"#1565c0", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>🔄 Reasignación</div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                  <div>
+                    <div style={S.label}>Vendedor asignado</div>
+                    <select style={S.select} value={draft.vendedorId||""} onChange={e=>set("vendedorId",e.target.value)}>
+                      <option value="">— Sin asignar —</option>
+                      {users.filter(u=>u.role==="vendedor").map(v=><option key={v.id} value={v.id}>{v.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <div style={S.label}>Verificador asignado</div>
+                    <select style={S.select} value={draft.verificadorId||""} onChange={e=>set("verificadorId",e.target.value)}>
+                      <option value="">— Sin asignar —</option>
+                      {users.filter(u=>u.role==="verificador").map(v=><option key={v.id} value={v.id}>{v.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
