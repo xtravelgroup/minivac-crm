@@ -180,7 +180,7 @@ function LoginScreen({ onLogin }) {
               setErr("Usuario no encontrado o inactivo. Contacta al administrador.");
               return;
             }
-            onLogin({ id: perfil.data.id, nombre: perfil.data.nombre, email: perfil.data.email || email.trim().toLowerCase(), rol: perfil.data.rol });
+            onLogin({ id: perfil.data.id, nombre: perfil.data.nombre, email: perfil.data.email || email.trim().toLowerCase(), rol: perfil.data.rol }, perfil.data.must_change_password === true);
           });
       });
   }
@@ -225,6 +225,18 @@ function LoginScreen({ onLogin }) {
 
           {err && <div style={{ padding: "9px 12px", background: T.redBg, border: "1px solid " + T.redBd, borderRadius: T.r, color: T.red, fontSize: "12px", marginBottom: "14px" }}>{err}</div>}
 
+          <div style={{ textAlign:"right", marginBottom:"12px" }}>
+            <button onClick={async ()=>{
+              if (!email.trim()) { setErr("Ingresa tu correo primero"); return; }
+              setLoading(true);
+              const res = await SB.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: window.location.origin });
+              setLoading(false);
+              if (res.error) { setErr("Error: " + res.error.message); }
+              else { setErr(""); alert("✅ Correo de recuperación enviado a " + email.trim()); }
+            }} style={{ background:"none", border:"none", fontSize:"12px", color:T.brand, cursor:"pointer", fontFamily:T.font, textDecoration:"underline" }}>
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
           <button onClick={doLogin} disabled={loading} style={{ width: "100%", padding: "9px", background: loading ? T.t4 : T.brand, color: "#fff", border: "none", borderRadius: T.r, fontSize: "13px", fontWeight: "600", fontFamily: T.font, cursor: loading ? "not-allowed" : "pointer" }}>
             {loading ? "Verificando..." : "Entrar"}
           </button>
@@ -404,6 +416,75 @@ function Bienvenida({ user, onNav }) {
   );
 }
 
+// ─── Cambiar Clave Modal ──────────────────────────────────────
+function CambiarClaveModal({ onClose, forzado }) {
+  const [actual,   setActual]   = useState("");
+  const [nueva,    setNueva]    = useState("");
+  const [confirma, setConfirma] = useState("");
+  const [err,      setErr]      = useState("");
+  const [ok,       setOk]       = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [showA, setShowA] = useState(false);
+  const [showN, setShowN] = useState(false);
+
+  const inp = { width:"100%", padding:"9px 12px", border:"1px solid "+T.border, borderRadius:T.r, fontSize:"13px", color:T.t1, background:T.surface, outline:"none", boxSizing:"border-box", fontFamily:T.font };
+  const lbl = { display:"block", fontSize:"12px", fontWeight:"500", color:T.t3, marginBottom:"6px" };
+
+  async function handleGuardar() {
+    if (!nueva || nueva.length < 8) { setErr("La nueva clave debe tener al menos 8 caracteres"); return; }
+    if (nueva !== confirma) { setErr("Las claves no coinciden"); return; }
+    setLoading(true); setErr("");
+    const res = await SB.auth.updateUser({ password: nueva });
+    if (res.error) { setErr("Error al cambiar la clave: " + res.error.message); setLoading(false); return; }
+    // Marcar must_change_password = false
+    const session = await SB.auth.getSession();
+    if (session.data?.session) {
+      await SB.from("usuarios").update({ must_change_password: false }).eq("auth_id", session.data.session.user.id);
+    }
+    setOk(true); setLoading(false);
+    if (!forzado) setTimeout(onClose, 1500);
+  }
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", padding:"24px" }}>
+      <div style={{ background:T.surface, border:"1px solid "+T.border, borderRadius:"12px", padding:"28px", width:"100%", maxWidth:"380px", boxShadow:T.shadowSm }}>
+        <div style={{ fontSize:"16px", fontWeight:"700", color:T.t1, marginBottom:"6px" }}>
+          {forzado ? "🔐 Cambia tu contraseña" : "Cambiar contraseña"}
+        </div>
+        {forzado && <div style={{ fontSize:"12px", color:T.t3, marginBottom:"20px" }}>Por seguridad debes cambiar tu contraseña antes de continuar.</div>}
+        {ok ? (
+          <div style={{ padding:"14px", background:T.greenBg||"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:T.r, color:"#166534", fontSize:"13px", textAlign:"center" }}>
+            ✅ Contraseña actualizada correctamente{forzado ? ". Cargando..." : ""}
+          </div>
+        ) : (
+          <>
+            <div style={{ marginBottom:"14px" }}>
+              <label style={lbl}>Nueva contraseña</label>
+              <div style={{ position:"relative" }}>
+                <input style={{ ...inp, paddingRight:"52px" }} type={showN?"text":"password"} value={nueva}
+                  placeholder="Mínimo 8 caracteres" onChange={e=>{ setNueva(e.target.value); setErr(""); }} />
+                <button onClick={()=>setShowN(!showN)} style={{ position:"absolute", right:"10px", top:"9px", background:"none", border:"none", cursor:"pointer", fontSize:"10px", fontWeight:"600", color:T.t4, fontFamily:T.font }}>{showN?"OCULTAR":"VER"}</button>
+              </div>
+            </div>
+            <div style={{ marginBottom:"20px" }}>
+              <label style={lbl}>Confirmar contraseña</label>
+              <input style={inp} type="password" value={confirma} placeholder="Repite la nueva contraseña"
+                onChange={e=>{ setConfirma(e.target.value); setErr(""); }} />
+            </div>
+            {err && <div style={{ padding:"9px 12px", background:T.redBg, border:"1px solid "+T.redBd, borderRadius:T.r, color:T.red, fontSize:"12px", marginBottom:"14px" }}>{err}</div>}
+            <div style={{ display:"flex", gap:"8px" }}>
+              {!forzado && <button onClick={onClose} style={{ flex:1, padding:"9px", background:"none", border:"1px solid "+T.border, borderRadius:T.r, fontSize:"13px", color:T.t2, cursor:"pointer", fontFamily:T.font }}>Cancelar</button>}
+              <button onClick={handleGuardar} disabled={loading} style={{ flex:2, padding:"9px", background:loading?T.t4:T.brand, color:"#fff", border:"none", borderRadius:T.r, fontSize:"13px", fontWeight:"600", fontFamily:T.font, cursor:loading?"not-allowed":"pointer" }}>
+                {loading ? "Guardando..." : "Guardar contraseña"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Shell principal ──────────────────────────────────────────
 const SUSPENSE_FB = <div style={{ padding: "40px", textAlign: "center", color: "#94a3b8" }}>Cargando módulo...</div>;
 
@@ -412,6 +493,8 @@ export default function MinivacShell() {
   const [activo,     setActivo]     = useState(null);
   const [col,        setCol]        = useState(true);
   const [checking,   setChecking]   = useState(true);
+  const [mustChange, setMustChange] = useState(false);
+  const [showCambiarClave, setShowCambiarClave] = useState(false);
   const [notifPanel, setNotifPanel] = useState(false);
   const initialLeadIdRef = useRef(null);
   const [chatAlertas, limpiarAlertas] = useChatAlertas(user);
@@ -441,7 +524,7 @@ export default function MinivacShell() {
     return () => sub.data.subscription.unsubscribe();
   }, []);
 
-  function handleLogin(u) { setUser(u); setActivo(null); }
+  function handleLogin(u, mustChangePwd) { setUser(u); setActivo(null); if (mustChangePwd) setMustChange(true); }
   function handleLogout() { SB.auth.signOut().then(() => { setUser(null); setActivo(null); }); }
   function handleNav(id) { if (user && tieneAcceso(user, id)) setActivo(id); }
 
@@ -452,6 +535,7 @@ export default function MinivacShell() {
   );
 
   if (!user) return <LoginScreen onLogin={handleLogin} />;
+  if (mustChange) return <CambiarClaveModal forzado={true} onClose={()=>{ setMustChange(false); }} />;
 
   return (
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: T.font, fontSize: "13px", color: T.t2, display: "flex", flexDirection: "column" }}>
