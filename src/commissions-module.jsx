@@ -943,7 +943,9 @@ export default function CommissionsModule({ currentUser: shellUser }) {
             if (!grouped[key]) grouped[key] = { vendedorId: vid, fecha: fecha, count: 0 };
             grouped[key].count++;
           });
-          setNumeros(Object.values(grouped));
+          var nums = Object.values(grouped);
+          console.log("numeros cargados:", JSON.stringify(nums.slice(0,5)));
+          setNumeros(nums);
         }
       });
   }
