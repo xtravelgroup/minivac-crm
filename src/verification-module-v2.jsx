@@ -1857,7 +1857,7 @@ function DetailView({ lead, destCatalog, destMap, onBack, onUpdate }) {
   );
 }
 
-function QueueCard({ lead, onOpen }) {
+function QueueCard({ lead, onOpen, onTomar, currentUser }) {
   const exp = lead.exp;
   const vr  = lead.verificacion && lead.verificacion.result ? VERIF_RESULTS[lead.verificacion.result] : null;
   // Alerta firma pendiente: docsSent pero no firmada
@@ -2010,7 +2010,7 @@ export default function VerificationModule({ currentUser }) {
 
           });
           var mapped = res.data.map(function(r) {
-            var row = { ...r, vendedor_nombre: (r.vendedor && r.vendedor.nombre) || "" };
+            var row = { ...r, vendedor_nombre: (r.vendedor && r.vendedor.nombre) || "", verificador_nombre: (r.verificador && r.verificador.nombre) || "" };
             return dbToVerifLead(row);
           });
           // Mostrar: verificacion pendientes + ventas + no_interesado
@@ -2117,6 +2117,15 @@ export default function VerificationModule({ currentUser }) {
   const colCobranzaPend   = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && getSaldo(l) > 0; });
   const colPendienteFirma = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && !l.firma_firmada_at && l.firma_enviada_at; });
   const colVentas         = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && estaEnSemana(l.verificacion.verifiedAt||l.firma_firmada_at); });
+  function handleTomar(lead) {
+    var uid = currentUser && (currentUser.dbId || currentUser.id);
+    var nombre = currentUser && (currentUser.nombre || currentUser.name || "Verificador");
+    SB.from("leads").update({ verificador_id: uid }).eq("id", lead.id).then(function(res) {
+      if (!res.error) {
+        setLeads(function(prev) { return prev.map(function(l) { return l.id === lead.id ? Object.assign({}, l, { verificadorId: uid, verificadorNombre: nombre }) : l; }); });
+      }
+    });
+  }
   const pending         = colVerificacion;
   const done            = leads.filter(l => l.verificacion && l.verificacion.result);
   const ventas          = colVentas;
@@ -2178,7 +2187,7 @@ export default function VerificationModule({ currentUser }) {
                       </div>
                       <div style={{ padding:"8px", display:"flex", flexDirection:"column", gap:"6px", maxHeight:"600px", overflowY:"auto" }}>
                         {col.leads.length===0 && <div style={{ textAlign:"center", padding:"20px 10px", fontSize:"11px", color:"#9ca3af" }}>Sin expedientes</div>}
-                        {col.leads.map(function(l){ return <QueueCard key={l.id} lead={l} onOpen={function(l){ setDetail(l.id); }} />; })}
+                        {col.leads.map(function(l){ return <QueueCard key={l.id} lead={l} onOpen={function(l){ setDetail(l.id); }} onTomar={handleTomar} currentUser={currentUser} />; })}
                       </div>
                     </div>
                   );
