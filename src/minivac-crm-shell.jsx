@@ -540,6 +540,8 @@ export default function MinivacShell() {
   return (
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: T.font, fontSize: "13px", color: T.t2, display: "flex", flexDirection: "column" }}>
 
+      {showCambiarClave && <CambiarClaveModal forzado={false} onClose={()=>setShowCambiarClave(false)} />}
+
       {/* Popup nuevo mensaje */}
       {chatAlertas.length > 0 && !notifPanel && (
         <div style={{ position: "fixed", top: "16px", right: "16px", zIndex: 9999, maxWidth: "320px" }}>
