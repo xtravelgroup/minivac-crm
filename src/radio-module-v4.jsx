@@ -820,7 +820,10 @@ function TabEmisoras(props) {
   var currentUser = props.currentUser;
   var [sel, setSel] = useState(null);
   var [busqueda, setBusqueda] = useState("");
+  var [filtroCiudad, setFiltroCiudad] = useState("todas");
   var [selTab, setSelTab] = useState("info");
+
+  var ciudades = ["todas"].concat(Array.from(new Set(emisoras.map(function(e){ return e.ciudad||""; }).filter(Boolean))).sort());
 
   function kpis(em) {
     var sps = spots.filter(function(s){return s.emisoraId===em.id;});
@@ -834,20 +837,26 @@ function TabEmisoras(props) {
 
   var emisorasFiltradas = emisoras.filter(function(em) {
     var b = busqueda.toLowerCase();
-    if (!b) return true;
-    return (em.nombre||"").toLowerCase().indexOf(b) !== -1 ||
+    var matchB = !b || (em.nombre||"").toLowerCase().indexOf(b) !== -1 ||
            (em.ciudad||"").toLowerCase().indexOf(b) !== -1 ||
            (em.frecuencia||"").toLowerCase().indexOf(b) !== -1;
+    var matchC = filtroCiudad === "todas" || (em.ciudad||"") === filtroCiudad;
+    return matchB && matchC;
   });
 
   return (
     <div>
-      <div style={{display:"flex",gap:"8px",marginBottom:"12px",alignItems:"center"}}>
+      <div style={{display:"flex",gap:"8px",marginBottom:"12px",alignItems:"center",flexWrap:"wrap"}}>
         <input value={busqueda} onChange={function(e){setBusqueda(e.target.value);}}
           placeholder="Buscar por nombre o ciudad..."
-          style={{flex:1,maxWidth:"320px",padding:"8px 12px",border:"1.5px solid "+C.border,
+          style={{flex:1,maxWidth:"240px",padding:"8px 12px",border:"1.5px solid "+C.border,
             borderRadius:"8px",fontSize:"13px",color:C.text1,background:C.surface,
             outline:"none",fontFamily:FONT}}/>
+        <select value={filtroCiudad} onChange={function(e){setFiltroCiudad(e.target.value);}}
+          style={{padding:"8px 12px",border:"1.5px solid "+C.border,borderRadius:"8px",
+            fontSize:"13px",color:C.text1,background:C.surface,fontFamily:FONT,cursor:"pointer"}}>
+          {ciudades.map(function(c){ return <option key={c} value={c}>{c==="todas"?"Todas las ciudades":c}</option>; })}
+        </select>
         {!isReadOnly && (
           <div style={{marginLeft:"auto"}}>
             <Btn onClick={props.onAddEmisora}>+ Nueva emisora</Btn>
