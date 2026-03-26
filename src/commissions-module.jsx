@@ -276,8 +276,6 @@ function VendedorCard({ user, ventas, pagos, numeros, week, isAdmin, onConfig })
         <StatBox label="Ventas"            today={ventasHoy.length}    week={ventasSem.length}   color="#1a7f3c" />
         <StatBox label="Cobrado"           today={fmtUSD(cobradoHoy)}  week={fmtUSD(cobradoSem)} color="#925c0a" />
         <StatBox label="Cobranza"          today={fmtUSD(abonosHoy)}   week={fmtUSD(abonosSem)}  color="#925c0a" />
-        <StatBox label="Cobranza"          today={fmtUSD(abonosHoy)}   week={fmtUSD(abonosSem)}  color="#925c0a" />
-        <StatBox label="Cobranza"          today={fmtUSD(abonosHoy)}   week={fmtUSD(abonosSem)}  color="#925c0a" />
       </div>
 
       {/* KPIs destacados: Ventas y Cobranza */}
