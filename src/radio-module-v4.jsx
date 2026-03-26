@@ -603,7 +603,7 @@ function SpotFila(props) {
         {inc && <Badge meta={inc}>{inc.label}</Badge>}
       </div>
       <div style={{color:C.text3,fontSize:"12px"}}>{sp.tipo}</div>
-      <div style={{fontWeight:"600",color:C.red}}>{fmtUSD(sp.costo)}</div>
+      <div style={{fontWeight:"600",color:C.red}}>{fmtUSD(Number(sp.costo||0)+Number(sp.talento||0))}</div>
       <div style={{fontWeight:"700",color:C.amber}}>
         {sp.precioEquipo != null ? "* " : ""}{fmtUSD(precio)}
       </div>
@@ -1428,7 +1428,7 @@ function PagoModal(props) {
                         {sp.contrato && <div style={{fontSize:"10px",color:C.text4}}>{sp.contrato}</div>}
                       </div>
                       <div style={{fontSize:"11px",color:C.text3}}>{sp.tipo}</div>
-                      <div style={{fontSize:"12px",fontWeight:"600",color:C.red}}>{fmtUSD(sp.costo)}</div>
+                      <div style={{fontSize:"12px",fontWeight:"600",color:C.red}}>{fmtUSD(Number(sp.costo||0)+Number(sp.talento||0))}</div>
                       <div style={{fontSize:"13px",fontWeight:"700",color:C.amber}}>{fmtUSD(precio)}</div>
                     </div>
                   );
