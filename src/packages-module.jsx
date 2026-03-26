@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const TODAY = new Date().toISOString().split("T")[0];
+const TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 const MEMBRESIA_MESES = 18;
 
 function addMonths(dateStr, months) {

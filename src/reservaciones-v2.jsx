@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
 import { supabase as SB } from "./supabase";
 
-var TODAY = new Date().toISOString().split("T")[0];
+var TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 function addDays(d,n){ var dt=new Date(d+"T12:00:00"); dt.setDate(dt.getDate()+n); return dt.toISOString().split("T")[0]; }
 function daysAgo(n){ var d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().split("T")[0]; }
 function daysFromNow(n){ var d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().split("T")[0]; }

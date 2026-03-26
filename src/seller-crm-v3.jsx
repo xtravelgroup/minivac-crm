@@ -8,7 +8,7 @@ import { registrarEvento, TablaHistorial } from "./useHistorial.jsx";
 // 
 // HELPERS
 // 
-const TODAY = new Date().toISOString().split("T")[0];
+const TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 const ALERT_DAYS = 2;
 
 function daysSince(d) {
@@ -605,9 +605,9 @@ Responde con EXACTAMENTE este JSON:
 function SpotSelect({value, onChange, disabled}){
   var [opts, setOpts] = useState([]);
   useEffect(function(){
-    var hoy = new Date().toISOString().split("T")[0];
+    var hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
     Promise.all([
-      SB.from("radio_spots").select("id,emisora_id,hora,fecha").lte("fecha", new Date().toISOString().split("T")[0]).order("fecha",{ascending:false}).limit(100),
+      SB.from("radio_spots").select("id,emisora_id,hora,fecha").lte("fecha", new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" })).order("fecha",{ascending:false}).limit(100),
       SB.from("emisoras").select("id,nombre")
     ]).then(function(res){
       var spots = res[0].data || [];
@@ -952,7 +952,7 @@ function NuevoLeadModal({ currentUser, users, onClose, onSave }) {
 
   // Cargar spots de la semana actual y siguientes desde Supabase
   useState(() => {
-    var hoy = new Date().toISOString().split("T")[0];
+    var hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
     Promise.all([
       SB.from("radio_spots").select("*").eq("fecha", hoy).order("hora"),
       SB.from("emisoras").select("id,nombre").order("nombre"),

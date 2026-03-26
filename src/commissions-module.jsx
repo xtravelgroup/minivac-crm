@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase as SB } from "./supabase.js";
 
 // --- HELPERS ---
-const TODAY = new Date().toISOString().split("T")[0];
+const TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 
 function getWeekRange(dateStr) {
   const d   = new Date(dateStr + "T12:00:00");

@@ -6,7 +6,7 @@ import { TablaHistorial } from "./useHistorial.jsx";
 // ─────────────────────────────────────────────────────────────
 // TEMA ZOHO CLARO — igual que seller / verificador
 // ─────────────────────────────────────────────────────────────
-var TODAY = new Date().toISOString().split("T")[0];
+var TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 function uid(){ return Math.random().toString(36).slice(2,10); }
 function fmtUSD(n){ return "$"+(Number(n)||0).toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:0}); }
 function fmtDate(s){ if(!s) return "--"; var d=new Date(s+"T12:00:00"); return ("0"+(d.getMonth()+1)).slice(-2)+"/"+("0"+d.getDate()).slice(-2)+"/"+d.getFullYear(); }

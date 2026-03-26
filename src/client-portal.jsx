@@ -5,7 +5,7 @@ function storageGet(){ return window.storage.get(CHAT_KEY,true).then(function(r)
 function storageSave(data){ return window.storage.set(CHAT_KEY,JSON.stringify(data),true).catch(function(){}); }
 function genId(){ return Date.now()+""+Math.floor(Math.random()*9999); }
 
-var TODAY = new Date().toISOString().split("T")[0];
+var TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 function fmtDate(d){ if(!d)return"--"; return new Date(d+"T12:00:00").toLocaleDateString("es-MX",{day:"2-digit",month:"long",year:"numeric"}); }
 function fmtUSD(n){ return "$"+Number(n||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function daysUntil(d){ if(!d)return null; return Math.ceil((new Date(d+"T12:00:00")-new Date())/86400000); }

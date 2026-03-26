@@ -4,7 +4,7 @@ import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
 import { registrarEvento, TablaHistorial } from "./useHistorial.jsx";
 import EmailPanel from "./email-panel.jsx";
 
-const TODAY = new Date().toISOString().split("T")[0];
+const TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 
 function fmtDate(d) {
   if (!d) return "--";
