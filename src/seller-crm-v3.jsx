@@ -1198,7 +1198,7 @@ function NuevoLeadModal({ currentUser, users, onClose, onSave }) {
 // 
 // LEAD CARD
 // 
-function LeadCard({ lead, isSupervisor, isSelected, onSelect, onClick, onDragStart, onAI }) {
+function LeadCard({ lead, isSupervisor, isSelected, onSelect, onClick, onDragStart, onAI, users }) {
   const dias             = daysSince(lead.ultimoContacto);
   const isAlert          = dias >= ALERT_DAYS && !["venta","no_interesado"].includes(lead.status) && !lead.bloqueado;
   const hoyEsSeg         = lead.proximoSeguimiento === TODAY;
@@ -1227,6 +1227,10 @@ function LeadCard({ lead, isSupervisor, isSelected, onSelect, onClick, onDragSta
         <div style={{ fontSize:"11px", color:"#9ca3af" }}> {lead.emisora}</div>
         {lead.coProp && <div style={{ fontSize:"10px", color:"#b0b8c4" }}> +{lead.coProp.split(" ")[0]}</div>}
       </div>
+      {isSupervisor && lead.vendedorId && users && (function(){
+        var v = users.find(function(u){ return u.id===lead.vendedorId || u.dbId===lead.vendedorId || u.authId===lead.vendedorId; });
+        return v ? <div style={{ fontSize:"10px", color:"#1565c0", fontWeight:"600", marginBottom:"2px" }}>👤 {v.name||v.nombre}</div> : null;
+      })()}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <div style={{ fontSize:"11px", color:"#b0b8c4" }}> {lead.tel}</div>
         {!lead.bloqueado && <button style={{ fontSize:"10px", padding:"2px 7px", borderRadius:"6px", background:"rgba(129,140,248,0.12)", color:"#1565c0", border:"1px solid rgba(129,140,248,0.25)", cursor:"pointer", fontWeight:"600" }}
@@ -1245,7 +1249,7 @@ function LeadCard({ lead, isSupervisor, isSelected, onSelect, onClick, onDragSta
 // 
 // KANBAN COLUMN
 // 
-function KanbanCol({ status, leads, isSupervisor, selectedIds, onSelect, onCardClick, onDragStart, onAI }) {
+function KanbanCol({ status, leads, isSupervisor, selectedIds, onSelect, onCardClick, onDragStart, onAI, users }) {
   const sc = STATUS_CFG[status];
   return (
     <div style={{ minWidth:"210px", flex:1, display:"flex", flexDirection:"column" }}>
@@ -1254,7 +1258,7 @@ function KanbanCol({ status, leads, isSupervisor, selectedIds, onSelect, onCardC
         <span style={{ fontSize:"11px", fontWeight:"700", color:sc.color, background:`${sc.color}20`, padding:"0 7px", borderRadius:"10px" }}>{leads.length}</span>
       </div>
       <div style={{ flex:1, minHeight:"60px" }}>
-        {leads.map(l => <LeadCard key={l.id} lead={l} isSupervisor={isSupervisor} isSelected={selectedIds?.includes(l.id)} onSelect={onSelect} onClick={onCardClick} onDragStart={onDragStart} onAI={onAI} />)}
+        {leads.map(l => <LeadCard key={l.id} lead={l} isSupervisor={isSupervisor} isSelected={selectedIds?.includes(l.id)} onSelect={onSelect} onClick={onCardClick} onDragStart={onDragStart} onAI={onAI} users={users} />)}
         {!leads.length && <div style={{ padding:"14px", textAlign:"center", color:"#b0b8c4", fontSize:"11px", border:"1px dashed #e3e6ea", borderRadius:"8px" }}>Sin leads</div>}
       </div>
     </div>
@@ -1560,7 +1564,7 @@ function VendedorView({ leads, users, currentUser, destCatalog, onUpdateLead, in
           </div>
           <div style={{ display:"flex", gap:"10px", overflowX:"auto", paddingBottom:"12px" }}>
             {STATUS_ORDER.map(status => (
-              <KanbanCol key={status} status={status} leads={filtered.filter(l=>l.status===status)}
+              <KanbanCol key={status} status={status} leads={filtered.filter(l=>l.status===status)} users={users}
                 isSupervisor={false} onCardClick={setSel} onAI={setAiLead} />
             ))}
           </div>
@@ -2288,10 +2292,16 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId }) {
 
   const handleAddLead = function(l) {
     var dbRow = leadToDb(l);
-    // Buscar el id correcto en la tabla usuarios (no auth_id)
-    var meEnUsuarios = sbUsers.find(function(u){ return u.id === myAuthId || u.authId === myAuthId; });
-    var vendedorDbId = meEnUsuarios ? meEnUsuarios.dbId : myAuthId;
-    if (vendedorDbId) dbRow.vendedor_id = vendedorDbId;
+    // Si el lead ya tiene vendedorId asignado (supervisor eligio vendedor), usar ese
+    if (l.vendedorId) {
+      var vendedorEnUsuarios = sbUsers.find(function(u){ return u.id === l.vendedorId || u.authId === l.vendedorId; });
+      dbRow.vendedor_id = vendedorEnUsuarios ? vendedorEnUsuarios.dbId : l.vendedorId;
+    } else {
+      // Si no, asignar al usuario actual
+      var meEnUsuarios = sbUsers.find(function(u){ return u.id === myAuthId || u.authId === myAuthId; });
+      var vendedorDbId = meEnUsuarios ? meEnUsuarios.dbId : myAuthId;
+      if (vendedorDbId) dbRow.vendedor_id = vendedorDbId;
+    }
     SB.from("leads").insert(dbRow).then(function(res) {
       if (res.error) {
         notify("Error al crear lead: " + res.error.message, false);
