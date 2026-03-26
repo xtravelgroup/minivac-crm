@@ -207,7 +207,7 @@ function Card(props) {
       background: C.surface, borderRadius: "12px",
       border: "1px solid " + C.border,
       boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-    }, props.style || {})}>
+    }, props.style || {})} onClick={props.onClick}>
       {props.children}
     </div>
   );
