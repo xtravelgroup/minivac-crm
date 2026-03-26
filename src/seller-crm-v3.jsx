@@ -1012,6 +1012,7 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
         visible={comm.visible}
         cliente={comm.cliente}
         logs={comm.logs}
+        canalInicial={comm.canalInicial}
         currentUser={{nombre:currentUser.name||currentUser.nombre||"Agente"}}
         onClose={comm.close}
         onLog={function(entry){

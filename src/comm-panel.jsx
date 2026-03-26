@@ -191,10 +191,12 @@ async function enviarWhatsApp(destino, texto, leadId){
 export function useCommPanel(){
   var [visible, setVisible]   = useState(false);
   var [cliente, setCliente]   = useState(null);
+  var [canalInicial, setCanalInicial] = useState(null);
   var [logs,    setLogs]      = useState([]);
 
-  function open(c){
+  function open(c, canal){
     setCliente(c);
+    if(canal) setCanalInicial(canal);
     setVisible(true);
   }
   function close(){
@@ -204,7 +206,7 @@ export function useCommPanel(){
     setLogs(function(prev){ return [entry,...prev]; });
   }
 
-  return { visible, cliente, logs, open, close, addLog, setLogs };
+  return { visible, cliente, logs, open, close, addLog, setLogs, canalInicial };
 }
 
 // ?? Estilos internos ??
@@ -685,7 +687,7 @@ export default function CommPanel(props){
   var [canal, setCanal] = useState("llamada");
 
   useEffect(function(){
-    if(visible) setCanal("llamada");
+    if(visible) setCanal(props.canalInicial || "llamada");
   },[visible, cliente]);
 
   if(!visible||!cliente) return null;
