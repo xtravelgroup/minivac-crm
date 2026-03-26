@@ -1739,7 +1739,7 @@ function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, 
           <div style={{ display:"flex", gap:"10px", overflowX:"auto", paddingBottom:"12px" }}>
             {STATUS_ORDER.map(status=>(
               <KanbanCol key={status} status={status} leads={filtered.filter(l=>l.status===status)}
-                isSupervisor={true} selectedIds={selIds} onSelect={toggleSel} onCardClick={setSelLead} onDragStart={handleDragStart} />
+                isSupervisor={true} selectedIds={selIds} onSelect={toggleSel} onCardClick={setSelLead} onDragStart={handleDragStart} users={users} />
             ))}
           </div>
         </>
