@@ -1959,11 +1959,67 @@ function ExpedienteEmisora(props) {
 
 //  Root 
 
-function TabIncidencias({ spots, emisoras, semana }) {
+function TabIncidencias({ spots, emisoras, semana, setSpots }) {
   var emMap = {};
   emisoras.forEach(function(e){ emMap[e.id] = e; });
   var [filtroTipo, setFiltroTipo] = useState("all");
   var [filtroSemana, setFiltroSemana] = useState("actual");
+  var [accionModal, setAccionModal] = useState(null);
+  var [accionTipo, setAccionTipo] = useState("");
+  var [accionNota, setAccionNota] = useState("");
+  var [repFecha, setRepFecha] = useState("");
+  var [repHora, setRepHora] = useState("");
+  var [repEmisora, setRepEmisora] = useState("");
+  var [saving, setSaving] = useState(false);
+
+  function abrirAccion(sp) {
+    setAccionModal(sp);
+    setAccionTipo(sp.incidencia_accion || "");
+    setAccionNota(sp.incidencia_accion_nota || "");
+    setRepFecha("");
+    setRepHora("");
+    setRepEmisora(sp.emisoraId || "");
+  }
+
+  function guardarAccion() {
+    if (!accionTipo) return;
+    setSaving(true);
+    var update = { incidencia_accion: accionTipo, incidencia_accion_nota: accionNota };
+    SB.from("radio_spots").update(update).eq("id", accionModal.id).then(function(res) {
+      if (res.error) { setSaving(false); return; }
+      if (accionTipo === "cambio_horario" && repFecha && repHora && repEmisora) {
+        var nuevoSpot = {
+          emisora_id: repEmisora,
+          fecha: repFecha,
+          dia_semana: new Date(repFecha+"T12:00:00").toLocaleDateString("es-MX",{weekday:"long"}),
+          hora: repHora,
+          tipo: accionModal.tipo,
+          costo: accionModal.costo,
+          talento: accionModal.talento,
+          contrato: accionModal.contrato,
+          status: "confirmado",
+          semana: accionModal.semana,
+          repuesto_spot_id: accionModal.id,
+          precio_equipo: null,
+        };
+        SB.from("radio_spots").insert(nuevoSpot).select().single().then(function(res2) {
+          if (!res2.error && res2.data) {
+            var mapped = Object.assign({}, res2.data, {
+              emisoraId: res2.data.emisora_id,
+              incidencia: null, incidencia_accion: null,
+              incidenciaNota: "", incidencia_accion_nota: "",
+              precioEquipo: res2.data.precio_equipo,
+            });
+            setSpots(function(p){ return p.concat([mapped]); });
+          }
+        });
+      }
+      setSpots(function(p){ return p.map(function(s){ return s.id===accionModal.id ? Object.assign({},s,update) : s; }); });
+      setSaving(false);
+      setAccionModal(null);
+    });
+  }
+
   var spotsConInc = spots.filter(function(s){
     if (!s.incidencia) return false;
     if (filtroTipo !== "all" && s.incidencia !== filtroTipo) return false;
@@ -2011,10 +2067,75 @@ function TabIncidencias({ spots, emisoras, semana }) {
               </div>
               <div style={{fontSize:"11px",color:C.text4}}>{sp.fecha} · {sp.hora} · {sp.tipo} · {sp.contrato||"—"}</div>
               {sp.incidenciaNota && <div style={{fontSize:"12px",color:C.text2,marginTop:"4px",fontStyle:"italic"}}>"{sp.incidenciaNota}"</div>}
+              {sp.incidencia_accion && (
+                <div style={{marginTop:"6px",fontSize:"11px",fontWeight:"700",color:sp.incidencia_accion==="mg_credito"?"#1a7f3c":sp.incidencia_accion==="credito_negado"?"#b91c1c":"#1565c0"}}>
+                  Acción: {{"mg_credito":"✅ MG - Crédito disponible","cambio_horario":"🔄 Cambio de horario","credito_negado":"❌ Crédito negado"}[sp.incidencia_accion]}
+                  {sp.incidencia_accion_nota && <span style={{fontWeight:"400",color:C.text3}}> · {sp.incidencia_accion_nota}</span>}
+                </div>
+              )}
+              {!sp.incidencia_accion && (
+                <button onClick={function(){abrirAccion(sp);}} style={{marginTop:"8px",padding:"4px 12px",borderRadius:"6px",background:C.blueBg,border:"1px solid "+C.blueBd,color:C.blue,fontSize:"11px",fontWeight:"600",cursor:"pointer",fontFamily:FONT}}>
+                  Tomar acción
+                </button>
+              )}
+              {sp.incidencia_accion && (
+                <button onClick={function(){abrirAccion(sp);}} style={{marginTop:"8px",padding:"4px 12px",borderRadius:"6px",background:"transparent",border:"1px solid "+C.border,color:C.text3,fontSize:"11px",cursor:"pointer",fontFamily:FONT}}>
+                  Editar acción
+                </button>
+              )}
             </div>
           );
         })}
       </div>
+
+      {accionModal && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
+          <div style={{background:C.surface,border:"1px solid "+C.border,borderRadius:"12px",padding:"24px",width:"100%",maxWidth:"420px"}}>
+            <div style={{fontSize:"14px",fontWeight:"700",color:C.text1,marginBottom:"4px"}}>Acción sobre incidencia</div>
+            <div style={{fontSize:"12px",color:C.text4,marginBottom:"16px"}}>{(emisoras.find(function(e){return e.id===accionModal.emisoraId;})||{}).nombre} · {accionModal.fecha} · {accionModal.hora}</div>
+            <div style={{display:"flex",flexDirection:"column",gap:"8px",marginBottom:"16px"}}>
+              {[["mg_credito","✅ MG - Crédito disponible","El crédito queda disponible para usar en otro espacio. No afecta el budget del día de reposición."],["cambio_horario","🔄 Cambio de horario","La emisora repone el spot en otro horario o día."],["credito_negado","❌ Crédito negado por emisora","La emisora no reconoce el crédito."]].map(function(opt){
+                var isA = accionTipo===opt[0];
+                return (
+                  <div key={opt[0]} onClick={function(){setAccionTipo(opt[0]);}} style={{padding:"10px 14px",borderRadius:"8px",border:"2px solid "+(isA?C.blue:C.border),background:isA?C.blueBg:"transparent",cursor:"pointer"}}>
+                    <div style={{fontSize:"13px",fontWeight:"700",color:isA?C.blue:C.text1}}>{opt[1]}</div>
+                    <div style={{fontSize:"11px",color:C.text3,marginTop:"2px"}}>{opt[2]}</div>
+                  </div>
+                );
+              })}
+            </div>
+            {accionTipo==="cambio_horario" && (
+              <div style={{padding:"10px 12px",borderRadius:"8px",background:C.blueBg,border:"1px solid "+C.blueBd,marginBottom:"12px"}}>
+                <div style={{fontSize:"11px",fontWeight:"700",color:C.blue,marginBottom:"8px"}}>Nuevo spot de reposición</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"8px"}}>
+                  <div>
+                    <div style={{fontSize:"11px",color:C.text3,marginBottom:"4px"}}>Fecha</div>
+                    <input type="date" value={repFecha} onChange={function(e){setRepFecha(e.target.value);}} style={{width:"100%",padding:"6px 8px",borderRadius:"6px",border:"1px solid "+C.border,fontSize:"12px",fontFamily:FONT,boxSizing:"border-box"}} />
+                  </div>
+                  <div>
+                    <div style={{fontSize:"11px",color:C.text3,marginBottom:"4px"}}>Hora</div>
+                    <input type="time" value={repHora} onChange={function(e){setRepHora(e.target.value);}} style={{width:"100%",padding:"6px 8px",borderRadius:"6px",border:"1px solid "+C.border,fontSize:"12px",fontFamily:FONT,boxSizing:"border-box"}} />
+                  </div>
+                </div>
+                <div>
+                  <div style={{fontSize:"11px",color:C.text3,marginBottom:"4px"}}>Emisora</div>
+                  <select value={repEmisora} onChange={function(e){setRepEmisora(e.target.value);}} style={{width:"100%",padding:"6px 8px",borderRadius:"6px",border:"1px solid "+C.border,fontSize:"12px",fontFamily:FONT,boxSizing:"border-box"}}>
+                    {emisoras.map(function(e){ return <option key={e.id} value={e.id}>{e.nombre}</option>; })}
+                  </select>
+                </div>
+              </div>
+            )}
+            <div style={{marginBottom:"12px"}}>
+              <div style={{fontSize:"11px",color:C.text3,marginBottom:"4px"}}>Nota (opcional)</div>
+              <input value={accionNota} onChange={function(e){setAccionNota(e.target.value);}} placeholder="Detalles adicionales..." style={{width:"100%",padding:"7px 10px",borderRadius:"6px",border:"1px solid "+C.border,fontSize:"12px",fontFamily:FONT,boxSizing:"border-box"}} />
+            </div>
+            <div style={{display:"flex",gap:"8px"}}>
+              <button onClick={function(){setAccionModal(null);}} style={{flex:1,padding:"8px",borderRadius:"6px",border:"1px solid "+C.border,background:"transparent",fontSize:"12px",cursor:"pointer",fontFamily:FONT}}>Cancelar</button>
+              <button onClick={guardarAccion} disabled={!accionTipo||saving} style={{flex:2,padding:"8px",borderRadius:"6px",border:"none",background:accionTipo&&!saving?C.blue:"#94a3b8",color:"#fff",fontSize:"12px",fontWeight:"700",cursor:accionTipo&&!saving?"pointer":"not-allowed",fontFamily:FONT}}>{saving?"Guardando...":"Guardar acción"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2486,7 +2607,7 @@ export default function RadioModule(props) {
           />
         )}
         {!loading && tab==="incidencias" && (
-          <TabIncidencias spots={spots} emisoras={emisoras} semana={semana} />
+          <TabIncidencias spots={spots} emisoras={emisoras} semana={semana} setSpots={setSpots} />
         )}
         {!loading && tab==="finanzas" && (
           <TabFinanzas spots={spots} emisoras={emisoras} semana={semana}/>
