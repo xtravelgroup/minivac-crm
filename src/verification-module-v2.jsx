@@ -575,7 +575,7 @@ function SendDocsModal({ lead, onClose, onSent }) {
 
       // Guardar link generado en Supabase
       await fetch(SB_URL + "/rest/v1/leads?id=eq." + lead.id, {
-        method:"PATCH", headers:{ ...HDR, "Prefer":"return=minimal" },
+        method:"PATCH", headers:{ ...HDR, "apikey": SB_KEY, "Prefer":"return=minimal" },
         body: JSON.stringify({ firma_token: data.token, firma_enviada_at: new Date().toISOString() })
       });
 
