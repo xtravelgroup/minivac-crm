@@ -445,7 +445,7 @@ function SpotRow({ spot, emisora, isToday, onEdit, onDelete, onIncidencia, isSup
         {inc && <span style={{ ...S.badge(inc.color,inc.bg,inc.border), marginTop:"3px", fontSize:"10px" }}>{inc.icon} {inc.label}</span>}
       </div>
       <div style={{ fontSize:"11px", color:"#64748b" }}>{spot.tipo}</div>
-      <div style={{ fontSize:"13px", fontWeight:"600", color:"#f87171" }}>{fmtUSD(spot.costo)}</div>
+      <div style={{ fontSize:"13px", fontWeight:"600", color:"#f87171" }}>{fmtUSD(Number(spot.costo||0)+Number(spot.talento||0))}</div>
       <div style={{ fontSize:"12px", color: inc?.credito?"#f87171":"#475569" }}>{inc?.credito?"📋 Crédito":"—"}</div>
       <div style={{ fontSize:"13px", fontWeight:"600", color:"#fbbf24" }}>{spot.precioEquipoOverride!=null?"⚡ ":""}{fmtUSD(precio)}</div>
       <div style={{ display:"flex", alignItems:"center", gap:"4px", flexWrap:"wrap" }}>
