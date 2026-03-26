@@ -278,7 +278,7 @@ function VendedorCard({ user, ventas, pagos, numeros, week, isAdmin, onConfig })
         <StatBox label="Cobrado"           today={fmtUSD(cobradoHoy)}  week={fmtUSD(cobradoSem)} color="#925c0a" />
       </div>
 
-      {/* KPIs destacados: Ventas y Cobranza */}
+      {/* Fila 2: Ventas + Cobranza */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
         <div style={{ padding:"14px 16px", borderRadius:12, background:"rgba(26,127,60,0.07)", border:"1px solid rgba(26,127,60,0.2)" }}>
           <div style={{ fontSize:10, fontWeight:700, color:"#1a7f3c", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:10, opacity:0.8 }}>Ventas</div>
@@ -293,10 +293,6 @@ function VendedorCard({ user, ventas, pagos, numeros, week, isAdmin, onConfig })
             </div>
           </div>
         </div>
-
-      </div>
-
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
         <div style={{ padding:"14px 16px", borderRadius:12, background:"rgba(245,158,11,0.07)", border:"1px solid rgba(245,158,11,0.25)" }}>
           <div style={{ fontSize:10, fontWeight:700, color:"#925c0a", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:10, opacity:0.8 }}>Cobranza</div>
           <div style={{ display:"flex", gap:24, alignItems:"flex-end" }}>
@@ -310,7 +306,11 @@ function VendedorCard({ user, ventas, pagos, numeros, week, isAdmin, onConfig })
             </div>
           </div>
         </div>
-        <div style={{ flex:1, minWidth:140, padding:"14px 16px", borderRadius:12, background:"rgba(129,140,248,0.08)", border:"1px solid rgba(129,140,248,0.2)" }}>
+      </div>
+
+      {/* Fila 3: % de Cierre + Cancelaciones */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
+        <div style={{ padding:"14px 16px", borderRadius:12, background:"rgba(129,140,248,0.08)", border:"1px solid rgba(129,140,248,0.2)" }}>
           <div style={{ fontSize:10, fontWeight:700, color:"#1565c0", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:8, opacity:0.8 }}>% de cierre</div>
           <div style={{ display:"flex", gap:20, alignItems:"flex-end" }}>
             <div>
@@ -325,8 +325,7 @@ function VendedorCard({ user, ventas, pagos, numeros, week, isAdmin, onConfig })
             </div>
           </div>
         </div>
-
-        <div style={{ flex:1, minWidth:140, padding:"14px 16px", borderRadius:12, background:"rgba(248,113,113,0.08)", border:"1px solid rgba(248,113,113,0.2)" }}>
+        <div style={{ padding:"14px 16px", borderRadius:12, background:"rgba(248,113,113,0.08)", border:"1px solid rgba(248,113,113,0.2)" }}>
           <div style={{ fontSize:10, fontWeight:700, color:"#b91c1c", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:8, opacity:0.8 }}>Cancelaciones semana</div>
           <div style={{ fontSize:22, fontWeight:800, color:"#b91c1c", lineHeight:1 }}>{cancelSem.length}</div>
           {cancelSem.length > 0 && (
