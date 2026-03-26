@@ -520,12 +520,7 @@ function PanelWhatsApp(props){
 
   return (
     <div style={{padding:"4px 0"}}>
-      {waNoConfig&&(
-        <div style={{padding:"10px 12px",borderRadius:"8px",background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.25)",marginBottom:"12px"}}>
-          <div style={{fontSize:"11px",fontWeight:"700",color:AMBER,marginBottom:"3px"}}>Pendiente de configuracion</div>
-          <div style={{fontSize:"10px",color:"#92400e"}}>WhatsApp Business requiere numero aprobado por Meta. Configura WA_TOKEN y WA_PHONE_ID en comm-panel.jsx</div>
-        </div>
-      )}
+
       {error&&<div style={{padding:"8px 12px",borderRadius:"8px",background:"#fef2f2",border:"1px solid rgba(248,113,113,0.3)",color:RED,fontSize:"12px",marginBottom:"12px"}}>{error}</div>}
       <div style={{marginBottom:"10px"}}>
         <label style={SI.lbl}>Numero WhatsApp</label>
