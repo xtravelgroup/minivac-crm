@@ -775,10 +775,10 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
         <div style={{ display:"flex", gap:"5px", borderBottom:"1px solid #e3e6ea", marginBottom:"14px", flexWrap:"wrap", paddingBottom:"8px" }}>
           {tabBtn("datos",       "📋 Datos")}
           {tabBtn("seguimiento", `📝 Seguim.${(draft.notas||[]).length>0?" ("+draft.notas.length+")":""}`, "#925c0a")}
-          {canSeePaquete && tabBtn("destinos", "🗺️ Destinos", "#1a7f3c")}
+          {canSeePaquete && canEdit && tabBtn("destinos", "🗺️ Destinos", "#1a7f3c")}
           {canSeePaquete && tabBtn("pago",     "💳 Pago",     "#1565c0")}
-          {tabBtn("emails",    "✉️ Emails",   "#6d28d9")}
-          {tabBtn("chat",      "💬 Chat",     "#0891b2")}
+          {canEdit && tabBtn("emails",    "✉️ Emails",   "#6d28d9")}
+          {canEdit && tabBtn("chat",      "💬 Chat",     "#0891b2")}
           {tabBtn("historial", "🕒 Historial", "#6b7280")}
           {isSupervisor  && tabBtn("admin",    "⚙️ Admin",    "#b91c1c")}
         </div>
