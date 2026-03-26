@@ -719,7 +719,7 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
   const dias            = daysSince(lead.ultimoContacto);
   const isAlert         = dias >= ALERT_DAYS && !["venta","no_interesado"].includes(lead.status) && !lead.bloqueado;
   const sc              = STATUS_CFG[draft.status];
-  const canEdit         = !lead.bloqueado || isSupervisor;
+  const canEdit         = isSupervisor || (!lead.bloqueado && !["verificacion","venta"].includes(lead.status));
   const canSeePaquete   = true;
 
   const addNota = () => {
