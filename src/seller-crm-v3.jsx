@@ -863,7 +863,7 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
               </div>
             )}
             {/* Reasignacion - solo roles con permisos */}
-            {(["supervisor","verificador","director","admin"].includes(currentUser.role)) && ["verificacion","venta"].includes(draft.status) && (
+            {(["supervisor","verificador","director","admin"].includes(currentUser.role)) && (
               <div style={{ marginTop:12, padding:"12px 14px", borderRadius:10, background:"#f0f4ff", border:"1px solid #c7d7f8" }}>
                 <div style={{ fontSize:10, fontWeight:700, color:"#1565c0", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>🔄 Reasignación</div>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
