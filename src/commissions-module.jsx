@@ -236,7 +236,7 @@ function VendedorCard({ user, ventas, pagos, numeros, week, isAdmin, onConfig })
     return a + hist.filter(p => (p.fecha||"").slice(0,10) === TODAY)
                    .reduce((s,p) => s + Number(p.monto||0), 0);
   }, 0);
-  const cobradoHoy   = abonosHoy;
+  const cobradoHoy   = engancheHoy + abonosHoy;
 
   // Cobrado semana = enganches semana + todos los abonos de la semana
   const engancheSem  = ventasSem.reduce((a,v) => a + v.pagoInicial, 0);
@@ -245,10 +245,10 @@ function VendedorCard({ user, ventas, pagos, numeros, week, isAdmin, onConfig })
     return a + hist.filter(p => inWeek((p.fecha||"").slice(0,10), week))
                    .reduce((s,p) => s + Number(p.monto||0), 0);
   }, 0);
-  const cobradoSem   = abonosSem;
+  const cobradoSem   = engancheSem + abonosSem;
 
-  const commHoy      = cobradoHoy * user.commPct / 100;
-  const commSem      = cobradoSem * user.commPct / 100;
+  const commHoy      = (engancheHoy + abonosHoy) * user.commPct / 100;
+  const commSem      = (engancheSem + abonosSem) * user.commPct / 100;
   const descCancel   = cancelSem.reduce((a,v) => a + v.pagoInicial * user.commPct/100, 0);
   const totalSem     = commSem - descCancel + (user.spiff||0);
   const cierreHoy    = numHoy > 0 ? (ventasHoy.length / numHoy * 100) : 0;
@@ -275,6 +275,9 @@ function VendedorCard({ user, ventas, pagos, numeros, week, isAdmin, onConfig })
         <StatBox label="Numeros recibidos" today={numHoy}              week={numSem}             color="#1565c0" />
         <StatBox label="Ventas"            today={ventasHoy.length}    week={ventasSem.length}   color="#1a7f3c" />
         <StatBox label="Cobrado"           today={fmtUSD(cobradoHoy)}  week={fmtUSD(cobradoSem)} color="#925c0a" />
+        <StatBox label="Cobranza"          today={fmtUSD(abonosHoy)}   week={fmtUSD(abonosSem)}  color="#925c0a" />
+        <StatBox label="Cobranza"          today={fmtUSD(abonosHoy)}   week={fmtUSD(abonosSem)}  color="#925c0a" />
+        <StatBox label="Cobranza"          today={fmtUSD(abonosHoy)}   week={fmtUSD(abonosSem)}  color="#925c0a" />
       </div>
 
       {/* KPIs destacados: Ventas y Cobranza */}
