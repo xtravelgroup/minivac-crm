@@ -1045,8 +1045,8 @@ export default function CommissionsModule({ currentUser: shellUser }) {
     }) || users.find(function(u){
       return u.name && shellUser.nombre && u.name.toLowerCase() === shellUser.nombre.toLowerCase();
     });
-    myVendCard = found || {
-      id: shellUser.auth_id || "me",
+    myVendCard = found ? Object.assign({}, found, { id: shellUser.id || found.id }) : {
+      id: shellUser.id || shellUser.auth_id || "me",
       name: shellUser.nombre || "Mi cuenta",
       role: "vendedor",
       commPct: 10,
