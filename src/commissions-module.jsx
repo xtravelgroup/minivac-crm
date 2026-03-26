@@ -370,28 +370,39 @@ function VendedorCard({ user, ventas, pagos, numeros, week, isAdmin, onConfig })
         <div style={{ marginTop:10, padding:"12px 14px", borderRadius:10, background:"#fff", border:"1px solid #e3e6ea" }}>
           <div style={{ fontSize:10, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Ventas de la semana</div>
           {ventasSem.map(function(v,i){ return (
-            <div key={i} style={{ display:"flex", justifyContent:"space-between", fontSize:12, padding:"4px 0", borderBottom:"1px solid #f0f0f0" }}>
-              <span style={{ color:"#3d4554" }}>{v.cliente}</span>
-              <span style={{ color:"#9ca3af", marginLeft:8 }}>{v.fechaVenta}</span>
-              <span style={{ color:"#1a7f3c", fontWeight:600, marginLeft:8 }}>{fmtUSD(v.salePrice)}</span>
+            <div key={i} style={{ display:"flex", gap:8, fontSize:12, padding:"4px 0", borderBottom:"1px solid #f0f0f0", alignItems:"center" }}>
+              <span style={{ color:"#9ca3af", minWidth:80 }}>{v.fechaVenta}</span>
+              <span style={{ color:"#3d4554", flex:1 }}>{v.cliente}</span>
+              <span style={{ color:"#1a7f3c", fontWeight:600 }}>{fmtUSD(v.pagoInicial)}</span>
             </div>
           ); })}
         </div>
       )}
 
-      {/* Lista cobranza semana */}
-      {ventasSem.filter(function(v){ return v.pagoInicial>0; }).length > 0 && (
-        <div style={{ marginTop:8, padding:"12px 14px", borderRadius:10, background:"#fff", border:"1px solid #e3e6ea" }}>
-          <div style={{ fontSize:10, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Cobranza de la semana</div>
-          {ventasSem.map(function(v,i){ return (
-            <div key={i} style={{ display:"flex", justifyContent:"space-between", fontSize:12, padding:"4px 0", borderBottom:"1px solid #f0f0f0" }}>
-              <span style={{ color:"#3d4554" }}>{v.cliente}</span>
-              <span style={{ color:"#9ca3af", marginLeft:8 }}>{v.fechaVenta}</span>
-              <span style={{ color:"#925c0a", fontWeight:600, marginLeft:8 }}>{fmtUSD(v.pagoInicial)}</span>
-            </div>
-          ); })}
-        </div>
-      )}
+      {/* Lista cobranza semana - pagos adicionales al balance */}
+      {(function(){
+        var abonosSem = [];
+        ventasSem.forEach(function(v){
+          (v.pagosHistorial||[]).forEach(function(p){
+            if (inWeek((p.fecha||"").slice(0,10), week)) {
+              abonosSem.push({ cliente:v.cliente, fecha:p.fecha?p.fecha.slice(0,10):"", monto:Number(p.monto||0) });
+            }
+          });
+        });
+        if (abonosSem.length === 0) return null;
+        return (
+          <div style={{ marginTop:8, padding:"12px 14px", borderRadius:10, background:"#fff", border:"1px solid #e3e6ea" }}>
+            <div style={{ fontSize:10, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Cobranza adicional semana</div>
+            {abonosSem.map(function(p,i){ return (
+              <div key={i} style={{ display:"flex", gap:8, fontSize:12, padding:"4px 0", borderBottom:"1px solid #f0f0f0", alignItems:"center" }}>
+                <span style={{ color:"#9ca3af", minWidth:80 }}>{p.fecha}</span>
+                <span style={{ color:"#3d4554", flex:1 }}>{p.cliente}</span>
+                <span style={{ color:"#925c0a", fontWeight:600 }}>{fmtUSD(p.monto)}</span>
+              </div>
+            ); })}
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -476,10 +487,10 @@ function VerificadorCard({ user, ventas, week, isAdmin, onConfig }) {
         <div style={{ marginTop:10, padding:"12px 14px", borderRadius:10, background:"#fff", border:"1px solid #e3e6ea" }}>
           <div style={{ fontSize:10, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Ventas de la semana</div>
           {ventasSem.map(function(v,i){ return (
-            <div key={i} style={{ display:"flex", justifyContent:"space-between", fontSize:12, padding:"4px 0", borderBottom:"1px solid #f0f0f0" }}>
-              <span style={{ color:"#3d4554" }}>{v.cliente}</span>
-              <span style={{ color:"#9ca3af", marginLeft:8 }}>{v.fechaVenta}</span>
-              <span style={{ color:"#1a7f3c", fontWeight:600, marginLeft:8 }}>{fmtUSD(v.salePrice)}</span>
+            <div key={i} style={{ display:"flex", gap:8, fontSize:12, padding:"4px 0", borderBottom:"1px solid #f0f0f0", alignItems:"center" }}>
+              <span style={{ color:"#9ca3af", minWidth:80 }}>{v.fechaVenta}</span>
+              <span style={{ color:"#3d4554", flex:1 }}>{v.cliente}</span>
+              <span style={{ color:"#1a7f3c", fontWeight:600 }}>{fmtUSD(v.pagoInicial)}</span>
             </div>
           ); })}
         </div>
@@ -490,10 +501,10 @@ function VerificadorCard({ user, ventas, week, isAdmin, onConfig }) {
         <div style={{ marginTop:8, padding:"12px 14px", borderRadius:10, background:"#fff", border:"1px solid #e3e6ea" }}>
           <div style={{ fontSize:10, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Upsales de la semana</div>
           {ventasSem.filter(function(v){ return (v.upsaleMonto||0)>0; }).map(function(v,i){ return (
-            <div key={i} style={{ display:"flex", justifyContent:"space-between", fontSize:12, padding:"4px 0", borderBottom:"1px solid #f0f0f0" }}>
-              <span style={{ color:"#3d4554" }}>{v.cliente}</span>
-              <span style={{ color:"#9ca3af", marginLeft:8 }}>{v.fechaVenta}</span>
-              <span style={{ color:"#1565c0", fontWeight:600, marginLeft:8 }}>Upsale: {fmtUSD(v.upsaleMonto)}</span>
+            <div key={i} style={{ display:"flex", gap:8, fontSize:12, padding:"4px 0", borderBottom:"1px solid #f0f0f0", alignItems:"center" }}>
+              <span style={{ color:"#9ca3af", minWidth:80 }}>{v.fechaVenta}</span>
+              <span style={{ color:"#3d4554", flex:1 }}>{v.cliente}</span>
+              <span style={{ color:"#1565c0", fontWeight:600 }}>Upsale: {fmtUSD(v.upsaleMonto)}</span>
             </div>
           ); })}
         </div>
