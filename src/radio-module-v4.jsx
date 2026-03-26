@@ -1959,6 +1959,66 @@ function ExpedienteEmisora(props) {
 
 //  Root 
 
+function TabIncidencias({ spots, emisoras, semana }) {
+  var emMap = {};
+  emisoras.forEach(function(e){ emMap[e.id] = e; });
+  var [filtroTipo, setFiltroTipo] = React.useState("all");
+  var [filtroSemana, setFiltroSemana] = React.useState("actual");
+  var spotsConInc = spots.filter(function(s){
+    if (!s.incidencia) return false;
+    if (filtroTipo !== "all" && s.incidencia !== filtroTipo) return false;
+    if (filtroSemana === "actual" && s.semana !== semana.lunes) return false;
+    return true;
+  }).sort(function(a,b){ return (b.fecha||"").localeCompare(a.fecha||""); });
+  var totalCredito = spotsConInc.filter(function(s){ return INC_META[s.incidencia] && INC_META[s.incidencia].credito; }).reduce(function(t,s){ return t + Number(s.costo||0) + Number(s.talento||0); }, 0);
+  return (
+    <div>
+      <div style={{display:"flex",gap:"10px",marginBottom:"16px",flexWrap:"wrap",alignItems:"center"}}>
+        <div style={{display:"flex",gap:"6px"}}>
+          {[["all","Todas"],["no_salio","No salio"],["salio_mal","Salio mal"],["aircheck","Aircheck"],["otros","Otros"]].map(function(opt){
+            var isA = filtroTipo===opt[0];
+            return <button key={opt[0]} onClick={function(){setFiltroTipo(opt[0]);}} style={{padding:"4px 10px",borderRadius:"6px",border:"1px solid "+(isA?C.dark:C.border),background:isA?C.dark:"transparent",color:isA?C.bg:C.text3,fontSize:"11px",fontWeight:isA?"700":"400",cursor:"pointer",fontFamily:FONT}}>{opt[1]}</button>;
+          })}
+        </div>
+        <div style={{display:"flex",gap:"6px",marginLeft:"auto"}}>
+          {[["actual","Semana actual"],["todas","Todas"]].map(function(opt){
+            var isA = filtroSemana===opt[0];
+            return <button key={opt[0]} onClick={function(){setFiltroSemana(opt[0]);}} style={{padding:"4px 10px",borderRadius:"6px",border:"1px solid "+(isA?C.blue:C.border),background:isA?C.blueBg:"transparent",color:isA?C.blue:C.text3,fontSize:"11px",fontWeight:isA?"700":"400",cursor:"pointer",fontFamily:FONT}}>{opt[1]}</button>;
+          })}
+        </div>
+      </div>
+      <div style={{display:"flex",gap:"10px",marginBottom:"16px"}}>
+        <div style={{padding:"12px 16px",borderRadius:"10px",background:C.redBg,border:"1px solid "+C.redBd,minWidth:"120px"}}>
+          <div style={{fontSize:"9px",fontWeight:"700",color:C.red,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:"4px"}}>Total incidencias</div>
+          <div style={{fontSize:"22px",fontWeight:"800",color:C.red}}>{spotsConInc.length}</div>
+        </div>
+        <div style={{padding:"12px 16px",borderRadius:"10px",background:C.amberBg,border:"1px solid "+C.amberBd,minWidth:"120px"}}>
+          <div style={{fontSize:"9px",fontWeight:"700",color:C.amber,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:"4px"}}>Credito pendiente</div>
+          <div style={{fontSize:"22px",fontWeight:"800",color:C.amber}}>{fmtUSD(totalCredito)}</div>
+        </div>
+      </div>
+      {spotsConInc.length===0 && <div style={{textAlign:"center",padding:"40px",color:C.text4,fontSize:"13px"}}>Sin incidencias reportadas</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+        {spotsConInc.map(function(sp){
+          var em = emMap[sp.emisoraId]||{};
+          var inc = INC_META[sp.incidencia];
+          return (
+            <div key={sp.id} style={{padding:"12px 16px",borderRadius:"10px",background:C.surface,border:"1px solid "+C.border}}>
+              <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"4px"}}>
+                <div style={{fontSize:"13px",fontWeight:"700",color:C.text1}}>{em.nombre||"—"}</div>
+                <span style={{fontSize:"10px",fontWeight:"700",color:inc.color,background:inc.bg,border:"1px solid "+inc.bd,padding:"2px 8px",borderRadius:"10px"}}>{inc.label}</span>
+                {inc.credito && <span style={{fontSize:"10px",fontWeight:"700",color:C.red,background:C.redBg,border:"1px solid "+C.redBd,padding:"2px 8px",borderRadius:"10px"}}>Credito: {fmtUSD(Number(sp.costo||0)+Number(sp.talento||0))}</span>}
+              </div>
+              <div style={{fontSize:"11px",color:C.text4}}>{sp.fecha} · {sp.hora} · {sp.tipo} · {sp.contrato||"—"}</div>
+              {sp.incidenciaNota && <div style={{fontSize:"12px",color:C.text2,marginTop:"4px",fontStyle:"italic"}}>"{sp.incidenciaNota}"</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function RadioModule(props) {
   var isSupervisor = props.isSupervisor;
   var isReadOnly   = props.isReadOnly;
@@ -2282,6 +2342,7 @@ export default function RadioModule(props) {
     {id:"ordenes",  label:"Ordenes ("+spots.length+")"},
     {id:"pagos",    label:"Pagos" + (spotsPendTotal>0 ? " ("+spotsPendTotal+" pend.)":"")},
     {id:"finanzas", label:"Finanzas"},
+    {id:"incidencias", label:"Incidencias"},
   ];
 
   var spotsDelaSemana = spots.filter(function(s){return s.semana===semana.lunes;});
@@ -2423,6 +2484,9 @@ export default function RadioModule(props) {
             onSavePago={savePago}
             onDeletePago={deletePago}
           />
+        )}
+        {!loading && tab==="incidencias" && (
+          <TabIncidencias spots={spots} emisoras={emisoras} semana={semana} />
         )}
         {!loading && tab==="finanzas" && (
           <TabFinanzas spots={spots} emisoras={emisoras} semana={semana}/>
