@@ -169,25 +169,19 @@ async function enviarEmailResend(destinoEmail, asunto, cuerpo, nombreCliente){
   }
 }
 
-// ?? WhatsApp via Meta Graph API ??
-async function enviarWhatsApp(destino, texto){
+// ?? WhatsApp via Twilio ??
+var TWILIO_EDGE = "https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/send-whatsapp";
+var SB_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAxNTA0MiwiZXhwIjoyMDg4NTkxMDQyfQ.-P8KH6yhs6AJ1lUwBrwUpcoZV3KGvM7fDlFM3RsYKxw";
+async function enviarWhatsApp(destino, texto, leadId){
   try {
-    var res = await fetch("https://graph.facebook.com/v18.0/"+WA_PHONE_ID+"/messages", {
+    var res = await fetch(TWILIO_EDGE, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + WA_TOKEN,
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: destino.replace(/[^0-9]/g,""),
-        type: "text",
-        text: { body: texto },
-      }),
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + SB_SERVICE_KEY, "apikey": SB_SERVICE_KEY },
+      body: JSON.stringify({ to: destino, mensaje: texto, lead_id: leadId || null, service_key: SB_SERVICE_KEY }),
     });
     var data = await res.json();
-    if(data.messages&&data.messages[0]) return { ok: true, waId: data.messages[0].id };
-    return { ok: false, error: (data.error&&data.error.message)||"Error WhatsApp" };
+    if(data.ok) return { ok: true, waId: data.sid };
+    return { ok: false, error: data.error || "Error WhatsApp" };
   } catch(e) {
     return { ok: false, error: e.message };
   }
@@ -494,15 +488,12 @@ function PanelWhatsApp(props){
     if(id&&PLANTILLAS[id]) setTexto(PLANTILLAS[id].cuerpo(c,""));
   }
 
-  var waNoConfig = WA_TOKEN==="TU_WA_ACCESS_TOKEN";
-
   function enviar(){
-    if(waNoConfig){ setError("WhatsApp Business no configurado. Agrega WA_TOKEN y WA_PHONE_ID cuando tengas el numero aprobado por Meta."); return; }
     if(!texto.trim()){ setError("Escribe un mensaje"); return; }
     if(!numDest.trim()){ setError("Ingresa un numero"); return; }
     setError("");
     setEstado("enviando");
-    enviarWhatsApp(numDest, texto).then(function(r){
+    enviarWhatsApp(numDest, texto, c.id||c.leadId||null).then(function(r){
       if(r.ok){
         props.onLog({ canal:"whatsapp", tipo:"whatsapp", texto:"WhatsApp a "+numDest+": "+texto.slice(0,60)+(texto.length>60?"...":""), autor:props.currentUser.nombre, fecha:new Date().toISOString() });
         setEstado("done");
