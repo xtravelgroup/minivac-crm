@@ -1982,7 +1982,7 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId }) {
   var mappedUser = shellUser ? {
     id:    myAuthId || "U_shell",
     name:  shellUser.nombre || shellUser.name || "Usuario",
-    role:  isSup ? "supervisor" : "vendedor",
+    role:  isSup ? "supervisor" : (shellUser.rol || shellUser.role || "vendedor"),
     supervisorId: null,
   } : SEED_USERS[0];
 
