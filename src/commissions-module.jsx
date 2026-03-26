@@ -236,7 +236,7 @@ function VendedorCard({ user, ventas, pagos, numeros, week, isAdmin, onConfig })
     return a + hist.filter(p => (p.fecha||"").slice(0,10) === TODAY)
                    .reduce((s,p) => s + Number(p.monto||0), 0);
   }, 0);
-  const cobradoHoy   = engancheHoy + abonosHoy;
+  const cobradoHoy   = abonosHoy;
 
   // Cobrado semana = enganches semana + todos los abonos de la semana
   const engancheSem  = ventasSem.reduce((a,v) => a + v.pagoInicial, 0);
@@ -245,7 +245,7 @@ function VendedorCard({ user, ventas, pagos, numeros, week, isAdmin, onConfig })
     return a + hist.filter(p => inWeek((p.fecha||"").slice(0,10), week))
                    .reduce((s,p) => s + Number(p.monto||0), 0);
   }, 0);
-  const cobradoSem   = engancheSem + abonosSem;
+  const cobradoSem   = abonosSem;
 
   const commHoy      = cobradoHoy * user.commPct / 100;
   const commSem      = cobradoSem * user.commPct / 100;
