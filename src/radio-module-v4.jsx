@@ -2039,7 +2039,7 @@ function TabIncidencias({ spots, emisoras, semana, setSpots }) {
     if (filtroSemana === "actual" && s.semana !== semana.lunes) return false;
     return true;
   }).sort(function(a,b){ return (b.fecha||"").localeCompare(a.fecha||""); });
-  var totalCredito = spotsConInc.filter(function(s){ return INC_META[s.incidencia] && INC_META[s.incidencia].credito; }).reduce(function(t,s){ return t + Number(s.costo||0) + Number(s.talento||0); }, 0);
+  var totalCredito = spotsConInc.filter(function(s){ return INC_META[s.incidencia] && INC_META[s.incidencia].credito && !s.incidencia_accion; }).reduce(function(t,s){ return t + Number(s.costo||0) + Number(s.talento||0); }, 0);
   return (
     <div>
       <div style={{display:"flex",gap:"10px",marginBottom:"16px",flexWrap:"wrap",alignItems:"center"}}>
