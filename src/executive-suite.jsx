@@ -521,11 +521,10 @@ function TabRadios(props){
   var ANON_KEY_D = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA";
   var SB_URL_D = "https://gsvnvahrjgswwejnuiyn.supabase.co";
   function guardarIncidencia(spotId, tipo, nota) {
-    fetch(SB_URL_D + "/rest/v1/radio_spots?id=eq." + spotId, {
-      method: "PATCH",
-      headers: { "apikey": ANON_KEY_D, "Authorization": "Bearer " + ANON_KEY_D, "Content-Type": "application/json" },
-      body: JSON.stringify({ incidencia: tipo, incidencia_nota: nota })
-    }).then(function(){ setReportando(null); window.location.reload(); });
+    SB.from("radio_spots").update({ incidencia: tipo, incidencia_nota: nota }).eq("id", spotId).then(function(res) {
+      if (!res.error) { setReportando(null); window.location.reload(); }
+      else { console.error("Error guardando incidencia:", res.error); }
+    });
   }
   var lunes   = lunesDe(diaActual);
   var domingo = domingoDe(lunes);
