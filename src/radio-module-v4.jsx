@@ -1994,22 +1994,35 @@ function TabIncidencias({ spots, emisoras, semana, setSpots }) {
           dia_semana: new Date(repFecha+"T12:00:00").toLocaleDateString("es-MX",{weekday:"long"}),
           hora: repHora,
           tipo: accionModal.tipo,
-          costo: accionModal.costo,
-          talento: accionModal.talento,
+          costo: 0,
+          talento: 0,
           contrato: accionModal.contrato,
           status: "confirmado",
-          semana: accionModal.semana,
+          semana: lunesDe(repFecha),
           repuesto_spot_id: accionModal.id,
-          precio_equipo: null,
+          precio_equipo: 0,
         };
         SB.from("radio_spots").insert(nuevoSpot).select().single().then(function(res2) {
           if (!res2.error && res2.data) {
-            var mapped = Object.assign({}, res2.data, {
+            var mapped = {
+              id: res2.data.id,
               emisoraId: res2.data.emisora_id,
-              incidencia: null, incidencia_accion: null,
-              incidenciaNota: "", incidencia_accion_nota: "",
-              precioEquipo: res2.data.precio_equipo,
-            });
+              semana: res2.data.semana,
+              fecha: res2.data.fecha,
+              dia: res2.data.dia_semana,
+              hora: res2.data.hora,
+              tipo: res2.data.tipo,
+              costo: 0,
+              talento: 0,
+              contrato: res2.data.contrato || "",
+              status: res2.data.status || "confirmado",
+              incidencia: null,
+              incidenciaNota: "",
+              incidencia_accion: null,
+              incidencia_accion_nota: "",
+              repuesto_spot_id: res2.data.repuesto_spot_id || null,
+              precioEquipo: 0,
+            };
             setSpots(function(p){ return p.concat([mapped]); });
           }
         });
@@ -2219,9 +2232,12 @@ export default function RadioModule(props) {
             talento:        Number(s.talento  || 0),
             contrato:       s.contrato     || "",
             status:         s.status       || "pendiente",
-            incidencia:     s.incidencia   || null,
-            incidenciaNota: s.incidencia_nota || "",
-            precioEquipo:   s.precio_equipo != null ? Number(s.precio_equipo) : null,
+            incidencia:            s.incidencia   || null,
+            incidenciaNota:        s.incidencia_nota || "",
+            incidencia_accion:     s.incidencia_accion || null,
+            incidencia_accion_nota: s.incidencia_accion_nota || "",
+            repuesto_spot_id:      s.repuesto_spot_id || null,
+            precioEquipo:          s.precio_equipo != null ? Number(s.precio_equipo) : null,
           };
         }));
       }
