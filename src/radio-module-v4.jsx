@@ -890,7 +890,7 @@ function TabEmisoras(props) {
             <Card key={em.id} style={{padding:"16px",cursor:"pointer",transition:"all 0.15s",
               borderLeft:"3px solid "+(em.activo?C.mid:C.border),
               opacity:em.activo?1:0.6}}
-              onClick={function(){ console.log("sel",em.id); setSel(em); }}>
+              onClick={function(){setSel(em);}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"10px"}}>
                 <div>
                   <div style={{fontSize:"14px",fontWeight:"700",color:C.text1}}>{em.nombre}</div>
