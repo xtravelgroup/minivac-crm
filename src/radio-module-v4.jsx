@@ -985,7 +985,7 @@ function TabEmisoras(props) {
 
             {/* Sub-tabs */}
             <div style={{display:"flex",gap:"2px",padding:"0 24px",borderBottom:"1px solid "+C.border,flexShrink:0}}>
-              {[{k:"info",l:"Informacion"},{k:"notas",l:"Historial de notas"}].map(function(t){
+              {[{k:"info",l:"Informacion"},{k:"apariciones",l:"Apariciones"},{k:"incidencias",l:"Incidencias"},{k:"pagos",l:"Pagos"},{k:"notas",l:"Notas"}].map(function(t){
                 var isA = selTab===t.k;
                 return(
                   <button key={t.k} onClick={function(){setSelTab(t.k);}}
@@ -1033,6 +1033,92 @@ function TabEmisoras(props) {
               {selTab==="notas" && (
                 <NotasEmisora emisoraId={sel.id} currentUser={currentUser}/>
               )}
+              {selTab==="apariciones" && (function(){
+                var sps = spots.filter(function(s){ return s.emisoraId===sel.id && !s.incidencia; })
+                  .sort(function(a,b){ return (b.fecha+b.hora).localeCompare(a.fecha+a.hora); });
+                return (
+                  <div>
+                    <div style={{fontSize:"11px",fontWeight:"700",color:C.text4,marginBottom:"12px",textTransform:"uppercase",letterSpacing:"0.08em"}}>Apariciones recientes</div>
+                    {sps.length===0 && <div style={{color:C.text4,fontSize:"13px"}}>Sin apariciones</div>}
+                    {sps.map(function(s){
+                      return (
+                        <div key={s.id} style={{padding:"10px 12px",borderRadius:"8px",background:C.bg,border:"1px solid "+C.border,marginBottom:"6px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <div>
+                              <div style={{fontSize:"13px",fontWeight:"600",color:C.text1}}>{s.fecha} · {fmtHora(s.hora)}</div>
+                              <div style={{fontSize:"11px",color:C.text4}}>{s.tipo} · {s.contrato||"—"}</div>
+                            </div>
+                            <div style={{textAlign:"right"}}>
+                              <div style={{fontSize:"13px",fontWeight:"700",color:C.red}}>{fmtUSD(Number(s.costo||0)+Number(s.talento||0))}</div>
+                              <div style={{fontSize:"11px",color:C.amber}}>{fmtUSD(precioEquipoCalc(s))} equipo</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+              {selTab==="incidencias" && (function(){
+                var sps = spots.filter(function(s){ return s.emisoraId===sel.id && s.incidencia; })
+                  .sort(function(a,b){ return (b.fecha+b.hora).localeCompare(a.fecha+a.hora); });
+                return (
+                  <div>
+                    <div style={{fontSize:"11px",fontWeight:"700",color:C.text4,marginBottom:"12px",textTransform:"uppercase",letterSpacing:"0.08em"}}>Incidencias</div>
+                    {sps.length===0 && <div style={{color:C.text4,fontSize:"13px"}}>Sin incidencias</div>}
+                    {sps.map(function(s){
+                      var inc = INC_META[s.incidencia];
+                      return (
+                        <div key={s.id} style={{padding:"10px 12px",borderRadius:"8px",background:C.bg,border:"1px solid "+C.border,marginBottom:"6px"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"4px"}}>
+                            <span style={{fontSize:"11px",fontWeight:"700",color:inc.color,background:inc.bg,border:"1px solid "+inc.bd,padding:"2px 7px",borderRadius:"8px"}}>{inc.label}</span>
+                            <span style={{fontSize:"11px",color:C.text4}}>{s.fecha} · {fmtHora(s.hora)}</span>
+                          </div>
+                          {s.incidenciaNota && <div style={{fontSize:"12px",color:C.text2,fontStyle:"italic"}}>"{s.incidenciaNota}"</div>}
+                          {s.incidencia_accion && <div style={{fontSize:"11px",fontWeight:"700",color:C.blue,marginTop:"4px"}}>Acción: {{"mg_credito":"MG Crédito","cambio_horario":"Cambio de horario","credito_negado":"Crédito negado"}[s.incidencia_accion]}</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+              {selTab==="pagos" && (function(){
+                var sps = spots.filter(function(s){ return s.emisoraId===sel.id; })
+                  .sort(function(a,b){ return (b.fecha+b.hora).localeCompare(a.fecha+a.hora); });
+                var pagados = sps.filter(function(s){ return s.status==="pagado"; });
+                var pendientes = sps.filter(function(s){ return s.status!=="pagado"; });
+                var totalPag = pagados.reduce(function(t,s){ return t+precioEquipoCalc(s); },0);
+                var totalPend = pendientes.reduce(function(t,s){ return t+precioEquipoCalc(s); },0);
+                return (
+                  <div>
+                    <div style={{display:"flex",gap:"8px",marginBottom:"14px"}}>
+                      <div style={{flex:1,padding:"10px",borderRadius:"8px",background:C.greenBg,border:"1px solid "+C.greenBd,textAlign:"center"}}>
+                        <div style={{fontSize:"14px",fontWeight:"800",color:C.green}}>{fmtUSD(totalPag)}</div>
+                        <div style={{fontSize:"10px",color:C.green,marginTop:"2px"}}>Pagado</div>
+                      </div>
+                      <div style={{flex:1,padding:"10px",borderRadius:"8px",background:C.amberBg,border:"1px solid "+C.amberBd,textAlign:"center"}}>
+                        <div style={{fontSize:"14px",fontWeight:"800",color:C.amber}}>{fmtUSD(totalPend)}</div>
+                        <div style={{fontSize:"10px",color:C.amber,marginTop:"2px"}}>Pendiente</div>
+                      </div>
+                    </div>
+                    {sps.map(function(s){
+                      var isPag = s.status==="pagado";
+                      return (
+                        <div key={s.id} style={{padding:"8px 12px",borderRadius:"8px",background:C.bg,border:"1px solid "+C.border,marginBottom:"5px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                          <div>
+                            <div style={{fontSize:"12px",fontWeight:"600",color:C.text1}}>{s.fecha} · {fmtHora(s.hora)}</div>
+                            <div style={{fontSize:"11px",color:C.text4}}>{s.tipo}</div>
+                          </div>
+                          <div style={{textAlign:"right"}}>
+                            <div style={{fontSize:"13px",fontWeight:"700",color:isPag?C.green:C.amber}}>{fmtUSD(precioEquipoCalc(s))}</div>
+                            <div style={{fontSize:"10px",color:isPag?C.green:C.amber,fontWeight:"600"}}>{isPag?"Pagado":"Pendiente"}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
