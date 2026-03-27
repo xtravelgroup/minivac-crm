@@ -1874,6 +1874,10 @@ function DetailView({ lead, destCatalog, destMap, onBack, onUpdate, verificadore
               var newExp = Object.assign({},exp,{pagosHistorial:nuevosAbonos});
               setExp(newExp);
               registrarEvento(lead.id,"pago","Abono registrado · "+nuevosAbonos[nuevosAbonos.length-1].concepto+" "+fmtUSD(nuevosAbonos[nuevosAbonos.length-1].monto),null,{nombre:"Verificador"});
+              if(lead.status !== "venta"){
+                SB.from("leads").update({status:"venta"}).eq("id",lead.id).then(function(){});
+                if(onUpdate) onUpdate(Object.assign({},lead,{status:"venta",exp:newExp}));
+              }
             }} />
           <UpsalePanel exp={exp} onSave={(newExp) => { setExp(newExp); pushUpdate(newExp, verif, null); }} />
         </div>
