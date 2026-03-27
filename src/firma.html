@@ -497,11 +497,18 @@ var lead  = null;
 var sigEmpty = true;
 var canvCust, ctx, drawing = false;
 
-var DEST = {
-  "D01":"Orlando, FL","D02":"Las Vegas, NV","D03":"Cancun, MX",
-  "D04":"Punta Cana, DR","D05":"Miami, FL","D06":"New York, NY",
-  "D07":"Los Angeles, CA","D08":"Chicago, IL","D09":"Bahamas","D10":"Jamaica"
-};
+var DEST = {};
+
+function loadDestinos() {
+  return fetch(SB_URL + "/rest/v1/destinos_catalog?select=id,nombre,estado&order=id", { headers: SB_HDR })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (Array.isArray(data)) {
+        data.forEach(function(d){ DEST[d.id] = d.nombre + (d.estado ? ", " + d.estado : ""); });
+      }
+    })
+    .catch(function(){});
+}
 
 function destDesc(d) {
   var name   = DEST[d.destId] || d.destId || "Vacation Package";
@@ -534,14 +541,16 @@ function addDays(s, days) {
 
 function loadLead() {
   if (!LEAD) { document.getElementById("mName").textContent = "Invalid link. Contact your advisor."; return; }
-  fetch(SB_URL + "/rest/v1/leads?id=eq." + LEAD + "&select=*", { headers: SB_HDR })
-    .then(function(r){ return r.json(); })
-    .then(function(data) {
-      if (!data || !data[0]) { document.getElementById("mName").textContent = "Certificate not found."; return; }
-      lead = data[0];
-      render();
-    })
-    .catch(function(){ document.getElementById("mName").textContent = "Error loading. Please try again."; });
+  loadDestinos().then(function(){
+    fetch(SB_URL + "/rest/v1/leads?id=eq." + LEAD + "&select=*", { headers: SB_HDR })
+      .then(function(r){ return r.json(); })
+      .then(function(data) {
+        if (!data || !data[0]) { document.getElementById("mName").textContent = "Certificate not found."; return; }
+        lead = data[0];
+        render();
+      })
+      .catch(function(){ document.getElementById("mName").textContent = "Error loading. Please try again."; });
+  });
 }
 
 function render() {
