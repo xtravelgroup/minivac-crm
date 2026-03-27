@@ -484,7 +484,7 @@ function addDiasR(dateStr,n){
   var d=new Date(dateStr+"T12:00:00"); d.setDate(d.getDate()+n);
   return d.toISOString().split("T")[0];
 }
-function hoyStrR(){ return new Date().toISOString().split("T")[0]; }
+function hoyStrR(){ return new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }); }
 function fmtDiaR(str){
   if(!str) return "-";
   var d=new Date(str+"T12:00:00");

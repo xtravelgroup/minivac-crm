@@ -10,8 +10,8 @@ var TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York
 function uid(){ return Math.random().toString(36).slice(2,10); }
 function fmtUSD(n){ return "$"+(Number(n)||0).toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:0}); }
 function fmtDate(s){ if(!s) return "--"; var d=new Date(s+"T12:00:00"); return ("0"+(d.getMonth()+1)).slice(-2)+"/"+("0"+d.getDate()).slice(-2)+"/"+d.getFullYear(); }
-function daysAgo(n){ var d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().split("T")[0]; }
-function daysFromNow(n){ var d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().split("T")[0]; }
+function daysAgo(n){ var d=new Date(); d.setDate(d.getDate()-n); return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }); }
+function daysFromNow(n){ var d=new Date(); d.setDate(d.getDate()+n); return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }); }
 function addDays(s,n){ var d=new Date((s||TODAY)+"T12:00:00"); d.setDate(d.getDate()+n); return d.toISOString().split("T")[0]; }
 function daysBetween(a,b){ return Math.max(0,Math.round((new Date(b+"T12:00:00")-new Date(a+"T12:00:00"))/(1000*60*60*24))); }
 function daysSince(s){ return Math.floor((Date.now()-new Date((s||TODAY)+"T12:00:00").getTime())/(1000*60*60*24)); }

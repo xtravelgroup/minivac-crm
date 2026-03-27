@@ -53,7 +53,7 @@ var INC_META = {
 };
 
 // Helpers de fecha
-function hoy() { return new Date().toISOString().split("T")[0]; }
+function hoy() { return new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }); }
 function lunesDe(dateStr) {
   var d   = new Date(dateStr + "T12:00:00");
   var day = d.getDay();

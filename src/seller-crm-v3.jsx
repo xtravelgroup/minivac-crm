@@ -16,12 +16,14 @@ function daysSince(d) {
   return Math.floor((Date.now() - new Date(d + "T12:00:00")) / 86400000);
 }
 function daysAgo(n) {
-  const d = new Date(); d.setDate(d.getDate() - n);
-  return d.toISOString().split("T")[0];
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 }
 function daysFromNow(n) {
-  const d = new Date(); d.setDate(d.getDate() + n);
-  return d.toISOString().split("T")[0];
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 }
 function fmtDate(d) {
   if (!d) return "-";

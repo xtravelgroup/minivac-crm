@@ -4,8 +4,8 @@ import { supabase as SB } from "./supabase";
 
 var TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 function addDays(d,n){ var dt=new Date(d+"T12:00:00"); dt.setDate(dt.getDate()+n); return dt.toISOString().split("T")[0]; }
-function daysAgo(n){ var d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().split("T")[0]; }
-function daysFromNow(n){ var d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().split("T")[0]; }
+function daysAgo(n){ var d=new Date(); d.setDate(d.getDate()-n); return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }); }
+function daysFromNow(n){ var d=new Date(); d.setDate(d.getDate()+n); return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }); }
 function nbDays(a,b){ return Math.max(0,Math.round((new Date(b+"T12:00:00")-new Date(a+"T12:00:00"))/(1000*60*60*24))); }
 function fmtDate(d){ if(!d)return"--"; return new Date(d+"T12:00:00").toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"}); }
 function fmtUSD(n){ return "$"+Number(n||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}); }

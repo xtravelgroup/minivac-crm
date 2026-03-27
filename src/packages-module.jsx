@@ -12,8 +12,8 @@ function daysUntil(dateStr) {
   if (!dateStr) return null;
   return Math.ceil((new Date(dateStr + "T12:00:00") - new Date()) / 86400000);
 }
-function daysAgo(n) { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().split("T")[0]; }
-function daysFromNow(n) { const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().split("T")[0]; }
+function daysAgo(n) { const d=new Date(); d.setDate(d.getDate()-n); return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }); }
+function daysFromNow(n) { const d=new Date(); d.setDate(d.getDate()+n); return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }); }
 function fmtDate(d) { if(!d) return "--"; return new Date(d+"T12:00:00").toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"}); }
 function fmtUSD(n) { return "$"+Number(n||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function maskCard(n) { if(!n) return "**** **** **** ****"; return "**** **** **** "+String(n).slice(-4); }

@@ -9,8 +9,8 @@ var TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York
 function fmtDate(d){ if(!d)return"--"; return new Date(d+"T12:00:00").toLocaleDateString("es-MX",{day:"2-digit",month:"long",year:"numeric"}); }
 function fmtUSD(n){ return "$"+Number(n||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function daysUntil(d){ if(!d)return null; return Math.ceil((new Date(d+"T12:00:00")-new Date())/86400000); }
-function daysAgo(n){ var d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().split("T")[0]; }
-function daysFromNow(n){ var d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().split("T")[0]; }
+function daysAgo(n){ var d=new Date(); d.setDate(d.getDate()-n); return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }); }
+function daysFromNow(n){ var d=new Date(); d.setDate(d.getDate()+n); return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }); }
 
 var TEAL="#1a385a",INDIGO="#47718a",VIOLET="#282828",GREEN="#065f46",AMBER="#b45309",RED="#991b1b",CORAL="#47718a",BLUE="#1a385a";
 
