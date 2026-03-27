@@ -1682,7 +1682,7 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
   );
 }
 
-function DetailView({ lead, destCatalog, destMap, onBack, onUpdate }) {
+function DetailView({ lead, destCatalog, destMap, onBack, onUpdate, verificadores, onCambiarVerificador }) {
 
   const [exp,         setExp]         = useState({ ...lead.exp });
   const [verif,       setVerif]       = useState(lead.verificacion||null);
@@ -1749,7 +1749,24 @@ function DetailView({ lead, destCatalog, destMap, onBack, onUpdate }) {
         <button style={{ ...S.btn("ghost"), padding:"7px 12px" }} onClick={onBack}>Volver</button>
         <div style={{ flex:1 }}>
           <h2 style={{ margin:0, fontSize:"20px", fontWeight:"700", color:"#1a1f2e" }}>{exp.tFirstName} {exp.tLastName}</h2>
-          <div style={{ fontSize:"13px", color:"#9ca3af" }}>Folio {lead.id} - Vendedor: {lead.sellerName} - {fmtDate(lead.createdAt)}</div>
+          <div style={{ display:"flex", gap:"12px", alignItems:"center", marginTop:"4px", flexWrap:"wrap" }}>
+            <span style={{ fontSize:"12px", color:"#6b7280" }}>Folio {lead.id}</span>
+            <span style={{ fontSize:"12px", background:"#eaf0f7", color:"#1a385a", border:"1px solid #b8cfe0", borderRadius:"6px", padding:"1px 8px", fontWeight:"600" }}>
+              Vendedor: {lead.sellerName||"--"}
+            </span>
+            <span style={{ fontSize:"12px", color:"#6b7280" }}>{fmtDate(lead.createdAt)}</span>
+          </div>
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:"4px", alignItems:"flex-end" }}>
+          <label style={{ fontSize:"10px", fontWeight:"700", color:"#9ca3af", textTransform:"uppercase" }}>Verificador</label>
+          <select
+            value={lead.verificadorId||""}
+            onChange={function(e){ onCambiarVerificador && onCambiarVerificador(lead, e.target.value, (verificadores||[]).find(function(v){return v.id===e.target.value;})||{}); }}
+            style={{ fontSize:"12px", border:"1px solid #e3e6ea", borderRadius:"7px", padding:"5px 10px", background:"#fff", color:"#1a1f2e", cursor:"pointer", minWidth:"160px" }}
+          >
+            <option value="">-- Sin asignar --</option>
+            {(verificadores||[]).map(function(v){ return <option key={v.id} value={v.id}>{v.nombre}</option>; })}
+          </select>
         </div>
         <CommPanelTrigger
           cliente={{folio:lead.id,nombre:exp.tFirstName+" "+exp.tLastName,membresia:"Lead",tel:exp.tPhone||lead.phone||"",whatsapp:exp.tPhone||lead.phone||"",email:exp.tEmail||""}}
@@ -1973,6 +1990,7 @@ export default function VerificationModule({ currentUser }) {
   const [detail,       setDetail]       = useState(null);
   const [toast,        setToast]        = useState(null);
   const [destCatalog,  setDestCatalog]  = useState([]);
+  const [verificadores, setVerificadores] = useState([]);
   const [destMap,      setDestMap]      = useState({});
 
   const notify = function(msg, ok) { setToast({ msg, ok:ok!==false }); setTimeout(function(){ setToast(null); }, 3200); };
@@ -1996,10 +2014,21 @@ export default function VerificationModule({ currentUser }) {
       });
   }
 
+  // Cargar verificadores
+  function cargarVerificadores() {
+    SB.from("usuarios")
+      .select("id, nombre, rol")
+      .in("rol", ["verificador","admin","director","supervisor"])
+      .order("nombre")
+      .then(function(res) {
+        if (res.data) setVerificadores(res.data);
+      });
+  }
+
   // Cargar leads en verificacion o con resultado de verificacion de hoy
   function cargarLeads() {
     SB.from("leads")
-      .select("*, firma_enviada_at, firma_firmada_at, pagos_historial, sale_price, pago_inicial")
+      .select("*, firma_enviada_at, firma_firmada_at, pagos_historial, sale_price, pago_inicial, vendedor:vendedor_id(nombre), verificador:verificador_id(nombre)")
       .or("status.eq.verificacion,status.eq.venta,status.eq.no_interesado,status.eq.tarjeta_rechazada")
       .order("created_at", { ascending: false })
       .then(function(res) {
@@ -2027,6 +2056,7 @@ export default function VerificationModule({ currentUser }) {
   useEffect(function() {
     cargarDestinos();
     cargarLeads();
+    cargarVerificadores();
     var interval = setInterval(function() { cargarLeads(); }, 30000);
     return function() { clearInterval(interval); };
   }, []);
@@ -2149,7 +2179,16 @@ export default function VerificationModule({ currentUser }) {
       ) : (
         <div style={{ padding:"24px 28px", maxWidth:"1200px", margin:"0 auto" }}>
           {detail && detailLead ? (
-            <DetailView lead={detailLead} destCatalog={destCatalog} destMap={destMap} onBack={function(){ setDetail(null); }} onUpdate={updateLead} />
+            <DetailView lead={detailLead} destCatalog={destCatalog} destMap={destMap} onBack={function(){ setDetail(null); }} onUpdate={updateLead}
+              verificadores={verificadores}
+              onCambiarVerificador={function(lead, uid, user) {
+                SB.from("leads").update({ verificador_id: uid||null }).eq("id", lead.id).then(function(res) {
+                  if (!res.error) {
+                    updateLead(Object.assign({}, lead, { verificadorId: uid, verificadorNombre: user.nombre||"" }));
+                  }
+                });
+              }}
+            />
           ) : (
             <div>
               <div style={{ display:"flex", gap:"12px", marginBottom:"24px", flexWrap:"wrap" }}>
