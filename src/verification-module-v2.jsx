@@ -1754,6 +1754,54 @@ function SectionCobro({ lead, exp, verif, onChargeResult }) {
   );
 }
 
+function SectionNotasVerif({ lead, currentUser }) {
+  var [nota,    setNota]    = useState("");
+  var [notas,   setNotas]   = useState(Array.isArray(lead.notas_verif) ? lead.notas_verif : []);
+  var [saving,  setSaving]  = useState(false);
+
+  function guardar() {
+    if (!nota.trim()) return;
+    setSaving(true);
+    var nueva = { id:"NV"+Date.now(), ts:new Date().toISOString(), autor:currentUser&&(currentUser.nombre||currentUser.name)||"Verificador", nota:nota.trim() };
+    var nuevas = [nueva, ...notas];
+    SB.from("leads").update({ notas_verif: nuevas }).eq("id", lead.id).then(function(res) {
+      setSaving(false);
+      if (!res.error) { setNotas(nuevas); setNota(""); }
+    });
+  }
+
+  return (
+    <div style={S.card}>
+      <div style={S.sTitle}>📝 Notas del verificador</div>
+      <textarea
+        style={{...S.textarea, marginBottom:8, minHeight:72}}
+        placeholder="Escribe una nota..."
+        value={nota}
+        onChange={function(e){ setNota(e.target.value); }}
+      />
+      <button style={{...S.btn("primary"), justifyContent:"center", width:"100%", marginBottom:12}}
+        onClick={guardar} disabled={saving||!nota.trim()}>
+        {saving ? "Guardando..." : "Guardar nota"}
+      </button>
+      {notas.length>0 && (
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {notas.map(function(n){
+            return (
+              <div key={n.id} style={{padding:"8px 12px",borderRadius:8,background:"#f9fafb",border:"1px solid #e3e6ea"}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                  <span style={{fontSize:11,fontWeight:700,color:"#1a385a"}}>{n.autor}</span>
+                  <span style={{fontSize:10,color:"#9ca3af"}}>{n.ts ? new Date(n.ts).toLocaleDateString("es-MX",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}) : "--"}</span>
+                </div>
+                <div style={{fontSize:12,color:"#3d4554"}}>{n.nota}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DetailView({ lead, destCatalog, destMap, onBack, onUpdate, verificadores, onCambiarVerificador }) {
 
   const [exp,         setExp]         = useState({ ...lead.exp });
@@ -1884,6 +1932,7 @@ function DetailView({ lead, destCatalog, destMap, onBack, onUpdate, verificadore
         <div>
           <SectionFirma lead={lead} exp={exp} verif={verif} onSendDocs={() => setSendModal(true)} />
           <SectionCobro lead={lead} exp={exp} verif={verif} onChargeResult={handleChargeResult} />
+          <SectionNotasVerif lead={lead} currentUser={currentUser} />
           {!(verif && verif.result) && (
             <div style={S.card}>
               <div style={S.sTitle}>Acciones</div>
@@ -2058,6 +2107,7 @@ function dbToVerifLead(r) {
     firma_firmada_at:  r.firma_firmada_at  || null,
     verificadorId:     r.verificador_id    || "",
     verificadorNombre: (r.verificador && r.verificador.nombre) || r.verificador_nombre || "",
+    notas_verif:       Array.isArray(r.notas_verif) ? r.notas_verif : [],
   };
 }
 
