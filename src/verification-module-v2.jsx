@@ -909,7 +909,7 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
     s.onerror = function() { setZohoError("No se pudo cargar SDK de Zoho"); };
     document.head.appendChild(s);
   }, []);
-  var totalPagado = (exp.pagoInicial||0) + ((exp.pagosHistorial||[]).reduce(function(s,p){ return s+(p.monto||0); },0));
+  var totalPagado = (exp.pagosHistorial||[]).reduce(function(s,p){ return s+(Number(p.monto)||0); },0);
   var saldo       = Math.max(0, (exp.salePrice||0) - totalPagado);
 
   var [monto,   setMonto]   = useState("");
