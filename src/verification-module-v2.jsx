@@ -1939,7 +1939,7 @@ function dbToVerifLead(r) {
     nombre:       r.nombre || "",
     phone:        r.tel    || r.whatsapp || "",
     radioName:    r.emisora || "",
-    sellerName:   r.vendedor_nombre || "",
+    sellerName:   (r.vendedor && r.vendedor.nombre) || r.vendedor_nombre || "",
     createdAt:    (r.created_at || TODAY).split("T")[0],
     status:       r.status || "verificacion",
     exp: {
@@ -1981,6 +1981,8 @@ function dbToVerifLead(r) {
     verificacion: r.verificacion || null,
     firma_enviada_at:  r.firma_enviada_at  || null,
     firma_firmada_at:  r.firma_firmada_at  || null,
+    verificadorId:     r.verificador_id    || "",
+    verificadorNombre: (r.verificador && r.verificador.nombre) || r.verificador_nombre || "",
   };
 }
 
@@ -2039,7 +2041,7 @@ export default function VerificationModule({ currentUser }) {
 
           });
           var mapped = res.data.map(function(r) {
-            var row = { ...r, vendedor_nombre: (r.vendedor && r.vendedor.nombre) || "", verificador_nombre: (r.verificador && r.verificador.nombre) || "" };
+            var row = { ...r, vendedor_nombre: (r.vendedor && r.vendedor.nombre) || r.vendedor_nombre || "", verificador_nombre: (r.verificador && r.verificador.nombre) || r.verificador_nombre || "" };
             return dbToVerifLead(row);
           });
           // Mostrar: verificacion pendientes + ventas + no_interesado
