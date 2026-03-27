@@ -949,7 +949,7 @@ export default function CommissionsModule({ currentUser: shellUser }) {
           var grouped = {};
           res.data.forEach(function(r) {
             var vid = r.vendedor_id;
-            var fecha = (r.created_at||"").slice(0,10);
+            var fecha = r.created_at ? new Date(r.created_at).toLocaleDateString("en-CA",{timeZone:"America/New_York"}) : "";
             if (!vid || !fecha) return;
             var key = vid + "|" + fecha;
             if (!grouped[key]) grouped[key] = { vendedorId: vid, fecha: fecha, count: 0 };
@@ -976,7 +976,7 @@ export default function CommissionsModule({ currentUser: shellUser }) {
               cliente:          (r.nombre || "") + " " + (r.apellido || ""),
               vendedorId:       r.vendedor_id || "",
               verificadorId:    r.verificador_id || "",
-              fechaVenta:       (r.updated_at || r.created_at || TODAY).split("T")[0],
+              fechaVenta:       r.updated_at ? new Date(r.updated_at).toLocaleDateString("en-CA",{timeZone:"America/New_York"}) : (r.created_at ? new Date(r.created_at).toLocaleDateString("en-CA",{timeZone:"America/New_York"}) : TODAY),
               salePrice:        Number(r.sale_price) || 0,
               upsaleMonto:      Number(r.upsale_monto) || 0,
               verificadorId:    r.verificador_id || "",
