@@ -2040,15 +2040,24 @@ export default function VerificationModule({ currentUser }) {
           res.data.slice(0,3).forEach(function(r) {
 
           });
-          var mapped = res.data.map(function(r) {
-            var row = { ...r, vendedor_nombre: (r.vendedor && r.vendedor.nombre) || r.vendedor_nombre || "", verificador_nombre: (r.verificador && r.verificador.nombre) || r.verificador_nombre || "" };
-            return dbToVerifLead(row);
+          // Cargar nombres de usuarios para cruzar
+          SB.from("usuarios").select("id, nombre, rol").then(function(uRes) {
+            var uMap = {};
+            if (uRes.data) uRes.data.forEach(function(u){ uMap[u.id] = u.nombre; });
+            var mapped = res.data.map(function(r) {
+              var row = { ...r,
+                vendedor_nombre: uMap[r.vendedor_id] || "",
+                verificador_nombre: uMap[r.verificador_id] || ""
+              };
+              return dbToVerifLead(row);
+            });
+            var filtrados = mapped.filter(function(l) {
+              return l.status === "verificacion" || l.status === "venta" || l.status === "no_interesado" || l.status === "tarjeta_rechazada";
+            });
+            setLeads(filtrados);
           });
-          // Mostrar: verificacion pendientes + ventas + no_interesado
-          var filtrados = mapped.filter(function(l) {
-            return l.status === "verificacion" || l.status === "venta" || l.status === "no_interesado" || l.status === "tarjeta_rechazada";
-          });
-          setLeads(filtrados);
+          return;
+
         } else {
           console.error("Error cargando leads verificacion:", res.error);
         }
