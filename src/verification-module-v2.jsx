@@ -2115,6 +2115,7 @@ export default function VerificationModule({ currentUser }) {
   const [leads,        setLeads]        = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [detail,       setDetail]       = useState(null);
+  const [tabActivo,    setTabActivo]    = useState("pipeline");
   const [toast,        setToast]        = useState(null);
   const [destCatalog,  setDestCatalog]  = useState([]);
   const [verificadores, setVerificadores] = useState([]);
@@ -2346,11 +2347,60 @@ export default function VerificationModule({ currentUser }) {
                   No hay expedientes en cola. Los leads en "Verificacion" aparecen aqui automaticamente.
                 </div>
               )}
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:"16px", alignItems:"start" }}>
+              <div style={{ display:"flex", gap:"8px", marginBottom:"16px" }}>
+                <button onClick={function(){ setTabActivo("pipeline"); }} style={{ padding:"7px 18px", borderRadius:"8px", fontSize:"12px", fontWeight:"700", cursor:"pointer", background:tabActivo==="pipeline"?"#1565c0":"#f4f5f7", color:tabActivo==="pipeline"?"#fff":"#6b7280", border:"none" }}>Pipeline</button>
+                <button onClick={function(){ setTabActivo("cobranza"); }} style={{ padding:"7px 18px", borderRadius:"8px", fontSize:"12px", fontWeight:"700", cursor:"pointer", background:tabActivo==="cobranza"?"#925c0a":"#f4f5f7", color:tabActivo==="cobranza"?"#fff":"#6b7280", border:"none" }}>
+                  Cobranza {colCobranzaPend.length>0&&<span style={{marginLeft:4,background:"rgba(255,255,255,0.3)",borderRadius:10,padding:"0 6px"}}>{colCobranzaPend.length}</span>}
+                </button>
+              </div>
+
+              {tabActivo==="cobranza" && (
+                <div>
+                  <div style={{ fontSize:"13px", color:"#6b7280", marginBottom:"16px" }}>Ventas con saldo pendiente — ordenadas por fecha de pago programada</div>
+                  {colCobranzaPend.length===0 && <div style={{ textAlign:"center", padding:"40px", color:"#9ca3af", fontSize:"14px" }}>Sin cobros pendientes</div>}
+                  {colCobranzaPend
+                    .slice()
+                    .sort(function(a,b){
+                      var fa = (a.exp&&a.exp.pagosHistorial||[]).find(function(p){ return !p.cobrado; });
+                      var fb = (b.exp&&b.exp.pagosHistorial||[]).find(function(p){ return !p.cobrado; });
+                      var da = fa&&fa.fecha ? fa.fecha : "9999";
+                      var db = fb&&fb.fecha ? fb.fecha : "9999";
+                      return da.localeCompare(db);
+                    })
+                    .map(function(l){
+                      var exp = l.exp||{};
+                      var saldo = getSaldo(l);
+                      var proximoPago = (exp.pagosHistorial||[]).find(function(p){ return !p.cobrado&&p.fecha; });
+                      return (
+                        <div key={l.id} style={{ background:"#fff", border:"1px solid #e3e6ea", borderRadius:"12px", padding:"14px 18px", marginBottom:"10px", display:"flex", alignItems:"center", gap:"16px", cursor:"pointer" }}
+                          onClick={function(){ setDetail(l.id); setTabActivo("pipeline"); }}>
+                          <div style={{ flex:1 }}>
+                            <div style={{ fontSize:"14px", fontWeight:"700", color:"#1a1f2e" }}>{exp.tFirstName} {exp.tLastName}</div>
+                            <div style={{ fontSize:"11px", color:"#9ca3af", marginTop:"2px" }}>{l.phone} · V: {l.sellerName||"--"} · VF: {l.verificadorNombre||"--"}</div>
+                          </div>
+                          <div style={{ textAlign:"center" }}>
+                            <div style={{ fontSize:"10px", color:"#9ca3af", textTransform:"uppercase", fontWeight:700 }}>Saldo</div>
+                            <div style={{ fontSize:"16px", fontWeight:"800", color:"#925c0a" }}>{fmtUSD(saldo)}</div>
+                          </div>
+                          {proximoPago && (
+                            <div style={{ textAlign:"center", background:"#fffbe0", border:"1px solid rgba(251,191,36,0.4)", borderRadius:"8px", padding:"6px 12px" }}>
+                              <div style={{ fontSize:"10px", color:"#925c0a", fontWeight:700, textTransform:"uppercase" }}>Próx. pago</div>
+                              <div style={{ fontSize:"13px", fontWeight:"700", color:"#925c0a" }}>{new Date(proximoPago.fecha+"T12:00:00").toLocaleDateString("es-MX",{day:"2-digit",month:"short"})}</div>
+                              <div style={{ fontSize:"12px", color:"#925c0a" }}>{fmtUSD(proximoPago.monto)}</div>
+                            </div>
+                          )}
+                          <div style={{ fontSize:"11px", color:"#1565c0", fontWeight:600 }}>Ver →</div>
+                        </div>
+                      );
+                    })
+                  }
+                </div>
+              )}
+
+              {tabActivo==="pipeline" && <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", alignItems:"start" }}>
                 {[
                   { label:"Verificaciones", leads:colVerificacion, color:"#925c0a", bg:"#fffbe0", bd:"rgba(251,191,36,0.3)" },
                   { label:"Pendiente Pago",  leads:colPendientePago,  color:"#b91c1c", bg:"#fef2f2", bd:"rgba(185,28,28,0.2)" },
-                  { label:"Cobranza Pend.",  leads:colCobranzaPend,   color:"#925c0a", bg:"#fffbe0", bd:"rgba(251,191,36,0.3)" },
                   { label:"Pend. Firma",     leads:colPendienteFirma, color:"#1565c0", bg:"#e8f0fe", bd:"rgba(21,101,192,0.2)" },
                   { label:"Ventas (semana)", leads:colVentas,         color:"#1a7f3c", bg:"rgba(74,222,128,0.06)", bd:"rgba(74,222,128,0.2)" },
                 ].map(function(col){
@@ -2367,7 +2417,7 @@ export default function VerificationModule({ currentUser }) {
                     </div>
                   );
                 })}
-              </div>
+              </div>}
             </div>
           )}
         </div>
