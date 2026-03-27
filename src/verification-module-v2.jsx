@@ -1802,7 +1802,7 @@ function SectionNotasVerif({ lead, currentUser }) {
   );
 }
 
-function DetailView({ lead, destCatalog, destMap, onBack, onUpdate, verificadores, onCambiarVerificador }) {
+function DetailView({ lead, destCatalog, destMap, onBack, onUpdate, verificadores, onCambiarVerificador, currentUser }) {
 
   const [exp,         setExp]         = useState({ ...lead.exp });
   const [verif,       setVerif]       = useState(lead.verificacion||null);
@@ -2315,7 +2315,7 @@ export default function VerificationModule({ currentUser }) {
       ) : (
         <div style={{ padding:"24px 28px", maxWidth:"1200px", margin:"0 auto" }}>
           {detail && detailLead ? (
-            <DetailView lead={detailLead} destCatalog={destCatalog} destMap={destMap} onBack={function(){ setDetail(null); }} onUpdate={updateLead}
+            <DetailView lead={detailLead} destCatalog={destCatalog} destMap={destMap} onBack={function(){ setDetail(null); }} onUpdate={updateLead} currentUser={currentUser}
               verificadores={verificadores}
               onCambiarVerificador={function(lead, uid, user) {
                 SB.from("leads").update({ verificador_id: uid||null }).eq("id", lead.id).then(function(res) {
