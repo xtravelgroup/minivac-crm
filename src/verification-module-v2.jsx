@@ -1067,6 +1067,21 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
                   </div>
                 );
               })}
+              <button
+                style={{marginTop:8,padding:"8px",borderRadius:8,background:"#1565c0",color:"#fff",border:"none",fontSize:12,fontWeight:700,cursor:"pointer"}}
+                onClick={function(){
+                  var cuotasGuardadas = planPagos.map(function(c){
+                    return { id:"PC"+Date.now()+c.num, monto:c.monto, fecha:c.fecha, concepto:"Cuota "+c.num+" de "+planPagos.length, metodo:"pendiente", referencia:"—", por:"Verificador", programado:true, cobrado:false };
+                  });
+                  var existentes = (exp.pagosHistorial||[]).filter(function(p){ return !p.programado; });
+                  var nuevosAbonos = existentes.concat(cuotasGuardadas);
+                  SB.from("leads").update({pagos_historial:nuevosAbonos}).eq("id",lead.id).then(function(res){
+                    if(!res.error){ if(onAbonoGuardado) onAbonoGuardado(nuevosAbonos); setNumCuotas(""); setPlanPagos([]); }
+                  });
+                }}
+              >
+                💾 Guardar plan de pagos
+              </button>
             </div>
           )}
         </div>
