@@ -2030,7 +2030,7 @@ export default function VerificationModule({ currentUser }) {
   // Cargar leads en verificacion o con resultado de verificacion de hoy
   function cargarLeads() {
     SB.from("leads")
-      .select("*, firma_enviada_at, firma_firmada_at, pagos_historial, sale_price, pago_inicial, vendedor:vendedor_id(nombre), verificador:verificador_id(nombre)")
+      .select("*, firma_enviada_at, firma_firmada_at, pagos_historial, sale_price, pago_inicial")
       .or("status.eq.verificacion,status.eq.venta,status.eq.no_interesado,status.eq.tarjeta_rechazada")
       .order("created_at", { ascending: false })
       .then(function(res) {
