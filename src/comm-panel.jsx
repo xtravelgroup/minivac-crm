@@ -506,6 +506,25 @@ function PanelWhatsApp(props){
     });
   }
 
+  function enviarBienvenida(){
+    if(!numDest.trim()){ setError("Ingresa un numero"); return; }
+    setError("");
+    setEstado("enviando");
+    var SB_URL="https://gsvnvahrjgswwejnuiyn.supabase.co";
+    var SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAxNTA0MiwiZXhwIjoyMDg4NTkxMDQyfQ.-P8KH6yhs6AJ1lUwBrwUpcoZV3KGvM7fDlFM3RsYKxw";
+    fetch(SB_URL+"/functions/v1/send-whatsapp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:numDest,use_template:true,lead_id:c.id||c.leadId||null,service_key:SERVICE_KEY})})
+      .then(function(r){return r.json();})
+      .then(function(r){
+        if(r.ok){
+          props.onLog({ canal:"whatsapp", tipo:"whatsapp", texto:"Template bienvenida enviado a "+numDest, autor:props.currentUser.nombre, fecha:new Date().toISOString() });
+          setEstado("done");
+        } else {
+          setError(r.error||"Error al enviar template");
+          setEstado("idle");
+        }
+      });
+  }
+
   if(estado==="done"){
     return (
       <div style={{textAlign:"center",padding:"32px 16px"}}>
@@ -541,7 +560,11 @@ function PanelWhatsApp(props){
         <Icon name="wa" fill="#fff" size={14}/>
         {estado==="enviando"?"Enviando...":"Enviar por WhatsApp"}
       </button>
-      <div style={{fontSize:"10px",color:"#9ca3af",textAlign:"center",marginTop:"6px"}}>Via Meta Graph API (WhatsApp Business)</div>
+      <button style={Object.assign({},SI.btn("#1a385a","#eaf0f7","#b8cfe0"),{width:"100%",justifyContent:"center",padding:"9px",marginTop:"6px",opacity:estado==="enviando"?0.7:1})} onClick={enviarBienvenida} disabled={estado==="enviando"}>
+        <Icon name="wa" fill="#1a385a" size={14}/>
+        Enviar mensaje de bienvenida
+      </button>
+      <div style={{fontSize:"10px",color:"#9ca3af",textAlign:"center",marginTop:"6px"}}>Via Twilio WhatsApp Business</div>
     </div>
   );
 }
