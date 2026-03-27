@@ -1893,7 +1893,7 @@ function QueueCard({ lead, onOpen, onTomar, currentUser }) {
         <div>
           <div style={{ fontSize:"16px", fontWeight:"700", color:"#1a1f2e" }}>{exp.tFirstName} {exp.tLastName}</div>
           <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"2px" }}>{lead.phone} - {lead.radioName}</div>
-          <div style={{ fontSize:"12px", color:"#9ca3af" }}>{lead.sellerName} - Folio {lead.id}</div>
+          <div style={{ fontSize:"12px", color:"#9ca3af" }}>{lead.sellerName}</div>
         </div>
         <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"4px" }}>
           {vr
