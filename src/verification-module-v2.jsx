@@ -918,6 +918,8 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
   var [concepto,setConcepto]= useState("Abono");
   var [otroDesc,setOtroDesc]= useState("");
   var [saving,  setSaving]  = useState(false);
+  var [numCuotas,   setNumCuotas]   = useState("");
+  var [planPagos,   setPlanPagos]   = useState([]);
   var [err,     setErr]     = useState("");
 
   function aplicarAbono() {
@@ -997,6 +999,76 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Plan de pagos — solo si hay saldo */}
+      {saldo > 0 && (
+        <div style={{background:"#f0f4ff",borderRadius:10,padding:"14px",border:"1px solid #c7d7f7",marginBottom:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#1565c0",marginBottom:10}}>📅 Plan de pagos</div>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+            <div style={{flex:1}}>
+              <div style={S.label}>Número de cuotas</div>
+              <input style={{...S.input,maxWidth:120}} type="number" min="1" max="24" placeholder="Ej: 3"
+                value={numCuotas}
+                onChange={function(e){
+                  var n = parseInt(e.target.value)||0;
+                  setNumCuotas(e.target.value);
+                  if(n>0){
+                    var montoCuota = Math.ceil(saldo/n);
+                    var hoy = new Date();
+                    var cuotas = [];
+                    for(var i=0;i<n;i++){
+                      var fecha = new Date(hoy);
+                      fecha.setMonth(fecha.getMonth()+i+1);
+                      cuotas.push({
+                        num: i+1,
+                        fecha: fecha.toISOString().split("T")[0],
+                        monto: i===n-1 ? saldo-(montoCuota*(n-1)) : montoCuota
+                      });
+                    }
+                    setPlanPagos(cuotas);
+                  } else {
+                    setPlanPagos([]);
+                  }
+                }}
+              />
+            </div>
+            {planPagos.length>0 && (
+              <div style={{fontSize:11,color:"#1565c0",fontWeight:600,alignSelf:"flex-end",paddingBottom:4}}>
+                Saldo: {fmtUSD(saldo)} / {planPagos.length} cuotas
+              </div>
+            )}
+          </div>
+          {planPagos.length>0 && (
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {planPagos.map(function(c,i){
+                return (
+                  <div key={i} style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr",gap:8,alignItems:"center"}}>
+                    <div style={{fontSize:11,fontWeight:700,color:"#6b7280",textAlign:"center"}}>#{c.num}</div>
+                    <div>
+                      <div style={S.label}>Fecha</div>
+                      <input style={S.input} type="date" value={c.fecha}
+                        onChange={function(e){
+                          var updated = planPagos.map(function(x,j){ return j===i?Object.assign({},x,{fecha:e.target.value}):x; });
+                          setPlanPagos(updated);
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <div style={S.label}>Monto (USD)</div>
+                      <input style={S.input} type="number" value={c.monto}
+                        onChange={function(e){
+                          var updated = planPagos.map(function(x,j){ return j===i?Object.assign({},x,{monto:Number(e.target.value)||0}):x; });
+                          setPlanPagos(updated);
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
