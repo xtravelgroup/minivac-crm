@@ -682,7 +682,7 @@ function TabRadios(props){
                 ]),
               ].concat(delDia.map(function(s,si){
                 var eid = s.emisora_id||"?";
-                var leadsSpot = leadsDelDia.filter(function(l){ return (l.emisora_id||"?")=== eid; });
+                var leadsSpot = leadsDelDia.filter(function(l){ return l.spot_id === s.id || (l.emisora_id||"?")=== eid; });
                 var ventasSpot = leadsSpot.filter(function(l){ return l.status==="venta"; });
                 var ingSpot = ventasSpot.reduce(function(t,l){ return t+Number(l.sale_price||0); },0);
                 var costoSpot = invSpot(s);
