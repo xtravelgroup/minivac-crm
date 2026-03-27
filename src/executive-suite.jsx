@@ -632,7 +632,7 @@ function TabRadios(props){
           return s.semana === lunes && s.dia_semana === dia;
         }).sort(function(a,b){ return (a.hora||"").localeCompare(b.hora||""); });
 
-        var leadsDelDia = leads.filter(function(l){ return (l.created_at||"").slice(0,10) === fechaDia; });
+        var leadsDelDia = leads.filter(function(l){ if(!l.created_at) return false; var est=new Date(l.created_at).toLocaleDateString("en-CA",{timeZone:"America/New_York"}); return est===fechaDia; });
         var ventasDelDia = leadsDelDia.filter(function(l){ return l.status==="venta"; });
         var invDelDia = delDia.reduce(function(t,s){ return t+invSpot(s); }, 0);
         var ingDelDia = ventasDelDia.reduce(function(t,l){ return t+Number(l.sale_price||0); }, 0);
