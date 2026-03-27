@@ -1892,7 +1892,7 @@ function QueueCard({ lead, onOpen, onTomar, currentUser }) {
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"12px" }}>
         <div>
           <div style={{ fontSize:"16px", fontWeight:"700", color:"#1a1f2e" }}>{exp.tFirstName} {exp.tLastName}</div>
-          <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"2px" }}>{lead.phone} - {lead.radioName}</div>
+          <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"2px" }}>{lead.phone}</div>
           <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"2px" }}>
             <span style={{ background:"#eaf0f7", color:"#1a385a", border:"1px solid #b8cfe0", borderRadius:"5px", padding:"1px 7px", fontWeight:"600", marginRight:"5px" }}>V: {lead.sellerName||"--"}</span>
             <span style={{ background:"#ede9fe", color:"#5b21b6", border:"1px solid #c4b5fd", borderRadius:"5px", padding:"1px 7px", fontWeight:"600" }}>VF: {lead.verificadorNombre||"Sin asignar"}</span>
@@ -1923,11 +1923,7 @@ function QueueCard({ lead, onOpen, onTomar, currentUser }) {
           Cliente no ha firmado el Travel Certificate ({diasSinFirma} dia{diasSinFirma > 1 ? "s" : ""})
         </div>
       )}
-      <div style={S.g3}>
-        <div>
-          <div style={S.label}>Destinos</div>
-          <div style={{ fontSize:"13px", color:"#3d4554" }}>{(exp.destinos||[]).map(d => (DEST_MAP[d.destId]||{}).nombre||d.destId).join(" + ")||"--"}</div>
-        </div>
+      <div style={{ display:"flex", gap:"16px", marginTop:"8px" }}>
         <div><div style={S.label}>Precio total</div><div style={{ fontSize:"15px", fontWeight:"800", color:"#1a7f3c" }}>{fmtUSD(exp.salePrice)}</div></div>
         <div><div style={S.label}>Pago hoy</div><div style={{ fontSize:"15px", fontWeight:"800", color:"#1565c0" }}>{fmtUSD(exp.pagoInicial)}</div></div>
       </div>
