@@ -918,8 +918,9 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
   var [concepto,setConcepto]= useState("Abono");
   var [otroDesc,setOtroDesc]= useState("");
   var [saving,  setSaving]  = useState(false);
-  var [numCuotas,   setNumCuotas]   = useState("");
-  var [planPagos,   setPlanPagos]   = useState([]);
+  var cuotasIniciales = (exp.pagosHistorial||[]).filter(function(p){ return p.programado && !p.cobrado; }).map(function(p,i){ return {num:i+1,fecha:p.fecha||"",monto:p.monto||0,id:p.id}; });
+  var [numCuotas,   setNumCuotas]   = useState(cuotasIniciales.length>0?String(cuotasIniciales.length):"");
+  var [planPagos,   setPlanPagos]   = useState(cuotasIniciales);
   var [err,     setErr]     = useState("");
 
   function aplicarAbono() {
@@ -1076,7 +1077,7 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
                   var existentes = (exp.pagosHistorial||[]).filter(function(p){ return !p.programado; });
                   var nuevosAbonos = existentes.concat(cuotasGuardadas);
                   SB.from("leads").update({pagos_historial:nuevosAbonos}).eq("id",lead.id).then(function(res){
-                    if(!res.error){ if(onAbonoGuardado) onAbonoGuardado(nuevosAbonos); setNumCuotas(""); setPlanPagos([]); }
+                    if(!res.error){ if(onAbonoGuardado) onAbonoGuardado(nuevosAbonos); }
                   });
                 }}
               >
