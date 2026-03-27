@@ -892,7 +892,7 @@ function SectionPersonal({ exp }) {
 // ─────────────────────────────────────────────────────────────
 // SECTION PAGOS — aplica abonos al saldo del lead
 // ─────────────────────────────────────────────────────────────
-function SectionPagos({ lead, exp, onAbonoGuardado }) {
+function SectionPagos({ lead, exp, onAbonoGuardado, onRecargar }) {
   var zohoReady     = typeof window !== "undefined" && !!window.ZPayments;
   var [zohoLoaded,  setZohoLoaded]  = useState(false);
   var [zohoError,   setZohoError]   = useState("");
@@ -1077,7 +1077,7 @@ function SectionPagos({ lead, exp, onAbonoGuardado }) {
                   var existentes = (exp.pagosHistorial||[]).filter(function(p){ return !p.programado; });
                   var nuevosAbonos = existentes.concat(cuotasGuardadas);
                   SB.from("leads").update({pagos_historial:nuevosAbonos}).eq("id",lead.id).then(function(res){
-                    if(!res.error){ if(onAbonoGuardado) onAbonoGuardado(nuevosAbonos); }
+                    if(!res.error){ if(onAbonoGuardado) onAbonoGuardado(nuevosAbonos); if(onRecargar) onRecargar(); }
                   });
                 }}
               >
@@ -1818,7 +1818,7 @@ function SectionNotasVerif({ lead, currentUser }) {
   );
 }
 
-function DetailView({ lead, destCatalog, destMap, onBack, onUpdate, verificadores, onCambiarVerificador, currentUser }) {
+function DetailView({ lead, destCatalog, destMap, onBack, onUpdate, verificadores, onCambiarVerificador, currentUser, onRecargar }) {
 
   const [exp,         setExp]         = useState({ ...lead.exp });
   const [verif,       setVerif]       = useState(lead.verificacion||null);
@@ -1933,7 +1933,7 @@ function DetailView({ lead, destCatalog, destMap, onBack, onUpdate, verificadore
         <div>
           <SectionPersonal exp={exp} />
           <SectionPaquete exp={exp} destMap={destMap||DEST_MAP} onEdit={() => setEditModal(true)} />
-          <SectionPagos lead={lead} exp={exp}
+          <SectionPagos lead={lead} exp={exp} onRecargar={onRecargar}
             onAbonoGuardado={function(nuevosAbonos){
               var newExp = Object.assign({},exp,{pagosHistorial:nuevosAbonos});
               setExp(newExp);
@@ -2285,7 +2285,7 @@ export default function VerificationModule({ currentUser }) {
   function getSaldo(l) {
     var exp = l.exp || {};
     var total = Number(exp.salePrice||l.sale_price||0);
-    var pagado = Number(exp.pagoInicial||l.pago_inicial||0) + ((exp.pagosHistorial||l.pagos_historial||[]).reduce(function(s,p){ return s+Number(p.monto||0); },0));
+    var pagado = ((exp.pagosHistorial||l.pagos_historial||[]).filter(function(p){ return !p.programado; }).reduce(function(s,p){ return s+Number(p.monto||0); },0));
     return Math.max(0, total - pagado);
   }
   var hoyD = new Date(); hoyD.setHours(0,0,0,0);
@@ -2297,7 +2297,10 @@ export default function VerificationModule({ currentUser }) {
     return d >= lunD && d <= domD;
   }
   // Columnas NO excluyentes — un lead puede aparecer en varias
-  const colCobranzaPend   = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && getSaldo(l) > 0; });
+  const colCobranzaPend   = leads.filter(function(l){ 
+    var tieneCuotas = (l.exp&&l.exp.pagosHistorial||[]).some(function(p){ return p.programado&&!p.cobrado; });
+    return l.status==="venta" && (getSaldo(l) > 0 || tieneCuotas); 
+  });
   const colPendienteFirma = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && !l.firma_firmada_at && l.firma_enviada_at; });
   const colVentas         = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && estaEnSemana(l.verificacion.verifiedAt||l.firma_firmada_at); });
   function handleTomar(lead) {
@@ -2332,7 +2335,7 @@ export default function VerificationModule({ currentUser }) {
       ) : (
         <div style={{ padding:"24px 28px", maxWidth:"1200px", margin:"0 auto" }}>
           {detail && detailLead ? (
-            <DetailView lead={detailLead} destCatalog={destCatalog} destMap={destMap} onBack={function(){ setDetail(null); }} onUpdate={updateLead} currentUser={currentUser}
+            <DetailView lead={detailLead} destCatalog={destCatalog} destMap={destMap} onBack={function(){ setDetail(null); }} onUpdate={updateLead} currentUser={currentUser} onRecargar={cargarLeads}
               verificadores={verificadores}
               onCambiarVerificador={function(lead, uid, user) {
                 SB.from("leads").update({ verificador_id: uid||null }).eq("id", lead.id).then(function(res) {
