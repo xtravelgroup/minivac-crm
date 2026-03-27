@@ -512,7 +512,7 @@ function PanelWhatsApp(props){
     setEstado("enviando");
     var SB_URL="https://gsvnvahrjgswwejnuiyn.supabase.co";
     var SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAxNTA0MiwiZXhwIjoyMDg4NTkxMDQyfQ.-P8KH6yhs6AJ1lUwBrwUpcoZV3KGvM7fDlFM3RsYKxw";
-    fetch(SB_URL+"/functions/v1/send-whatsapp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:numDest,use_template:true,lead_id:c.id||c.leadId||null,service_key:SERVICE_KEY})})
+    fetch(SB_URL+"/functions/v1/send-whatsapp",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SERVICE_KEY},body:JSON.stringify({to:numDest,use_template:true,lead_id:c.id||c.leadId||null,service_key:SERVICE_KEY})})
       .then(function(r){return r.json();})
       .then(function(r){
         if(r.ok){
