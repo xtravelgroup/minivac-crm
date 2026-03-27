@@ -1893,9 +1893,9 @@ function QueueCard({ lead, onOpen, onTomar, currentUser }) {
         <div>
           <div style={{ fontSize:"16px", fontWeight:"700", color:"#1a1f2e" }}>{exp.tFirstName} {exp.tLastName}</div>
           <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"2px" }}>{lead.phone}</div>
-          <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"2px" }}>
-            <span style={{ background:"#eaf0f7", color:"#1a385a", border:"1px solid #b8cfe0", borderRadius:"5px", padding:"1px 7px", fontWeight:"600", marginRight:"5px" }}>V: {lead.sellerName||"--"}</span>
-            <span style={{ background:"#ede9fe", color:"#5b21b6", border:"1px solid #c4b5fd", borderRadius:"5px", padding:"1px 7px", fontWeight:"600" }}>VF: {lead.verificadorNombre||"Sin asignar"}</span>
+          <div style={{ display:"flex", gap:"4px", marginTop:"4px", flexWrap:"wrap" }}>
+            <span style={{ fontSize:"10px", background:"#eaf0f7", color:"#1a385a", border:"1px solid #b8cfe0", borderRadius:"4px", padding:"1px 6px", fontWeight:"600" }}>V: {lead.sellerName||"--"}</span>
+            <span style={{ fontSize:"10px", background:"#ede9fe", color:"#5b21b6", border:"1px solid #c4b5fd", borderRadius:"4px", padding:"1px 6px", fontWeight:"600" }}>VF: {lead.verificadorNombre||"Sin asignar"}</span>
           </div>
         </div>
         <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"4px" }}>
