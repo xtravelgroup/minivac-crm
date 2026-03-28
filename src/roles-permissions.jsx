@@ -123,6 +123,8 @@ var ROLES_META=[
   {id:"especialista_radio",label:"Especialista Radio",color:CORAL,  bg:CORAL+"18",  bd:CORAL+"44"},
   {id:"cs",                label:"CS",                color:VIOLET, bg:VIOLET+"18", bd:VIOLET+"44"},
   {id:"cs_gerente",        label:"CS Gerente",        color:VIOLET, bg:VIOLET+"18", bd:VIOLET+"44"},
+  {id:"vlo",               label:"VLO",               color:BLUE,   bg:BLUE+"18",   bd:BLUE+"44"},
+  {id:"agente_reservas",   label:"Agente Reservas",   color:TEAL,   bg:TEAL+"18",   bd:TEAL+"44"},
   {id:"contador",          label:"Contador",          color:GREEN,  bg:GREEN+"18",  bd:GREEN+"44"},
 ];
 
