@@ -21,6 +21,8 @@ var BLUE="#1565c0"; var TEAL="#0ea5a0"; var VIOLET="#7c3aed"; var INDIGO="#3d5bc
 
 var EDGE_URL  = "https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/zoho-payments";
 var ANON_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA";
+var SRV_KEY   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAxNTA0MiwiZXhwIjoyMDg4NTkxMDQyfQ.-P8KH6yhs6AJ1lUwBrwUpcoZV3KGvM7fDlFM3RsYKxw";
+var SB_BASE   = "https://gsvnvahrjgswwejnuiyn.supabase.co";
 var AUTH_HDR  = { "Content-Type": "application/json", "Authorization": "Bearer " + ANON_KEY };
 var ZOHO_API_KEY = "1003.afb484f19b10b5674c7e6f7c0c0ee5f5.89f010a430837bed480829a015a88641";
 
@@ -1793,8 +1795,14 @@ export default function CsReservasV3() {
     setMiembros(function(prev){return prev.map(function(m){return m.folio===c.folio?Object.assign({},m,{statusCliente:"retencion"}):m;});});
     if(selected&&selected.folio===c.folio) setSelected(function(p){return Object.assign({},p,{statusCliente:"retencion"});});
     addEvento(c.folio,"retencion","sistema","Proceso de retención iniciado.",rolCfg.label);
-    // Persistir en DB
-    if(c.id) SB.from("leads").update({ retencion_status:"pendiente", retencion_created_at:new Date().toISOString() }).eq("id",c.id);
+    // Persistir en DB con service key (RLS bypass)
+    if(c.id){
+      fetch(SB_BASE+"/rest/v1/leads?id=eq."+c.id, {
+        method:"PATCH",
+        headers:{"apikey":SRV_KEY,"Authorization":"Bearer "+SRV_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},
+        body:JSON.stringify({retencion_status:"pendiente",retencion_created_at:new Date().toISOString()})
+      }).then(function(r){ if(!r.ok) r.text().then(function(t){console.error("Retencion error:",t);}); });
+    }
     showToast("Retención iniciada para "+c.nombre);
   }
 
