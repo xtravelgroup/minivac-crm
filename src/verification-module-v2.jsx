@@ -2247,9 +2247,9 @@ export default function VerificationModule({ currentUser, initialLeadId }) {
     // Buscar en leads ya cargados
     if (leads.length > 0) {
       var found = leads.find(function(l){ return l.id === initialLeadId; });
-      if (found) { setDetail(found); return; }
+      if (found) { setDetail(initialLeadId); return; }
     }
-    // Si no esta en la lista, buscarlo directo en la DB
+    // Si no esta en la lista, buscarlo directo en la DB y agregarlo
     SB.from("leads")
       .select("*, firma_enviada_at, firma_firmada_at, pagos_historial, sale_price, pago_inicial")
       .eq("id", initialLeadId)
@@ -2260,11 +2260,16 @@ export default function VerificationModule({ currentUser, initialLeadId }) {
             var uMap = {};
             if (uRes.data) uRes.data.forEach(function(u){ uMap[u.id] = u.nombre; });
             var row = { ...res.data, vendedor_nombre: uMap[res.data.vendedor_id] || "", verificador_nombre: uMap[res.data.verificador_id] || "" };
-            setDetail(dbToVerifLead(row));
+            var mapped = dbToVerifLead(row);
+            setLeads(function(prev) {
+              var exists = prev.find(function(l){ return l.id === mapped.id; });
+              return exists ? prev : [mapped].concat(prev);
+            });
+            setDetail(initialLeadId);
           });
         }
       });
-  }, [initialLeadId]);
+  }, [initialLeadId, leads.length]);
 
   const updateLead = function(u) {
     var prev = leads.find(function(l){ return l.id === u.id; });
