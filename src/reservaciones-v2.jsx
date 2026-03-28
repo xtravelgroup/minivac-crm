@@ -3,6 +3,9 @@ import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
 import { supabase as SB } from "./supabase";
 
 var TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+var SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
+var SVC_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAxNTA0MiwiZXhwIjoyMDg4NTkxMDQyfQ.-P8KH6yhs6AJ1lUwBrwUpcoZV3KGvM7fDlFM3RsYKxw";
+var SVC_HDR = { apikey: SVC_KEY, Authorization: "Bearer " + SVC_KEY, "Content-Type": "application/json", Prefer: "return=minimal" };
 function addDays(d,n){ var dt=new Date(d+"T12:00:00"); dt.setDate(dt.getDate()+n); return dt.toISOString().split("T")[0]; }
 function daysAgo(n){ var d=new Date(); d.setDate(d.getDate()-n); return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }); }
 function daysFromNow(n){ var d=new Date(); d.setDate(d.getDate()+n); return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }); }
@@ -808,12 +811,14 @@ function ReservaModal(props){
       pasajeros:       pasajeros,
       historial:       hist,
     };
-    SB.from("reservaciones").update(updates).eq("id",r.id).then(function(res){
+    fetch(SB_URL + "/rest/v1/reservaciones?id=eq." + r.id, {
+      method: "PATCH", headers: SVC_HDR, body: JSON.stringify(updates)
+    }).then(function(resp){
       setSaving(false);
-      if(res.error){ alert("Error: "+res.error.message); return; }
+      if(!resp.ok){ resp.text().then(function(t){ alert("Error: "+t); }); return; }
       props.onSaved();
       props.onClose();
-    });
+    }).catch(function(e){ setSaving(false); alert("Error: "+e.message); });
   }
 
   var TABS = [{k:"hotel",l:"Hotel y fechas"},{k:"pasajeros",l:"Pasajeros"},{k:"calificacion",l:"Calificacion"}];
