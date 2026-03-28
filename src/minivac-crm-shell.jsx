@@ -22,6 +22,7 @@ const AutomationsModule  = React.lazy(() => import("./automations-module.jsx"));
 const RolesPermissions   = React.lazy(() => import("./roles-permissions.jsx"));
 const ClientPortal       = React.lazy(() => import("./client-portal.jsx"));
 const HotelsModule       = React.lazy(() => import("./hotels-module.jsx"));
+const WelcomeCalls       = React.lazy(() => import("./welcome-calls.jsx"));
 
 // ─── Constantes ───────────────────────────────────────────────
 const SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
@@ -127,6 +128,7 @@ var MODULOS = [
   { id: "seller",       label: "Ventas",     icon: "seller",       section: "Principal", roles: ["admin","director","supervisor","vendedor","verificador"] },
   { id: "verificacion", label: "Verificacion",   icon: "verificacion", section: "Principal", roles: ["admin","director","supervisor","verificador","cs","cs_gerente"] },
   { id: "cs",           label: "Membresias",     icon: "cs",           section: "Operacion", roles: ["admin","director","cs","cs_gerente"] },
+  { id: "welcome",     label: "Welcome Calls",  icon: "cs",           section: "Operacion", roles: ["admin","director","cs","cs_gerente"] },
   { id: "reservas",     label: "Reservaciones",  icon: "reservas",     section: "Operacion", roles: ["admin","director","cs","cs_gerente"] },
   { id: "destinos",     label: "Destinos",       icon: "destinos",     section: "Catalogo",  roles: ["admin","director"] },
   { id: "hoteles",      label: "Hoteles",        icon: "hoteles",      section: "Catalogo",  roles: ["admin","director"] },
@@ -620,6 +622,7 @@ export default function MinivacShell() {
             {activo === "verificacion" && <VerificationModule currentUser={user} initialLeadId={verifLeadId} />}
             {activo === "reservas"     && <Reservaciones currentUser={user} />}
             {activo === "cs"           && <CSReservas currentUser={user} />}
+            {activo === "welcome"     && <WelcomeCalls currentUser={user} />}
             {activo === "destinos"     && <DestinationsModule />}
             {activo === "hoteles"      && <HotelsModule />}
             {activo === "paquetes"     && <PackagesModule />}
