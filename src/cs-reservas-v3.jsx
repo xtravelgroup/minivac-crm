@@ -1930,7 +1930,7 @@ export default function CsReservasV3(props) {
       noches_base:   datos.nochesIncluidas || 0,
       noches_extra:  datos.nochesExtra || 0,
       notas_agente:  datos.notasInternas || "",
-      agente_nombre: datos.agente || rolCfg.label,
+      agente_nombre: datos.agente || currentUser.nombre,
       status:        "solicitada",
     };
 
@@ -1958,29 +1958,29 @@ export default function CsReservasV3(props) {
     var obj = Object.assign({}, datos, {
       id: esEdit ? resId : ("RES-"+uid().slice(0,6)), folio: esEdit ? resId : ("RES-"+uid().slice(0,6)),
       clienteFolio: clienteFolio, status: "solicitud", confirmacion: "",
-      agente: datos.agente || rolCfg.label, creadoEn: TODAY,
-      historial: [{fecha:TODAY, texto: esEdit?"Reserva modificada":"Reserva creada", autor:datos.agente||rolCfg.label}]
+      agente: datos.agente || currentUser.nombre, creadoEn: TODAY,
+      historial: [{fecha:TODAY, texto: esEdit?"Reserva modificada":"Reserva creada", autor:datos.agente||currentUser.nombre}]
     });
     if (esEdit) { setReservas(function(p){ return p.map(function(r){ return r.id===resId ? obj : r; }); }); }
     else { setReservas(function(p){ return [obj, ...p]; }); }
     addEvento(clienteFolio, "reserva_" + (esEdit ? "modificada" : "creada"), "sistema",
-      (esEdit ? "Reserva modificada: " + datos.destino : "Reserva creada: " + datos.destino), datos.agente || rolCfg.label);
+      (esEdit ? "Reserva modificada: " + datos.destino : "Reserva creada: " + datos.destino), datos.agente || currentUser.nombre);
   }
 
   function confirmarReserva(resId,numConf){
     setReservas(function(p){return p.map(function(r){
       if(r.id!==resId) return r;
-      return Object.assign({},r,{status:"confirmada",confirmacion:numConf,historial:[...(r.historial||[]),{fecha:TODAY,texto:"Confirmada. No. "+numConf,autor:rolCfg.label}]});
+      return Object.assign({},r,{status:"confirmada",confirmacion:numConf,historial:[...(r.historial||[]),{fecha:TODAY,texto:"Confirmada. No. "+numConf,autor:currentUser.nombre}]});
     });});
     var res=reservas.find(function(r){return r.id===resId;});
-    if(res) addEvento(res.clienteFolio,"reserva_confirmada","sistema","Reserva "+resId+" confirmada. No. "+numConf,rolCfg.label);
+    if(res) addEvento(res.clienteFolio,"reserva_confirmada","sistema","Reserva "+resId+" confirmada. No. "+numConf,currentUser.nombre);
     showToast("Reserva confirmada ✅");
   }
 
   function cancelarReserva(resId){
     setReservas(function(p){return p.map(function(r){
       if(r.id!==resId) return r;
-      return Object.assign({},r,{status:"cancelada",historial:[...(r.historial||[]),{fecha:TODAY,texto:"Reserva cancelada.",autor:rolCfg.label}]});
+      return Object.assign({},r,{status:"cancelada",historial:[...(r.historial||[]),{fecha:TODAY,texto:"Reserva cancelada.",autor:currentUser.nombre}]});
     });});
     showToast("Reserva cancelada");
   }
@@ -2237,11 +2237,11 @@ export default function CsReservasV3(props) {
 
       {/* MODALES */}
       {modal&&modal.tipo==="nueva_res"&&(
-        <ReservaFormModal cliente={modal.cliente} destino={modal.destino} autor={rolCfg.label} onClose={closeModal}
+        <ReservaFormModal cliente={modal.cliente} destino={modal.destino} autor={currentUser.nombre} onClose={closeModal}
           onSave={function(d){saveReserva(modal.cliente.folio,d,false,null);}}/>
       )}
       {modal&&modal.tipo==="editar_res"&&(
-        <ReservaFormModal cliente={modal.cliente} reserva={modal.reserva} autor={rolCfg.label} onClose={closeModal}
+        <ReservaFormModal cliente={modal.cliente} reserva={modal.reserva} autor={currentUser.nombre} onClose={closeModal}
           onSave={function(d){saveReserva(modal.cliente.folio,d,true,modal.reserva.id);}}/>
       )}
       {modal&&modal.tipo==="ver_res"&&(
