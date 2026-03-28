@@ -641,10 +641,11 @@ function VentaResumen({ draft, destCatalog }) {
     var cat = catalog.find(function(c){ return c.id === d.destId; }) || {};
     return Object.assign({}, d, { nombre: cat.nombre || cat.name || d.destId });
   });
-  var total    = Number(draft.salePrice || 0);
-  var inicial  = Number(draft.pagoInicial || 0);
-  var pagos    = (draft.pagosAdicionales || []).reduce(function(a,p){ return a + Number(p.monto||0); }, 0);
-  var cobrado  = inicial + pagos;
+  var draftExp = draft.exp || {};
+  var total    = Number(draftExp.salePrice || draft.salePrice || 0);
+  var inicial  = Number(draftExp.pagoInicial || draft.pagoInicial || 0);
+  var pagosReales = (draftExp.pagosHistorial || []).filter(function(p){ return !p.programado; }).reduce(function(a,p){ return a + Number(p.monto||0); }, 0);
+  var cobrado  = inicial + pagosReales;
   var saldo    = Math.max(0, total - cobrado);
 
   var rowStyle = { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid #f0f1f4" };
@@ -1420,9 +1421,10 @@ function CobranzaVendedor({ leads, currentUser, onUpdateLead }) {
   var ventasConSaldo = leads.filter(function(l) {
     return l.vendedorId === currentUser.id && l.status === "venta" && Number(l.salePrice||0) > 0;
   }).map(function(l) {
-    var pagos = (l.pagosAdicionales||[]).reduce(function(a,p){ return a+Number(p.monto||0); }, 0);
-    var cobrado = Number(l.pagoInicial||0) + pagos;
-    var saldo = Math.max(0, Number(l.salePrice||0) - cobrado);
+    var exp = l.exp||{};
+    var pagosReales = (exp.pagosHistorial||[]).filter(function(p){ return !p.programado; }).reduce(function(a,p){ return a+Number(p.monto||0); },0);
+    var cobrado = Number(exp.pagoInicial||l.pagoInicial||0) + pagosReales;
+    var saldo = Math.max(0, Number(exp.salePrice||l.salePrice||0) - cobrado);
     return Object.assign({}, l, { cobrado, saldo });
   }).filter(function(l) { return l.saldo > 0; })
     .sort(function(a,b) { return b.saldo - a.saldo; });
@@ -1686,15 +1688,22 @@ function SupervisorView({ leads, users, currentUser, vistaUserId, destCatalog, o
       {tab==="ventas" && (() => {
         const ventas = teamLeads.filter(l=>l.status==="venta");
         const verifs = teamLeads.filter(l=>l.status==="verificacion");
-        const totalMonto = ventas.reduce((a,l)=>a+Number(l.salePrice||0),0);
+        const totalMonto = ventas.reduce((a,l)=>a+Number((l.exp||{}).salePrice||l.salePrice||0),0);
+        const totalCobrado = ventas.reduce(function(a,l){
+          var ex=l.exp||{};
+          var ini=Number(ex.pagoInicial||l.pagoInicial||0);
+          var abonos=(ex.pagosHistorial||[]).filter(function(p){return !p.programado;}).reduce(function(s,p){return s+Number(p.monto||0);},0);
+          return a+ini+abonos;
+        },0);
         return (
           <div>
             <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", marginBottom:"18px" }}>
               {[
-                { l:"Ventas",          v:ventas.length,                                                              c:"#1a7f3c" },
-                { l:"Monto total",     v:fmtUSD(totalMonto),                                                        c:"#925c0a" },
-                { l:"Ticket promedio", v:ventas.length?fmtUSD(Math.round(totalMonto/ventas.length)):"-",            c:"#1565c0" },
-                { l:"Verificacion",    v:verifs.length,                                                              c:"#1565c0" },
+                { l:"Ventas",            v:ventas.length,                                                              c:"#1a7f3c" },
+                { l:"Monto total",       v:fmtUSD(totalMonto),                                                        c:"#925c0a" },
+                { l:"Ingresos cobrados", v:fmtUSD(totalCobrado),                                                      c:"#1a7f3c" },
+                { l:"Ticket promedio",   v:ventas.length?fmtUSD(Math.round(totalMonto/ventas.length)):"-",            c:"#1565c0" },
+                { l:"Verificacion",      v:verifs.length,                                                              c:"#1565c0" },
               ].map(k=>(
                 <div key={k.l} style={{ flex:1, minWidth:"110px", padding:"14px 16px", borderRadius:"12px", background:`${k.c}09`, border:`1px solid ${k.c}20` }}>
                   <div style={{ fontSize:"9px", fontWeight:"700", color:k.c, textTransform:"uppercase", letterSpacing:"0.1em", opacity:0.8, marginBottom:"4px" }}>{k.l}</div>
@@ -1947,6 +1956,7 @@ function dbToLead(r) {
     bloqueadoNota:       r.bloqueado_nota      || "",
     destinos:            r.destinos            || [],
     notas:               r.notas               || [],
+    exp:                 r.exp                 || {},
     fecha:               r.fecha               || TODAY,
     tarjetaNumero:       r.tarjeta_numero      || null,
     tarjetaNombre:       r.tarjeta_nombre      || null,
