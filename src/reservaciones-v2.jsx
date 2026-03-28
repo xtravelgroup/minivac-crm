@@ -880,22 +880,20 @@ function ReservaModal(props){
             <div><label style={S.lbl}>Noches paquete</label><div style={{padding:"8px 12px",background:"#f8f9fb",border:"1px solid #e3e6ea",borderRadius:"8px",fontSize:"13px",color:"#6b7280"}}>{nBase} <span style={{fontSize:10,color:"#9ca3af"}}>(del paquete)</span></div></div>
           </div>
 
-          {/* Fee y costo noche */}
+          {/* Costo por noche extra */}
           <div style={S.g2}>
-            <div><label style={S.lbl}>Fee de reserva (USD)</label>
-              <input style={S.inp} type="number" min="0" step="0.01" value={feeManual} onChange={function(e){setFeeManual(e.target.value);}} placeholder={String(feeDefault)}/>
-            </div>
             <div><label style={S.lbl}>Costo por noche extra (USD)</label>
               <input style={S.inp} type="number" min="0" step="0.01" value={nochePriceManual} onChange={function(e){setNochePriceManual(e.target.value);}} placeholder={String(nochePriceDefault)}/>
             </div>
+            <div/>
           </div>
 
           {/* Resumen fechas y costo */}
           {checkin&&checkout&&(
-            <div style={{display:"flex",gap:14,padding:"8px 12px",background:"rgba(14,165,160,0.06)",border:"1px solid rgba(14,165,160,0.2)",borderRadius:8,fontSize:11,flexWrap:"wrap"}}>
+            <div style={{display:"flex",gap:14,padding:"8px 12px",background:"rgba(14,165,160,0.06)",border:"1px solid rgba(14,165,160,0.2)",borderRadius:8,fontSize:11,flexWrap:"wrap",alignItems:"center"}}>
               <span style={{color:"#6b7280"}}>Total noches: <strong style={{color:"#1a1f2e"}}>{noches}</strong></span>
               {nExtra>0&&<span style={{color:AMBER}}>Noches extra: <strong>{nExtra}</strong></span>}
-              <span style={{color:"#6b7280"}}>Fee: <strong style={{color:"#1a1f2e"}}>{fmtUSD(fee)}</strong></span>
+              <span style={{color:"#6b7280",display:"flex",alignItems:"center",gap:4}}>Fee: <input type="number" min="0" step="0.01" value={feeManual} onChange={function(e){setFeeManual(e.target.value);}} placeholder={String(feeDefault)} style={{width:70,border:"1px solid #d1d5db",borderRadius:5,padding:"2px 6px",fontSize:11,fontWeight:700,color:"#1a1f2e",background:"#fff"}}/></span>
               {upg>0&&<span style={{color:"#6b7280"}}>Upgrade: <strong style={{color:VIOLET}}>{fmtUSD(upg)}</strong></span>}
               {nExtra>0&&<span style={{color:"#6b7280"}}>Costo noches extra: <strong style={{color:AMBER}}>{fmtUSD(nExtra*nochePrice)}</strong></span>}
               <span style={{fontWeight:700,color:TEAL}}>Total: {fmtUSD(total)}</span>
