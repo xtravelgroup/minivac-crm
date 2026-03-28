@@ -413,7 +413,7 @@ function ReservaDetailModal(props) {
 // MODALES SIMPLES
 // ─────────────────────────────────────────────────────────────
 function NotaModal(props) {
-  var [txt,setTxt]=useState(""); var [canal,setCanal]=useState("llamada"); var [autor,setAutor]=useState("Ana Lopez (CS)");
+  var [txt,setTxt]=useState(""); var [canal,setCanal]=useState("llamada"); var [autor,setAutor]=useState(props.currentUser?props.currentUser.nombre:"");
   return (
     <ModalWrap title="Nota rapida" sub={props.cliente.nombre} color={VIOLET} onClose={props.onClose}>
       <div style={{marginBottom:10}}><label style={S.label}>Canal</label><select style={S.sel} value={canal} onChange={function(e){setCanal(e.target.value);}}>{Object.keys(CANALES).map(function(k){return <option key={k} value={k}>{CANALES[k].label}</option>;})}</select></div>
@@ -428,7 +428,7 @@ function NotaModal(props) {
 }
 
 function CasoModal(props) {
-  var [titulo,setTitulo]=useState(""); var [categoria,setCategoria]=useState(CATEGORIAS_CASO[0]); var [canal,setCanal]=useState("llamada"); var [autor,setAutor]=useState("Ana Lopez (CS)");
+  var [titulo,setTitulo]=useState(""); var [categoria,setCategoria]=useState(CATEGORIAS_CASO[0]); var [canal,setCanal]=useState("llamada"); var [autor,setAutor]=useState(props.currentUser?props.currentUser.nombre:"");
   return (
     <ModalWrap title="Nuevo caso CS" sub={props.cliente.nombre} color={BLUE} onClose={props.onClose}>
       <div style={{marginBottom:10}}><label style={S.label}>Titulo del caso</label><input style={S.input} value={titulo} onChange={function(e){setTitulo(e.target.value);}} placeholder="Resumen del caso..."/></div>
@@ -447,7 +447,7 @@ function CasoModal(props) {
 
 function OpModal(props) {
   var c=props.cliente;
-  var [tipo,setTipo]=useState(""); var [nota,setNota]=useState(""); var [autor,setAutor]=useState("Ana Lopez (CS)");
+  var [tipo,setTipo]=useState(""); var [nota,setNota]=useState(""); var [autor,setAutor]=useState(props.currentUser?props.currentUser.nombre:"");
   var dias=daysSince(c.compra); var pen=getPenalidad(dias); var reembolso=Math.round((c.precioPaquete||0)*pen.pct/100);
   return (
     <ModalWrap title="Nueva operacion" sub={c.nombre+" — "+c.folio} color={AMBER} onClose={props.onClose}>
@@ -1693,8 +1693,8 @@ function ListaMiembros(props) {
 // ─────────────────────────────────────────────────────────────
 // ROOT — CsReservas v3
 // ─────────────────────────────────────────────────────────────
-export default function CsReservasV3() {
-  var currentUser = {nombre:"Ana Lopez (CS)", rol:"cs"};
+export default function CsReservasV3(props) {
+  var currentUser = props.currentUser || {nombre:"Sistema", rol:"cs"};
   var [rolActual,   setRolActual]  = useState("cs");
   var [miembros,    setMiembros]   = useState([]);
   var [loading,     setLoading]    = useState(true);
@@ -1825,7 +1825,7 @@ export default function CsReservasV3() {
   function handleRetencion(c,motivo){
     setMiembros(function(prev){return prev.map(function(m){return m.folio===c.folio?Object.assign({},m,{statusCliente:"retencion"}):m;});});
     if(selected&&selected.folio===c.folio) setSelected(function(p){return Object.assign({},p,{statusCliente:"retencion"});});
-    addEvento(c.folio,"retencion","sistema","Retención iniciada — Motivo: "+(motivo||"Sin motivo"),rolCfg.label);
+    addEvento(c.folio,"retencion","sistema","Retención iniciada — Motivo: "+(motivo||"Sin motivo"),currentUser.nombre);
     // Persistir en DB con service key (RLS bypass)
     if(c.id){
       fetch(SB_BASE+"/rest/v1/leads?id=eq."+c.id, {
@@ -2126,9 +2126,9 @@ export default function CsReservasV3() {
           onEditar={function(r){setModal({tipo:"editar_res",reserva:r,cliente:selectedActualizado});}}
           onCancelar={cancelarReserva}/>
       )}
-      {modal&&modal.tipo==="nota"&&<NotaModal cliente={modal.cliente} onClose={closeModal} onSave={saveNota}/>}
-      {modal&&modal.tipo==="caso"&&<CasoModal cliente={modal.cliente} onClose={closeModal} onSave={saveCaso}/>}
-      {modal&&modal.tipo==="op"&&<OpModal cliente={modal.cliente} onClose={closeModal} onSave={saveOp}/>}
+      {modal&&modal.tipo==="nota"&&<NotaModal cliente={modal.cliente} onClose={closeModal} onSave={saveNota} currentUser={currentUser}/>}
+      {modal&&modal.tipo==="caso"&&<CasoModal cliente={modal.cliente} onClose={closeModal} onSave={saveCaso} currentUser={currentUser}/>}
+      {modal&&modal.tipo==="op"&&<OpModal cliente={modal.cliente} onClose={closeModal} onSave={saveOp} currentUser={currentUser}/>}
 
       <CommPanel
         visible={comm.visible}
