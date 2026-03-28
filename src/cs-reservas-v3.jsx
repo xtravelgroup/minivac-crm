@@ -418,7 +418,7 @@ function NotaModal(props) {
     <ModalWrap title="Nota rapida" sub={props.cliente.nombre} color={VIOLET} onClose={props.onClose}>
       <div style={{marginBottom:10}}><label style={S.label}>Canal</label><select style={S.sel} value={canal} onChange={function(e){setCanal(e.target.value);}}>{Object.keys(CANALES).map(function(k){return <option key={k} value={k}>{CANALES[k].label}</option>;})}</select></div>
       <div style={{marginBottom:10}}><label style={S.label}>Nota</label><textarea style={Object.assign({},S.ta,{minHeight:100,marginTop:4})} value={txt} onChange={function(e){setTxt(e.target.value);}} placeholder="Detalle de la interaccion..."/></div>
-      <div style={{marginBottom:18}}><label style={S.label}>Ejecutivo</label><EjecutivoSel value={autor} onChange={function(e){setAutor(e.target.value);}}/></div>
+      <div style={{marginBottom:18}}><label style={S.label}>Ejecutivo</label><div style={{padding:"8px 12px",background:"#f4f5f7",borderRadius:8,fontSize:13,color:"#1a1f2e",fontWeight:600}}>{autor||"--"}</div></div>
       <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
         <button style={S.btn("ghost")} onClick={props.onClose}>Cancelar</button>
         <button style={S.btn("primary")} onClick={function(){props.onSave(txt,canal,autor);props.onClose();}} disabled={!txt.trim()}>Guardar nota</button>
@@ -436,7 +436,7 @@ function CasoModal(props) {
         <div><label style={S.label}>Categoria</label><select style={S.sel} value={categoria} onChange={function(e){setCategoria(e.target.value);}}>{CATEGORIAS_CASO.map(function(c){return <option key={c}>{c}</option>;})}</select></div>
         <div><label style={S.label}>Canal</label><select style={S.sel} value={canal} onChange={function(e){setCanal(e.target.value);}}>{Object.keys(CANALES).map(function(k){return <option key={k} value={k}>{CANALES[k].label}</option>;})}</select></div>
       </div>
-      <div style={{marginBottom:18}}><label style={S.label}>Asignado a</label><EjecutivoSel value={autor} onChange={function(e){setAutor(e.target.value);}}/></div>
+      <div style={{marginBottom:18}}><label style={S.label}>Asignado a</label><div style={{padding:"8px 12px",background:"#f4f5f7",borderRadius:8,fontSize:13,color:"#1a1f2e",fontWeight:600}}>{autor||"--"}</div></div>
       <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
         <button style={S.btn("ghost")} onClick={props.onClose}>Cancelar</button>
         <button style={S.btn("primary")} onClick={function(){props.onSave({titulo:titulo,categoria:categoria,canal:canal,autor:autor});props.onClose();}} disabled={!titulo.trim()}>Crear caso</button>
@@ -469,7 +469,7 @@ function OpModal(props) {
         </div>
       )}
       <div style={{marginBottom:10}}><label style={S.label}>Nota CS</label><textarea style={Object.assign({},S.ta,{minHeight:64,marginTop:4})} value={nota} onChange={function(e){setNota(e.target.value);}} placeholder="Contexto o detalles adicionales..."/></div>
-      <div style={{marginBottom:18}}><label style={S.label}>Ejecutivo CS</label><EjecutivoSel value={autor} onChange={function(e){setAutor(e.target.value);}}/></div>
+      <div style={{marginBottom:18}}><label style={S.label}>Ejecutivo CS</label><div style={{padding:"8px 12px",background:"#f4f5f7",borderRadius:8,fontSize:13,color:"#1a1f2e",fontWeight:600}}>{autor||"--"}</div></div>
       <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
         <button style={S.btn("ghost")} onClick={props.onClose}>Cancelar</button>
         <button style={S.btn("warn")} onClick={function(){props.onSave({tipo:tipo,notaCS:nota,autor:autor,detalle:{dias:dias,pct:pen.pct,montoOriginal:c.precioPaquete,montoReembolso:reembolso}});props.onClose();}} disabled={!tipo}>Enviar a aprobacion</button>
