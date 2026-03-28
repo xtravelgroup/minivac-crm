@@ -645,8 +645,8 @@ function ReservaModal(props){
   var [habNom,  setHabNom]  = useState(r.hab     || "");
   var [reg,     setReg]     = useState(r.reg      || "Todo incluido");
   var [checkin, setCheckin] = useState(r.checkin  || "");
+  var [checkout, setCheckout] = useState(r.checkout || "");
   var [nBase,   setNBase]   = useState(r.n_base   || r.nBase || 3);
-  var [nExtra,  setNExtra]  = useState(r.n_extra  || r.nExtra || 0);
   var [adultos, setAdultos] = useState(r.adultos  || 2);
   var [ninos,   setNinos]   = useState(r.ninos    || 0);
   var cu = props.currentUser || {nombre:"",rol:"agente"};
@@ -724,13 +724,13 @@ function ReservaModal(props){
   });
   var hotelObj = hotelesLista[hIdx] || hotelesLista.find(function(h){ return h.nombre === hotel; }) || null;
   var habs = hotelObj ? hotelObj.habs : [];
-  var noches = (parseInt(nBase)||3) + (parseInt(nExtra)||0);
-  var checkout = checkin ? addDays(checkin, noches) : "";
+  var noches = (checkin && checkout) ? Math.max(0, Math.round((new Date(checkout+"T12:00:00")-new Date(checkin+"T12:00:00"))/(1000*60*60*24))) : (parseInt(nBase)||3);
+  var nExtra = Math.max(0, noches - (parseInt(nBase)||3));
   var fee = hotelObj ? hotelObj.fee : 0;
   var habObj = habs.find(function(h){ return h.nombre === habNom; }) || habs[0] || null;
   var upg = habObj && !habObj.base ? habObj.up : 0;
   var nochePrice = (hotelObj ? hotelObj.precioNoche : 90) + (habObj && !habObj.base ? habObj.up : 0);
-  var total = fee + upg + (parseInt(nExtra)||0) * nochePrice;
+  var total = fee + upg + nExtra * nochePrice;
 
   useEffect(function(){
     SB.from("hoteles").select("*").eq("activo",true).then(function(res){
@@ -785,7 +785,7 @@ function ReservaModal(props){
       adultos:         parseInt(adultos)||2,
       ninos:           parseInt(ninos)||0,
       n_base:          parseInt(nBase)||3,
-      n_extra:         parseInt(nExtra)||0,
+      n_extra:         nExtra,
       checkin:         checkin,
       checkout:        checkout,
       fee:             fee,
@@ -871,18 +871,18 @@ function ReservaModal(props){
           {/* Fechas */}
           <div style={S.g3}>
             <div><label style={S.lbl}>Check-in</label><input style={S.inp} type="date" value={checkin} onChange={function(e){setCheckin(e.target.value);}}/></div>
+            <div><label style={S.lbl}>Check-out</label><input style={S.inp} type="date" value={checkout} min={checkin||""} onChange={function(e){setCheckout(e.target.value);}}/></div>
             <div><label style={S.lbl}>Noches paquete</label><div style={{padding:"8px 12px",background:"#f8f9fb",border:"1px solid #e3e6ea",borderRadius:"8px",fontSize:"13px",color:"#6b7280"}}>{nBase} <span style={{fontSize:10,color:"#9ca3af"}}>(del paquete)</span></div></div>
-            <div><label style={S.lbl}>Noches extra</label><input style={S.inp} type="number" min="0" max="14" value={nExtra} onChange={function(e){setNExtra(e.target.value);}}/></div>
           </div>
 
           {/* Resumen fechas y costo */}
-          {checkin&&(
+          {checkin&&checkout&&(
             <div style={{display:"flex",gap:14,padding:"8px 12px",background:"rgba(14,165,160,0.06)",border:"1px solid rgba(14,165,160,0.2)",borderRadius:8,fontSize:11,flexWrap:"wrap"}}>
               <span style={{color:"#6b7280"}}>Total noches: <strong style={{color:"#1a1f2e"}}>{noches}</strong></span>
-              <span style={{color:"#6b7280"}}>Check-out: <strong style={{color:"#1a1f2e"}}>{fmtDate(checkout)}</strong></span>
+              {nExtra>0&&<span style={{color:AMBER}}>Noches extra: <strong>{nExtra}</strong></span>}
               <span style={{color:"#6b7280"}}>Fee: <strong style={{color:"#1a1f2e"}}>{fmtUSD(fee)}</strong></span>
               {upg>0&&<span style={{color:"#6b7280"}}>Upgrade: <strong style={{color:VIOLET}}>{fmtUSD(upg)}</strong></span>}
-              {(parseInt(nExtra)||0)>0&&<span style={{color:"#6b7280"}}>Noches extra: <strong style={{color:AMBER}}>{fmtUSD((parseInt(nExtra)||0)*nochePrice)}</strong></span>}
+              {nExtra>0&&<span style={{color:"#6b7280"}}>Costo noches extra: <strong style={{color:AMBER}}>{fmtUSD(nExtra*nochePrice)}</strong></span>}
               <span style={{fontWeight:700,color:TEAL}}>Total: {fmtUSD(total)}</span>
             </div>
           )}
