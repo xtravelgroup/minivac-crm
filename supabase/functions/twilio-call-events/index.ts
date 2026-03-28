@@ -96,6 +96,50 @@ serve(async (req) => {
         }
       }
 
+      // Register call in lead_historial if lead is linked
+      if (Array.isArray(logData) && logData.length > 0) {
+        const log2 = logData[0];
+        if (log2.lead_id) {
+          const wasAnswered = !!log2.answered_at || updates.status === "completed";
+          const durMin = callDuration > 0 ? Math.floor(callDuration / 60) + "m " + (callDuration % 60) + "s" : "0s";
+          const statusLabel = wasAnswered ? "Completada" : "Perdida";
+          const desc = log2.direction === "inbound"
+            ? `Llamada entrante ${statusLabel} (${durMin}) desde ${log2.from_number || "desconocido"}`
+            : log2.direction === "outbound"
+            ? `Llamada saliente ${statusLabel} (${durMin}) a ${log2.to_number || "desconocido"}`
+            : `Llamada interna ${statusLabel} (${durMin})`;
+
+          // Get agent name
+          let agentName = "Sistema";
+          if (log2.agent_id) {
+            try {
+              const uRes = await fetch(`${SB_URL}/rest/v1/usuarios?id=eq.${log2.agent_id}&select=nombre&limit=1`, { headers: HDR });
+              const uData = await uRes.json();
+              if (Array.isArray(uData) && uData.length > 0) agentName = uData[0].nombre;
+            } catch (_) {}
+          }
+
+          await fetch(`${SB_URL}/rest/v1/lead_historial`, {
+            method: "POST", headers: HDR,
+            body: JSON.stringify({
+              lead_id: log2.lead_id,
+              tipo: "llamada",
+              descripcion: desc,
+              detalle: JSON.stringify({ call_log_id: log2.id, duration: callDuration, direction: log2.direction, status: updates.status || log2.status, recording_url: log2.recording_url || null }),
+              usuario_id: log2.agent_id || null,
+              usuario_nombre: agentName,
+            }),
+          });
+          console.log(`Registered call in lead_historial for lead ${log2.lead_id}`);
+
+          // Update lead's ultimo_contacto
+          await fetch(`${SB_URL}/rest/v1/leads?id=eq.${log2.lead_id}`, {
+            method: "PATCH", headers: HDR,
+            body: JSON.stringify({ ultimo_contacto: new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }) }),
+          });
+        }
+      }
+
       // Remove ACD queue entry — call is done
       await fetch(`${SB_URL}/rest/v1/acd_queue?twilio_call_sid=eq.${sid}`, {
         method: "DELETE", headers: HDR,

@@ -58,6 +58,7 @@ export var TIPO_CONFIG = {
   cobro:        { icon: "💰", label: "Cobro",        color: "#b91c1c", bg: "#fef2f2" },
   firma:        { icon: "✍️", label: "Firma",        color: "#0ea5e9", bg: "#e0f2fe" },
   retencion:    { icon: "⚠️", label: "Retención",    color: "#b91c1c", bg: "#fef2f2" },
+  llamada:      { icon: "📞", label: "Llamada",      color: "#1565c0", bg: "#e8f0fe" },
   welcome:      { icon: "📞", label: "Welcome",      color: "#0ea5a0", bg: "#e0f7f6" },
   reserva:      { icon: "🏨", label: "Reserva",      color: "#0ea5a0", bg: "#e0f7f6" },
   caso:         { icon: "📋", label: "Caso",         color: "#1565c0", bg: "#e8f0fe" },
