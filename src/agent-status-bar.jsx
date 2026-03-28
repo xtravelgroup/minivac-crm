@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
-import { supabase as SB } from "./supabase";
+import { createClient } from "@supabase/supabase-js";
 
 var SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
+var ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.xceJjgUnkAu7Jzeo0IY1EmBjRqgyybtPf4odcg1WFeA";
 var SVC_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAxNTA0MiwiZXhwIjoyMDg4NTkxMDQyfQ.-P8KH6yhs6AJ1lUwBrwUpcoZV3KGvM7fDlFM3RsYKxw";
 var HDR = { apikey: SVC_KEY, Authorization: "Bearer " + SVC_KEY, "Content-Type": "application/json" };
+var SB = createClient(SB_URL, ANON_KEY);
 
 var STATUS_CFG = {
   available: { label: "Disponible", color: "#1a7f3c", bg: "#eaf5ec", dot: "#22c55e" },
@@ -61,6 +63,20 @@ export default function AgentStatusBar(props) {
 
     if (props.onStatusChange) props.onStatusChange(newStatus);
   }
+
+  // Heartbeat every 30s to keep agent "fresh" for the call queue
+  useEffect(function () {
+    if (status !== "available" && status !== "on_call" && status !== "paused") return;
+    function sendHeartbeat() {
+      fetch(SB_URL + "/rest/v1/agent_status?usuario_id=eq." + user.id, {
+        method: "PATCH", headers: HDR,
+        body: JSON.stringify({ last_heartbeat: new Date().toISOString() }),
+      });
+    }
+    sendHeartbeat(); // send immediately when status changes
+    var iv = setInterval(sendHeartbeat, 30000);
+    return function () { clearInterval(iv); };
+  }, [user.id, status]);
 
   // Set offline on unmount
   useEffect(function () {
