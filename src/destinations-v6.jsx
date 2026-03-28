@@ -101,6 +101,7 @@ function dbToDestino(r) {
     region:        r.region         || "internacional",
     category:      r.categoria      || "",
     description:   r.descripcion    || "",
+    fee:           r.fee            || 0,
     active:        r.activo !== false,
     includedGifts: r.included_gifts || [],
     qc: {
@@ -133,6 +134,7 @@ function destinoToDB(d) {
     region:         d.region        || "internacional",
     categoria:      d.category      || "",
     descripcion:    d.description   || "",
+    fee:            d.fee           || 0,
     activo:         d.active !== false,
     qc:             d.qc            || {},
     nq:             d.nq            || { enabled:false, nights:3, label:"", hotels:[] },
@@ -951,7 +953,7 @@ function RulesTab({ destinations, onEdit }) {
 function DestModal({ data, saving, onSave, onDelete, onClose }) {
   const blankDest = {
     name:"", state:"", icon:"🏖️", category:CATEGORIES[0], description:"", active:true,
-    region:"internacional",
+    region:"internacional", fee:0,
     includedGifts: [],
     qc:  { nights:5, ageMin:18, ageMax:99, marital:[], adultos:2, ninos:0, edadMaxNino:12, hotels:[], gifts:{ enabled:false, maxChoices:1, items:[] } },
     nq:  { enabled:false, nights:3, label:"", hotels:[] },
@@ -1018,6 +1020,7 @@ function DestModal({ data, saving, onSave, onDelete, onClose }) {
               <FLD label="Nombre *"><INP value={f.name} onChange={v=>set("name",v)} placeholder="Cancún" /></FLD>
               <FLD label="Estado / Provincia *"><INP value={f.state} onChange={v=>set("state",v)} placeholder="Quintana Roo / Nevada" /></FLD>
               <FLD label="Categoría"><select style={S.inp} value={f.category} onChange={e=>set("category",e.target.value)}>{CATEGORIES.map(c=><option key={c}>{c}</option>)}</select></FLD>
+              <FLD label="Fee de reserva (USD)"><INP type="number" value={f.fee||0} onChange={v=>set("fee",parseFloat(v)||0)} placeholder="0" /></FLD>
               <FLD label="Estado"><select style={S.inp} value={f.active?"1":"0"} onChange={e=>set("active",e.target.value==="1")}><option value="1">● Activo</option><option value="0">● Inactivo</option></select></FLD>
             </div>
 

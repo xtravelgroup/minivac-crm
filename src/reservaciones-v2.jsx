@@ -729,7 +729,9 @@ function ReservaModal(props){
   var habs = hotelObj ? hotelObj.habs : [];
   var noches = (checkin && checkout) ? Math.max(0, Math.round((new Date(checkout+"T12:00:00")-new Date(checkin+"T12:00:00"))/(1000*60*60*24))) : (parseInt(nBase)||3);
   var nExtra = Math.max(0, noches - (parseInt(nBase)||3));
-  var feeDefault = hotelObj ? hotelObj.fee : 0;
+  var destFees = props.destFeeMap || {};
+  var feeFromDest = destFees[dest] != null ? destFees[dest] : (destFees[limpiarDest(dest)] != null ? destFees[limpiarDest(dest)] : null);
+  var feeDefault = feeFromDest != null ? feeFromDest : (hotelObj ? hotelObj.fee : 0);
   var fee = feeManual !== "" ? parseFloat(feeManual)||0 : feeDefault;
   var habObj = habs.find(function(h){ return h.nombre === habNom; }) || habs[0] || null;
   var upg = habObj && !habObj.base ? habObj.up : 0;
@@ -1361,10 +1363,20 @@ export default function ReservacionesModule(props){
   var [vloModal, setVloModal] = useState(null);
   var [reservaModal, setReservaModal] = useState(null);
   var [toast,    setToast]    = useState(null);
+  var [destFeeMap, setDestFeeMap] = useState({});
   var currentUser = props.currentUser || { nombre:"Agente", rol:"agente", id:null };
   var comm = useCommPanel();
 
   function notify(m){ setToast(m); setTimeout(function(){ setToast(null); }, 3000); }
+
+  useEffect(function(){
+    SB.from("destinos_catalog").select("nombre,fee").eq("activo",true).then(function(r){
+      if(!r.error){
+        var m={}; (r.data||[]).forEach(function(d){ m[d.nombre]=d.fee||0; });
+        setDestFeeMap(m);
+      }
+    });
+  },[]);
 
   // ── Mapear fila de Supabase al formato interno
   function rvToLocal(rv) {
@@ -1580,7 +1592,7 @@ export default function ReservacionesModule(props){
       {formModal==="nueva"&&<FormModal currentUser={currentUser} onClose={function(){setFormModal(null);}} onSave={onNueva}/>}
       {formModal&&formModal!=="nueva"&&<FormModal res={formModal} currentUser={currentUser} onClose={function(){setFormModal(null);}} onSave={onEditar}/>}
       {vloModal&&<VLOModal res={vloModal} onClose={function(){setVloModal(null);}} onConfirmar={onConfirmar} onRechazar={onRechazar} onCancelar={onCancelar} onEditar={function(r){setFormModal(r);}}/>}
-      {reservaModal&&<ReservaModal res={reservaModal} currentUser={currentUser} onClose={function(){setReservaModal(null);}} onSaved={cargarReservas} onCancelar={function(r){onCancelar(r);setReservaModal(null);}}/>}
+      {reservaModal&&<ReservaModal res={reservaModal} currentUser={currentUser} destFeeMap={destFeeMap} onClose={function(){setReservaModal(null);}} onSaved={cargarReservas} onCancelar={function(r){onCancelar(r);setReservaModal(null);}}/>}
       <CommPanel
         visible={comm.visible}
         cliente={comm.cliente}
