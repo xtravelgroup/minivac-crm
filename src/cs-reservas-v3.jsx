@@ -1306,6 +1306,7 @@ function FichaMiembro(props) {
   var [editContacto,  setEditContacto]  = useState(false);
   var [editNombre,    setEditNombre]    = useState(false);
   var [transferir,    setTransferir]    = useState(false);
+  var [showRetencion, setShowRetencion] = useState(false);
 
   var TABS=[
     {id:"contacto",  label:"📞 Contacto",                         show:perms.verContacto},
@@ -1368,7 +1369,22 @@ function FichaMiembro(props) {
           {c.firma_contrato&&<button style={S.btn("indigo")} onClick={function(){props.onVerFirma(c);}}>📄 Ver certificado</button>}
           <CommPanelTrigger cliente={c} onOpen={props.onComm}/>
           {perms.iniciarRetencion&&c.statusCliente==="activo"&&(
-            <button style={S.btn("danger")} onClick={function(){props.onRetencion(c);}}>Retención</button>
+            <button style={S.btn("danger")} onClick={function(){setShowRetencion(true);}}>Retención</button>
+          )}
+          {showRetencion&&(
+            <div style={{position:"fixed",inset:0,background:"rgba(10,15,25,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}} onClick={function(e){if(e.target===e.currentTarget)setShowRetencion(false);}}>
+              <div style={{background:"#fff",borderRadius:12,width:"100%",maxWidth:420,boxShadow:"0 4px 24px rgba(0,0,0,0.12)",border:"1px solid #e3e6ea"}}>
+                <div style={{padding:"14px 18px",borderBottom:"1px solid #e3e6ea",background:"#f8f9fb",borderRadius:"12px 12px 0 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{fontSize:14,fontWeight:700,color:"#1a1f2e"}}>Motivo de cancelacion</div>
+                  <button style={{background:"none",border:"none",fontSize:18,cursor:"pointer",color:"#9ca3af"}} onClick={function(){setShowRetencion(false);}}>x</button>
+                </div>
+                <div style={{padding:18,display:"flex",flexDirection:"column",gap:8}}>
+                  {["Problemas economicos","No ha podido viajar","Mala experiencia","No entiende el producto","Encontro mejor opcion","Cambio de planes","Otro","Chargeback"].map(function(m){
+                    return <button key={m} style={{textAlign:"left",padding:"10px 14px",borderRadius:8,border:"1px solid #e3e6ea",background:m==="Chargeback"?"rgba(185,28,28,0.06)":"#fff",cursor:"pointer",fontSize:13,fontWeight:500,color:m==="Chargeback"?"#b91c1c":"#1a1f2e"}} onClick={function(){props.onRetencion(c,m);setShowRetencion(false);}}>{m}</button>;
+                  })}
+                </div>
+              </div>
+            </div>
           )}
           <button style={S.btn("indigo")} onClick={function(){ setTransferir(true); }}>Transferir</button>
         </div>
@@ -1791,19 +1807,19 @@ export default function CsReservasV3() {
   function handleCaso(c){ setModal({tipo:"caso",cliente:c}); }
   function handleOp(c){ setModal({tipo:"op",cliente:c}); }
 
-  function handleRetencion(c){
+  function handleRetencion(c,motivo){
     setMiembros(function(prev){return prev.map(function(m){return m.folio===c.folio?Object.assign({},m,{statusCliente:"retencion"}):m;});});
     if(selected&&selected.folio===c.folio) setSelected(function(p){return Object.assign({},p,{statusCliente:"retencion"});});
-    addEvento(c.folio,"retencion","sistema","Proceso de retención iniciado.",rolCfg.label);
+    addEvento(c.folio,"retencion","sistema","Retención iniciada — Motivo: "+(motivo||"Sin motivo"),rolCfg.label);
     // Persistir en DB con service key (RLS bypass)
     if(c.id){
       fetch(SB_BASE+"/rest/v1/leads?id=eq."+c.id, {
         method:"PATCH",
         headers:{"apikey":SRV_KEY,"Authorization":"Bearer "+SRV_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},
-        body:JSON.stringify({retencion_status:"pendiente",retencion_created_at:new Date().toISOString()})
+        body:JSON.stringify({retencion_status:"pendiente",retencion_motivo:motivo||null,retencion_created_at:new Date().toISOString()})
       }).then(function(r){ if(!r.ok) r.text().then(function(t){console.error("Retencion error:",t);}); });
     }
-    showToast("Retención iniciada para "+c.nombre);
+    showToast("Retención iniciada para "+c.nombre+" — "+(motivo||""));
   }
 
   function saveReserva(clienteFolio, datos, esEdit, resId) {
