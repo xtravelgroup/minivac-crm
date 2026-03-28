@@ -653,8 +653,8 @@ function ReservaModal(props){
   var [agente,  setAgente]  = useState(r.agente_nombre || r.agente || cu.nombre);
   var [notas,   setNotas]   = useState(r.notas_agente  || "");
   var [numRes,  setNumRes]  = useState(r.conf || "");
-  var [feeManual, setFeeManual] = useState(r.fee != null ? String(r.fee) : "");
-  var [nochePriceManual, setNochePriceManual] = useState(r.precioNoche != null ? String(r.precioNoche) : "");
+  var [feeManual, setFeeManual] = useState(r.fee ? String(r.fee) : "");
+  var [nochePriceManual, setNochePriceManual] = useState(r.precioNoche ? String(r.precioNoche) : "");
   var [editFees, setEditFees] = useState(false);
   var [agentes, setAgentes] = useState([]);
   useEffect(function(){
