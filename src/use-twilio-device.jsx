@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Device } from "@twilio/voice-sdk";
 
 var EDGE_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co/functions/v1/twilio-token";
 var SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
@@ -31,13 +30,18 @@ export default function useTwilioDevice(userId, enabled) {
     var cancelled = false;
 
     function init() {
-      fetch(EDGE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usuario_id: userId }),
-      })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
+      // Dynamic import so Twilio SDK doesn't block app load
+      Promise.all([
+        fetch(EDGE_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ usuario_id: userId }),
+        }).then(function (r) { return r.json(); }),
+        import("@twilio/voice-sdk").then(function (mod) { return mod.Device; })
+      ])
+        .then(function (results) {
+          var data = results[0];
+          var Device = results[1];
           if (cancelled || !data.token) return;
 
           var dev = new Device(data.token, {

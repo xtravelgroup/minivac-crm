@@ -18,15 +18,14 @@ const Reservaciones      = React.lazy(() => import("./reservaciones-v2.jsx"));
 const CSReservas         = React.lazy(() => import("./cs-reservas-v3.jsx"));
 const ExecutiveSuite     = React.lazy(() => import("./executive-suite.jsx"));
 const CommissionsModule  = React.lazy(() => import("./commissions-module.jsx"));
-const PackagesModule     = React.lazy(() => import("./packages-module.jsx"));
 const DestinationsModule = React.lazy(() => import("./destinations-v6.jsx"));
-const VonageModule       = React.lazy(() => import("./vonage-module.jsx"));
 const AutomationsModule  = React.lazy(() => import("./automations-module.jsx"));
 const RolesPermissions   = React.lazy(() => import("./roles-permissions.jsx"));
 const ClientPortal       = React.lazy(() => import("./client-portal.jsx"));
 const HotelsModule       = React.lazy(() => import("./hotels-module.jsx"));
 const WelcomeCalls       = React.lazy(() => import("./welcome-calls.jsx"));
 const RetencionQueue     = React.lazy(() => import("./retencion-queue.jsx"));
+const TelephonyMgmt     = React.lazy(() => import("./telephony-management.jsx"));
 
 // ─── Constantes ───────────────────────────────────────────────
 const SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
@@ -140,7 +139,7 @@ var MODULOS = [
 
   { id: "comisiones",   label: "Comisiones",     icon: "comisiones",   section: "Finanzas",  roles: ["admin","director","supervisor","vendedor","contador","verificador"] },
   { id: "usuarios",     label: "Usuarios",       icon: "usuarios",     section: "Config",    roles: ["admin","director"] },
-  { id: "vonage",       label: "Telefonia",      icon: "vonage",       section: "Config",    roles: ["admin","director","supervisor"] },
+  { id: "telefonia",    label: "Gestion Llamadas", icon: "vonage",     section: "Operacion", roles: ["admin","director","supervisor","vendedor","cs","cs_gerente","vlo","agente_reservas","especialista_radio"] },
 ];
 
 function tieneAcceso(user, modId) {
@@ -648,7 +647,7 @@ export default function MinivacShell() {
             {/* paquetes eliminado */}
             {activo === "comisiones"   && <CommissionsModule currentUser={user} />}
             {activo === "usuarios"     && <RolesPermissions currentUser={user} />}
-            {activo === "vonage"       && <VonageModule />}
+            {activo === "telefonia"    && <TelephonyMgmt currentUser={user} />}
             {activo === "automatizaciones" && <AutomationsModule />}
             {activo === "portal"       && <ClientPortal />}
           </Suspense>

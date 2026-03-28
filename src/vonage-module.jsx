@@ -62,10 +62,10 @@ var INDIGO = "#6366f1";
 
 // -- Estilos base --
 var S = {
-  wrap:   { minHeight:"100vh", background:"#080b18", color:"#3d4554", fontFamily:"'DM Sans','Segoe UI',-apple-system,sans-serif" },
-  topbar: { padding:"12px 24px", background:"#fafbfc", borderBottom:"1px solid #e8eaed", display:"flex", alignItems:"center", gap:"12px" },
+  wrap:   { minHeight:"100vh", background:"#f4f5f7", color:"#3d4554", fontFamily:"'DM Sans','Segoe UI',-apple-system,sans-serif" },
+  topbar: { padding:"12px 24px", background:"#ffffff", borderBottom:"1px solid #e3e6ea", display:"flex", alignItems:"center", gap:"12px" },
   page:   { padding:"24px 28px", maxWidth:"1100px", margin:"0 auto" },
-  card:   { background:"rgba(255,255,255,0.025)", border:"1px solid #e3e6ea", borderRadius:"12px", padding:"18px 20px", marginBottom:"14px" },
+  card:   { background:"#ffffff", border:"1px solid #e3e6ea", borderRadius:"12px", padding:"18px 20px", marginBottom:"14px" },
   inp:    { width:"100%", background:"#f8f9fb", border:"1px solid #d8dbe0", borderRadius:"8px", padding:"9px 12px", color:"#3d4554", fontSize:"13px", outline:"none", boxSizing:"border-box", fontFamily:"inherit" },
   lbl:    { fontSize:"10px", color:"#9ca3af", marginBottom:"4px", fontWeight:"600", display:"block", textTransform:"uppercase", letterSpacing:"0.07em" },
   sTitle: { fontSize:"11px", fontWeight:"700", color:"#9ca3af", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:"12px" },
@@ -188,7 +188,7 @@ function LogTab(props){
   };
 
   var inpSm = Object.assign({},S.inp,{maxWidth:"220px",width:"auto"});
-  var selSm = Object.assign({},S.inp,{maxWidth:"160px",width:"auto",cursor:"pointer",background:"rgba(10,13,25,0.98)"});
+  var selSm = Object.assign({},S.inp,{maxWidth:"160px",width:"auto",cursor:"pointer",background:"#f8f9fb"});
 
   return (
     <div>
