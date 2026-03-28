@@ -624,7 +624,7 @@ export default function HotelSearch(props) {
       plan:          "Todo Incluido",
       activo:        true,
       capacidad:     { maxAdultos: 2, permitirNinos: false, edadMinNino: 0, edadMaxNino: 12, maxNinos: 0 },
-      restricciones: { edadMin: 25, edadMax: 65, estadoCivil: ["Casado", "Union libre"] },
+      restricciones: { edadMin: 25, edadMax: 65, estadoCivil: ["Casado(a)", "Union Libre"] },
       habitaciones:  tiposHabitacion.map(function (t) {
         return {
           id: uid(), nombre: t, tipoCama: "King", vistas: [], maxOcupantes: 2, m2: 0,

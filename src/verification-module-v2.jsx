@@ -64,7 +64,7 @@ function dbToDestinoVerif(r) {
 
 
 
-var ESTADO_CIVIL_OPTIONS = ["Casado","Union libre","Soltero hombre","Soltera mujer"];
+var ESTADO_CIVIL_OPTIONS = ["Soltero Hombre","Soltera Mujer","Casado(a)","Union Libre"];
 
 const BENEFICIOS_CATALOGO = [
   { id:"late_checkout",   label:"Late checkout",              precio:80  },
@@ -269,7 +269,7 @@ function EditExpedienteModal({ exp, destCatalog, destMap, onClose, onSave }) {
 
         {/* CO-PROPIETARIO */}
         {(function(){
-          var showCoProp = ["Casado","Union libre","Cohabitante"].includes(d.tEstadoCivil);
+          var showCoProp = ["Casado","Union libre","Cohabitante","Casado(a)","Union Libre"].includes(d.tEstadoCivil);
           if (!showCoProp) return null;
           return (
         <div style={{marginBottom:16}}>
@@ -2117,7 +2117,7 @@ function dbToVerifLead(r) {
       tPhone:        r.tel       || "",
       tEmail:        r.email     || "",
       tEstadoCivil:  r.estado_civil || "",
-      hasPartner:    ["Casado","Union libre","Cohabitante"].includes(r.estado_civil),
+      hasPartner:    ["Casado","Union libre","Cohabitante","Casado(a)","Union Libre"].includes(r.estado_civil),
       pFirstName:    r.co_prop         || "",
       pLastName:     r.co_prop_apellido|| "",
       pFechaNac:     r.co_prop_fecha_nac || "",
