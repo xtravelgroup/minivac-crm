@@ -921,6 +921,14 @@ function SectionPagos({ lead, exp, onAbonoGuardado, onRecargar }) {
   var cuotasIniciales = (exp.pagosHistorial||[]).filter(function(p){ return p.programado && !p.cobrado; }).map(function(p,i){ return {num:i+1,fecha:p.fecha||"",monto:p.monto||0,id:p.id}; });
   var [numCuotas,   setNumCuotas]   = useState(cuotasIniciales.length>0?String(cuotasIniciales.length):"");
   var [planPagos,   setPlanPagos]   = useState(cuotasIniciales);
+
+  useEffect(function(){
+    var cuotas = (exp.pagosHistorial||[]).filter(function(p){ return p.programado && !p.cobrado; }).map(function(p,i){ return {num:i+1,fecha:p.fecha||"",monto:p.monto||0,id:p.id}; });
+    if(cuotas.length > 0){
+      setPlanPagos(cuotas);
+      setNumCuotas(String(cuotas.length));
+    }
+  }, [exp.pagosHistorial]);
   var [err,     setErr]     = useState("");
 
   function aplicarAbono() {
