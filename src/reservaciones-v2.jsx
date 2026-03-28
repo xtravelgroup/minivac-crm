@@ -1565,7 +1565,8 @@ export default function ReservacionesModule(props){
   var vloQ=res.filter(function(r){return r.status==="solicitud"||r.status==="solicitada"||r.status==="vlo_proceso";});
   var rechQ=res.filter(function(r){return r.status==="rechazado_hotel";});
 
-  var esSupervisor = currentUser.rol === "supervisor" || currentUser.rol === "admin" || currentUser.rol === "vlo" || rol === "vlo" || rol === "supervisor";
+  var soloLectura = currentUser.rol === "cs" || currentUser.rol === "cs_gerente";
+  var esSupervisor = soloLectura || currentUser.rol === "supervisor" || currentUser.rol === "admin" || currentUser.rol === "vlo" || rol === "vlo" || rol === "supervisor";
   var filtered=res.filter(function(r){
     // Admin/supervisor/vlo ven todas; agentes solo las suyas
     // Si agente_nombre es "Customer Service" o el usuario es admin/supervisor, mostrar siempre
@@ -1616,7 +1617,7 @@ export default function ReservacionesModule(props){
           <button style={tabS(mainTab==="reservaciones",TEAL)} onClick={function(){setMainTab("reservaciones");}}>Reservaciones</button>
           <button style={tabS(mainTab==="catalogo",INDIGO)} onClick={function(){setMainTab("catalogo");}}>Catalogo QC</button>
         </div>
-        {mainTab==="reservaciones"&&(
+        {mainTab==="reservaciones"&&!soloLectura&&(
           <div style={{display:"flex",gap:"4px"}}>
             {ROLES.map(function(r){
               return (
@@ -1648,7 +1649,7 @@ export default function ReservacionesModule(props){
               <div style={{padding:"10px 14px",borderBottom:"1px solid #e3e6ea",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",background:"#ffffff"}}>
                 <input style={Object.assign({},S.inp,{maxWidth:260})} value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Buscar cliente, folio..."/>
                 <div style={{flex:1}}/>
-                <button style={btn("teal")} onClick={function(){setFormModal("nueva");}}>+ Nueva reserva</button>
+                {!soloLectura&&<button style={btn("teal")} onClick={function(){setFormModal("nueva");}}>+ Nueva reserva</button>}
               </div>
               <div style={{flex:1,overflowX:"auto",overflowY:"hidden",display:"flex",gap:0,padding:0}}>
                 {[
@@ -1707,22 +1708,22 @@ export default function ReservacionesModule(props){
                   cliente={{folio:sel.cFolio||sel.id,nombre:sel.cliente,membresia:sel.tipo||"",tel:"",whatsapp:"",email:""}}
                   onOpen={comm.open}
                 />
-                {(sel.status==="solicitada"||sel.status==="solicitud")&&(
+                {!soloLectura&&(sel.status==="solicitada"||sel.status==="solicitud")&&(
                   <button style={btn("indigo")} onClick={function(){setReservaModal(sel);}}>Procesar reserva</button>
                 )}
-                {(sel.status==="en_reserva"||sel.status==="en_proceso")&&(
+                {!soloLectura&&(sel.status==="en_reserva"||sel.status==="en_proceso")&&(
                   <button style={btn("indigo")} onClick={function(){setReservaModal(sel);}}>Editar reserva</button>
                 )}
-                {(sel.status==="en_reserva"||sel.status==="en_proceso")&&(
+                {!soloLectura&&(sel.status==="en_reserva"||sel.status==="en_proceso")&&(
                   <button style={btn("warn")} onClick={function(){onEnviarVLO(sel);}}>Enviar a VLO</button>
                 )}
-                {sel.status==="vlo_proceso"&&(
+                {!soloLectura&&sel.status==="vlo_proceso"&&(
                   <button style={btn("violet")} onClick={function(){setVloModal(sel);}}>Panel VLO</button>
                 )}
-                {sel.status==="rechazado_hotel"&&(
+                {!soloLectura&&sel.status==="rechazado_hotel"&&(
                   <button style={btn("indigo")} onClick={function(){setReservaModal(sel);}}>Re-procesar</button>
                 )}
-                {(sel.status==="solicitada"||sel.status==="solicitud"||sel.status==="rechazado_hotel")&&<button style={btn("teal")} onClick={function(){setFormModal(sel);}}>Modificar</button>}
+                {!soloLectura&&(sel.status==="solicitada"||sel.status==="solicitud"||sel.status==="rechazado_hotel")&&<button style={btn("teal")} onClick={function(){setFormModal(sel);}}>Modificar</button>}
               </div>
               <div style={{flex:1,overflowY:"auto",padding:"20px 24px"}}>
                 <div style={{marginBottom:14}}>
