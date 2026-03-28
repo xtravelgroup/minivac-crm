@@ -1609,7 +1609,8 @@ function SupervisorView({ leads, users, currentUser, vistaUserId, destCatalog, o
   const miEquipo  = isAdmin ? users : users.filter(u => u.supervisorId===currentUser.id);
   const teamIds   = miEquipo.map(u => u.id);
   const allTeamLeads = isAdmin ? leads : leads.filter(l => teamIds.includes(l.vendedorId));
-  const teamLeads = vistaUserId ? allTeamLeads.filter(l => l.vendedorId===vistaUserId) : allTeamLeads;
+  var vistaUser = vistaUserId ? users.find(function(u){ return u.id===vistaUserId; }) : null;
+  const teamLeads = vistaUserId ? allTeamLeads.filter(function(l){ return l.vendedorId===vistaUserId || (vistaUser && (l.vendedorId===vistaUser.dbId || l.vendedorId===vistaUser.authId)); }) : allTeamLeads;
   const alertas   = teamLeads.filter(l => daysSince(l.ultimoContacto)>=ALERT_DAYS && !["venta","no_interesado"].includes(l.status) && !l.bloqueado);
 
   const filtered = teamLeads.filter(l =>
