@@ -72,7 +72,11 @@ var ROLES = {
   supervisor:{ label:"Supervisor", color:AMBER,
     permisos:{ verReservas:true, crearReserva:true, modificarReserva:true, cancelarReserva:true, confirmarReserva:true,
                verHistorial:true, crearNota:true, crearCaso:true, crearOperacion:true,
-               verFinanciero:true, verContacto:true, iniciarRetencion:true } },
+               verFinanciero:true, verContacto:true, iniciarRetencion:true, aprobarOperacion:true } },
+  cs_gerente:{ label:"CS Gerente", color:GREEN,
+    permisos:{ verReservas:true, crearReserva:true, modificarReserva:true, cancelarReserva:true, confirmarReserva:true,
+               verHistorial:true, crearNota:true, crearCaso:true, crearOperacion:true,
+               verFinanciero:true, verContacto:true, iniciarRetencion:true, aprobarOperacion:true } },
 };
 
 var RES_STATUS = {
@@ -1627,6 +1631,16 @@ function FichaMiembro(props) {
                     <span>Reembolso est.: <strong style={{color:GREEN}}>{fmtUSD(o.detalle.montoReembolso)}</strong></span>
                   </div>
                 )}
+                {o.extMeses&&<div style={{marginTop:6,fontSize:11,color:"#9ca3af"}}>Extension: <strong style={{color:AMBER}}>{o.extMeses} meses</strong></div>}
+                {o.montoReembolso&&<div style={{marginTop:6,fontSize:11,color:"#9ca3af"}}>Monto reembolso: <strong style={{color:GREEN}}>{fmtUSD(o.montoReembolso)}</strong></div>}
+                {o.status==="pendiente"&&perms.aprobarOperacion&&(
+                  <div style={{marginTop:10,display:"flex",gap:8}}>
+                    <button style={{background:GREEN,color:"#fff",border:"none",borderRadius:6,padding:"6px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={function(){props.onAprobarOp(o.id);}}>Aprobar</button>
+                    <button style={{background:RED,color:"#fff",border:"none",borderRadius:6,padding:"6px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={function(){props.onRechazarOp(o.id);}}>Rechazar</button>
+                  </div>
+                )}
+                {o.aprobadoPor&&<div style={{marginTop:6,fontSize:10,color:GREEN}}>Aprobado por {o.aprobadoPor} · {fmtDate(o.aprobadoEn)}</div>}
+                {o.rechazadoPor&&<div style={{marginTop:6,fontSize:10,color:RED}}>Rechazado por {o.rechazadoPor} · {fmtDate(o.rechazadoEn)}</div>}
               </div>;
             })}
           </div>
@@ -1715,7 +1729,7 @@ function ListaMiembros(props) {
 // ─────────────────────────────────────────────────────────────
 export default function CsReservasV3(props) {
   var currentUser = props.currentUser || {nombre:"Sistema", rol:"cs"};
-  var [rolActual,   setRolActual]  = useState("cs");
+  var [rolActual,   setRolActual]  = useState(currentUser.rol||"cs");
   var [miembros,    setMiembros]   = useState([]);
   var [loading,     setLoading]    = useState(true);
   var [error,       setError]      = useState(null);
@@ -1950,6 +1964,20 @@ export default function CsReservasV3(props) {
     showToast("Operación enviada a aprobación");
   }
 
+  function aprobarOp(opId){
+    setOperaciones(function(p){return p.map(function(o){return o.id===opId?Object.assign({},o,{status:"aprobado",aprobadoPor:currentUser.nombre,aprobadoEn:new Date().toISOString()}):o;});});
+    var op=operaciones.find(function(o){return o.id===opId;});
+    if(op) addEvento(op.clienteFolio,"operacion","sistema",op.folio+" — Aprobado por "+currentUser.nombre,currentUser.nombre);
+    showToast("Operación aprobada");
+  }
+
+  function rechazarOp(opId){
+    setOperaciones(function(p){return p.map(function(o){return o.id===opId?Object.assign({},o,{status:"rechazado",rechazadoPor:currentUser.nombre,rechazadoEn:new Date().toISOString()}):o;});});
+    var op=operaciones.find(function(o){return o.id===opId;});
+    if(op) addEvento(op.clienteFolio,"operacion","sistema",op.folio+" — Rechazado por "+currentUser.nombre,currentUser.nombre);
+    showToast("Operación rechazada");
+  }
+
   // ── Selección actualizada después de cambios de estado
   var selectedActualizado = selected && miembrosEnriquecidos.find(function(m){return m.id===selected.id;}) || selected;
 
@@ -1978,7 +2006,7 @@ export default function CsReservasV3(props) {
     currentUser:currentUser, perms:perms, rol:rolActual,
     reservas:reservas, interacciones:interacciones, casos:casos, ops:operaciones,
     onNuevaReserva:handleNuevaReserva, onVerReserva:handleVerReserva,
-    onNota:handleNota, onCaso:handleCaso, onOp:handleOp, onVerFirma:function(cl){ setFirmaModal(cl); },
+    onNota:handleNota, onCaso:handleCaso, onOp:handleOp, onAprobarOp:aprobarOp, onRechazarOp:rechazarOp, onVerFirma:function(cl){ setFirmaModal(cl); },
     onRetencion:handleRetencion, onComm:comm.open,
     onAbono:function(nuevosAbonos){
       cargarMiembros();
