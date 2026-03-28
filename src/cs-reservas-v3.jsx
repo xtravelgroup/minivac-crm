@@ -447,7 +447,7 @@ function CasoModal(props) {
 
 function OpModal(props) {
   var c=props.cliente;
-  var [tipo,setTipo]=useState(""); var [nota,setNota]=useState(""); var [autor,setAutor]=useState(props.currentUser?props.currentUser.nombre:"");
+  var [tipo,setTipo]=useState(""); var [nota,setNota]=useState(""); var [autor,setAutor]=useState(props.currentUser?props.currentUser.nombre:""); var [extMeses,setExtMeses]=useState("");
   var dias=daysSince(c.compra); var pen=getPenalidad(dias); var reembolso=Math.round((c.precioPaquete||0)*pen.pct/100);
   return (
     <ModalWrap title="Nueva operacion" sub={c.nombre+" — "+c.folio} color={AMBER} onClose={props.onClose}>
@@ -468,11 +468,21 @@ function OpModal(props) {
           </div>
         </div>
       )}
+      {tipo==="extension"&&(
+        <div style={{marginBottom:10}}>
+          <label style={S.label}>Tiempo de extension</label>
+          <div style={{display:"flex",gap:8,marginTop:4}}>
+            {[{v:"3",l:"3 meses"},{v:"6",l:"6 meses"},{v:"12",l:"12 meses"}].map(function(o){
+              return <button key={o.v} type="button" style={{flex:1,padding:"10px",borderRadius:8,border:"2px solid "+(extMeses===o.v?AMBER:"#e3e6ea"),background:extMeses===o.v?"#fef9e7":"#fff",cursor:"pointer",fontSize:13,fontWeight:extMeses===o.v?700:500,color:extMeses===o.v?AMBER:"#1a1f2e"}} onClick={function(){setExtMeses(o.v);}}>{o.l}</button>;
+            })}
+          </div>
+        </div>
+      )}
       <div style={{marginBottom:10}}><label style={S.label}>Nota CS</label><textarea style={Object.assign({},S.ta,{minHeight:64,marginTop:4})} value={nota} onChange={function(e){setNota(e.target.value);}} placeholder="Contexto o detalles adicionales..."/></div>
       <div style={{marginBottom:18}}><label style={S.label}>Ejecutivo CS</label><div style={{padding:"8px 12px",background:"#f4f5f7",borderRadius:8,fontSize:13,color:"#1a1f2e",fontWeight:600}}>{autor||"--"}</div></div>
       <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
         <button style={S.btn("ghost")} onClick={props.onClose}>Cancelar</button>
-        <button style={S.btn("warn")} onClick={function(){props.onSave({tipo:tipo,notaCS:nota,autor:autor,detalle:{dias:dias,pct:pen.pct,montoOriginal:c.precioPaquete,montoReembolso:reembolso}});props.onClose();}} disabled={!tipo}>Enviar a aprobacion</button>
+        <button style={S.btn("warn")} onClick={function(){props.onSave({tipo:tipo,notaCS:nota,autor:autor,extMeses:extMeses||null,detalle:{dias:dias,pct:pen.pct,montoOriginal:c.precioPaquete,montoReembolso:reembolso}});props.onClose();}} disabled={!tipo||(tipo==="extension"&&!extMeses)}>Enviar a aprobacion</button>
       </div>
     </ModalWrap>
   );
@@ -1921,9 +1931,10 @@ export default function CsReservasV3(props) {
 
   function saveOp(datos){
     var folio="OP-"+uid().slice(0,5).toUpperCase();
+    var extLabel=datos.extMeses?" ("+datos.extMeses+" meses)":"";
     if(selected){
-      setOperaciones(function(p){return [{id:uid(),clienteFolio:selected.folio,tipo:datos.tipo,folio:folio,status:"pendiente",autor:datos.autor,creado:new Date().toISOString(),notaCS:datos.notaCS,detalle:datos.detalle},...p];});
-      addEvento(selected.folio,"operacion","sistema",folio+" — "+(OP_TIPOS[datos.tipo]||{label:datos.tipo}).label+" pendiente. "+datos.notaCS,datos.autor);
+      setOperaciones(function(p){return [{id:uid(),clienteFolio:selected.folio,tipo:datos.tipo,folio:folio,status:"pendiente",autor:datos.autor,creado:new Date().toISOString(),notaCS:datos.notaCS,detalle:datos.detalle,extMeses:datos.extMeses},...p];});
+      addEvento(selected.folio,"operacion","sistema",folio+" — "+(OP_TIPOS[datos.tipo]||{label:datos.tipo}).label+extLabel+" pendiente. "+datos.notaCS,datos.autor);
     }
     showToast("Operación enviada a aprobación");
   }
