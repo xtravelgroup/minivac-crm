@@ -124,20 +124,32 @@ export default function WelcomeCalls({ currentUser }) {
   }
 
   function enviarAccesoPortal(lead) {
+    if(!lead.email){ notify("Sin email", false); return; }
     var portalUrl = "https://minivac-crm.vercel.app/portal?id="+lead.id;
-    var texto = "Hola "+lead.nombre+", bienvenido a Mini-Vac Vacation Club! Aqui puedes acceder a tu portal de miembro: "+portalUrl;
 
-    // Enviar por WhatsApp
-    var tel = lead.whatsapp || lead.tel || "";
-    if(!tel){ notify("Sin numero de telefono", false); return; }
-
-    fetch(SB_URL+"/functions/v1/send-whatsapp", {
+    fetch(SB_URL+"/functions/v1/resend-email", {
       method:"POST",
       headers: HDR,
-      body: JSON.stringify({ to:tel, mensaje:texto, lead_id:lead.id, service_key:SERVICE_KEY }),
+      body: JSON.stringify({
+        to: lead.email,
+        subject: "Tu acceso al Portal de Miembro - Mini-Vac Vacation Club",
+        html: "<div style='font-family:sans-serif;max-width:600px;margin:auto;padding:32px;'>"
+          + "<div style='background:#0ea5a0;padding:16px 24px;border-radius:8px 8px 0 0;'>"
+          + "<h2 style='color:#fff;margin:0;font-size:18px;'>Mini-Vac Vacation Club</h2></div>"
+          + "<div style='background:#f8fafc;padding:24px;border-radius:0 0 8px 8px;border:1px solid #e2e8f0;'>"
+          + "<p style='color:#1e293b;font-size:15px;line-height:1.7;margin:0;'>"
+          + "Hola "+lead.nombre+",<br/><br/>"
+          + "Bienvenido a Mini-Vac Vacation Club! Aqui puedes acceder a tu portal de miembro donde podras consultar tu membresia, reservar viajes y mas.<br/><br/>"
+          + "<a href='"+portalUrl+"' style='display:inline-block;background:#0ea5a0;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;'>Acceder a mi Portal</a><br/><br/>"
+          + "Si tienes alguna pregunta, no dudes en contactarnos al 1-800-927-1490.</p>"
+          + "<hr style='border:none;border-top:1px solid #e2e8f0;margin:20px 0;'/>"
+          + "<p style='color:#94a3b8;font-size:12px;margin:0;'>Mini-Vac Vacation Club &bull; Miami, FL</p>"
+          + "</div></div>",
+        lead_id: lead.id,
+      }),
     }).then(function(r){ return r.json(); }).then(function(r){
-      if(r.ok) notify("Acceso al portal enviado por WhatsApp");
-      else notify("Error: "+(r.error||"fallo envio"), false);
+      if(r.id || r.ok) notify("Acceso al portal enviado por email");
+      else notify("Error: "+(r.error||r.message||"fallo envio"), false);
     });
   }
 
