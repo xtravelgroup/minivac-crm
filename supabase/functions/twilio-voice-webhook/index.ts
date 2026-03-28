@@ -112,7 +112,42 @@ serve(async (req) => {
       const phoneSearch = cleanPhone.replace("+", "");
       const leadRes = await fetch(`${SB_URL}/rest/v1/leads?tel=ilike.*${phoneSearch.slice(-10)}&limit=1`, { headers: HDR });
       const leads = await leadRes.json();
-      const lead = Array.isArray(leads) && leads.length > 0 ? leads[0] : null;
+      let lead = Array.isArray(leads) && leads.length > 0 ? leads[0] : null;
+
+      // Auto-create lead if phone number not registered
+      if (!lead && phoneSearch.length >= 7) {
+        const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+        const newLead = {
+          nombre: "Llamada entrante",
+          apellido: "",
+          tel: from,
+          whatsapp: from,
+          status: "nuevo",
+          fecha: todayStr,
+          ultimo_contacto: todayStr,
+          ciudad: "Miami",
+          estado_us: "FL",
+          destinos: [],
+          notas: JSON.stringify([{ ts: todayStr, autor: "Sistema", tipo: "llamada", nota: "Lead creado automaticamente por llamada entrante desde " + from }]),
+          bloqueado: false,
+          sale_price: 0,
+          pago_inicial: 0,
+          metodo_pago: "tarjeta",
+        };
+        const newLeadRes = await fetch(`${SB_URL}/rest/v1/leads`, {
+          method: "POST", headers: { ...HDR, Prefer: "return=representation" },
+          body: JSON.stringify(newLead),
+        });
+        const newLeadText = await newLeadRes.text();
+        console.log(`Auto-created lead for ${from}: ${newLeadRes.status} ${newLeadText}`);
+        try {
+          const parsed = JSON.parse(newLeadText);
+          if (Array.isArray(parsed) && parsed.length > 0) lead = parsed[0];
+          else if (parsed && parsed.id) lead = parsed;
+        } catch (_) {
+          console.error("Failed to parse new lead response");
+        }
+      }
 
       // Create call_log entry
       const callLog: Record<string, unknown> = {
