@@ -1362,7 +1362,7 @@ function BriefingAI({ leads, users, currentUser }) {
     setLoading(true); setError(null); setResult(null);
     try {
       const stats = miEquipo.map(v => {
-        const vl = teamLeads.filter(l=>l.vendedorId===v.id);
+        const vl = teamLeads.filter(l=>matchVendedor(l,v));
         return `${v.name}: ${vl.length} leads, ${vl.filter(l=>l.status==="venta").length} ventas, ${vl.filter(l=>daysSince(l.ultimoContacto)>=ALERT_DAYS&&!["venta","no_interesado"].includes(l.status)).length} alertas`;
       }).join("\n");
       const prompt = `Gerente de ventas clubes vacacionales. Analiza el equipo. Responde SOLO con JSON valido.
@@ -1611,6 +1611,12 @@ function VendedorView({ leads, users, currentUser, destCatalog, onUpdateLead, in
 // 
 // SUPERVISOR VIEW
 // 
+function matchVendedor(lead, user) {
+  if (!lead || !user) return false;
+  var vid = lead.vendedorId;
+  return vid===user.id || vid===user.dbId || vid===user.authId;
+}
+
 function SupervisorView({ leads, users, currentUser, vistaUserId, destCatalog, onUpdateLead, onBulkReassign, initialLeadId }) {
   const [tab,           setTab]           = useState("pipeline");
   const [selLead,       setSelLead]       = useState(null);
@@ -1626,15 +1632,15 @@ function SupervisorView({ leads, users, currentUser, vistaUserId, destCatalog, o
   const isAdmin   = currentUser.role === "admin" || currentUser.role === "director" || currentUser.role === "supervisor";
   const miEquipo  = isAdmin ? users : users.filter(u => u.supervisorId===currentUser.id);
   const teamIds   = miEquipo.map(u => u.id);
-  const allTeamLeads = isAdmin ? leads : leads.filter(l => teamIds.includes(l.vendedorId));
+  const allTeamLeads = isAdmin ? leads : leads.filter(function(l){ return miEquipo.some(function(u){ return matchVendedor(l,u); }); });
   var vistaUser = vistaUserId ? users.find(function(u){ return u.id===vistaUserId; }) : null;
-  const teamLeads = vistaUserId ? allTeamLeads.filter(function(l){ return l.vendedorId===vistaUserId || (vistaUser && (l.vendedorId===vistaUser.dbId || l.vendedorId===vistaUser.authId)); }) : allTeamLeads;
+  const teamLeads = vistaUser ? allTeamLeads.filter(function(l){ return matchVendedor(l,vistaUser); }) : allTeamLeads;
   const alertas   = teamLeads.filter(l => daysSince(l.ultimoContacto)>=ALERT_DAYS && !["venta","no_interesado"].includes(l.status) && !l.bloqueado);
 
-  const filtered = teamLeads.filter(l =>
-    (fVendedor==="all" || l.vendedorId===fVendedor) &&
-    (fStatus==="all" || l.status===fStatus)
-  );
+  const filtered = teamLeads.filter(function(l) {
+    var vendOk = fVendedor==="all" || (function(){ var fu=users.find(function(u){return u.id===fVendedor;}); return fu ? matchVendedor(l,fu) : l.vendedorId===fVendedor; })();
+    return vendOk && (fStatus==="all" || l.status===fStatus);
+  });
 
   const toggleSel      = id => setSelIds(p => p.includes(id)?p.filter(x=>x!==id):[...p,id]);
   const handleDragStart= (e,lead) => { setDragLead(lead); e.dataTransfer.effectAllowed="move"; };
@@ -1646,7 +1652,7 @@ function SupervisorView({ leads, users, currentUser, vistaUserId, destCatalog, o
   const fmtUSD = n => "$"+Number(n).toLocaleString("en-US");
 
   const vendedorStats = miEquipo.map(v => {
-    const vl = teamLeads.filter(l=>l.vendedorId===v.id);
+    const vl = teamLeads.filter(l=>matchVendedor(l,v));
     const ventas = vl.filter(l=>l.status==="venta").length;
     const alV = vl.filter(l=>daysSince(l.ultimoContacto)>=ALERT_DAYS&&!["venta","no_interesado"].includes(l.status)&&!l.bloqueado).length;
     return { ...v, total:vl.length, ventas, alV, cierre:vl.length>0?(ventas/vl.length*100).toFixed(0):0 };
@@ -1784,7 +1790,7 @@ function SupervisorView({ leads, users, currentUser, vistaUserId, destCatalog, o
           <div style={{ fontSize:"12px", color:"#9ca3af", marginBottom:"14px" }}> Arrastra cualquier lead a la columna del vendedor para reasignarlo</div>
           <div style={{ display:"flex", gap:"14px", overflowX:"auto", paddingBottom:"16px" }}>
             {miEquipo.map(v=>{
-              const vl=teamLeads.filter(l=>l.vendedorId===v.id);
+              const vl=teamLeads.filter(l=>matchVendedor(l,v));
               const isOver=dragOverV===v.id;
               return (
                 <div key={v.id} style={{ minWidth:"240px", flex:1 }}
