@@ -447,7 +447,7 @@ function CasoModal(props) {
 
 function OpModal(props) {
   var c=props.cliente;
-  var [tipo,setTipo]=useState(""); var [nota,setNota]=useState(""); var [autor,setAutor]=useState(props.currentUser?props.currentUser.nombre:""); var [extMeses,setExtMeses]=useState("");
+  var [tipo,setTipo]=useState(""); var [nota,setNota]=useState(""); var [autor,setAutor]=useState(props.currentUser?props.currentUser.nombre:""); var [extMeses,setExtMeses]=useState(""); var [montoReembolso,setMontoReembolso]=useState("");
   var dias=daysSince(c.compra); var pen=getPenalidad(dias); var reembolso=Math.round((c.precioPaquete||0)*pen.pct/100);
   return (
     <ModalWrap title="Nueva operacion" sub={c.nombre+" — "+c.folio} color={AMBER} onClose={props.onClose}>
@@ -468,6 +468,17 @@ function OpModal(props) {
           </div>
         </div>
       )}
+      {tipo==="reembolso"&&(
+        <div style={{padding:"12px",borderRadius:10,background:"#edf7ee",border:"1px solid #a3d9a5",marginBottom:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:GREEN,marginBottom:8}}>Monto a reembolsar</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,fontSize:12,marginBottom:8}}>
+            <div><label style={S.label}>Total pagado</label><strong style={{color:GREEN}}>{fmtUSD(c.totalPagado)}</strong></div>
+            <div><label style={S.label}>Precio paquete</label><strong>{fmtUSD(c.precioPaquete)}</strong></div>
+          </div>
+          <label style={S.label}>Monto de reembolso</label>
+          <input style={S.input} type="number" value={montoReembolso} onChange={function(e){setMontoReembolso(e.target.value);}} placeholder="$0.00"/>
+        </div>
+      )}
       {tipo==="extension"&&(
         <div style={{marginBottom:10}}>
           <label style={S.label}>Tiempo de extension</label>
@@ -482,7 +493,7 @@ function OpModal(props) {
       <div style={{marginBottom:18}}><label style={S.label}>Ejecutivo CS</label><div style={{padding:"8px 12px",background:"#f4f5f7",borderRadius:8,fontSize:13,color:"#1a1f2e",fontWeight:600}}>{autor||"--"}</div></div>
       <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
         <button style={S.btn("ghost")} onClick={props.onClose}>Cancelar</button>
-        <button style={S.btn("warn")} onClick={function(){props.onSave({tipo:tipo,notaCS:nota,autor:autor,extMeses:extMeses||null,detalle:{dias:dias,pct:pen.pct,montoOriginal:c.precioPaquete,montoReembolso:reembolso}});props.onClose();}} disabled={!tipo||(tipo==="extension"&&!extMeses)}>Enviar a aprobacion</button>
+        <button style={S.btn("warn")} onClick={function(){props.onSave({tipo:tipo,notaCS:nota,autor:autor,extMeses:extMeses||null,montoReembolso:montoReembolso?Number(montoReembolso):null,detalle:{dias:dias,pct:pen.pct,montoOriginal:c.precioPaquete,montoReembolso:reembolso}});props.onClose();}} disabled={!tipo||(tipo==="extension"&&!extMeses)||(tipo==="reembolso"&&!montoReembolso)}>Enviar a aprobacion</button>
       </div>
     </ModalWrap>
   );
@@ -1932,9 +1943,10 @@ export default function CsReservasV3(props) {
   function saveOp(datos){
     var folio="OP-"+uid().slice(0,5).toUpperCase();
     var extLabel=datos.extMeses?" ("+datos.extMeses+" meses)":"";
+    var reemLabel=datos.montoReembolso?" ("+fmtUSD(datos.montoReembolso)+")":"";
     if(selected){
-      setOperaciones(function(p){return [{id:uid(),clienteFolio:selected.folio,tipo:datos.tipo,folio:folio,status:"pendiente",autor:datos.autor,creado:new Date().toISOString(),notaCS:datos.notaCS,detalle:datos.detalle,extMeses:datos.extMeses},...p];});
-      addEvento(selected.folio,"operacion","sistema",folio+" — "+(OP_TIPOS[datos.tipo]||{label:datos.tipo}).label+extLabel+" pendiente. "+datos.notaCS,datos.autor);
+      setOperaciones(function(p){return [{id:uid(),clienteFolio:selected.folio,tipo:datos.tipo,folio:folio,status:"pendiente",autor:datos.autor,creado:new Date().toISOString(),notaCS:datos.notaCS,detalle:datos.detalle,extMeses:datos.extMeses,montoReembolso:datos.montoReembolso},...p];});
+      addEvento(selected.folio,"operacion","sistema",folio+" — "+(OP_TIPOS[datos.tipo]||{label:datos.tipo}).label+extLabel+reemLabel+" pendiente. "+datos.notaCS,datos.autor);
     }
     showToast("Operación enviada a aprobación");
   }
