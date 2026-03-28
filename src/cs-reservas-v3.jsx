@@ -1793,6 +1793,8 @@ export default function CsReservasV3() {
     setMiembros(function(prev){return prev.map(function(m){return m.folio===c.folio?Object.assign({},m,{statusCliente:"retencion"}):m;});});
     if(selected&&selected.folio===c.folio) setSelected(function(p){return Object.assign({},p,{statusCliente:"retencion"});});
     addEvento(c.folio,"retencion","sistema","Proceso de retención iniciado.",rolCfg.label);
+    // Persistir en DB
+    if(c.id) SB.from("leads").update({ retencion_status:"pendiente", retencion_created_at:new Date().toISOString() }).eq("id",c.id);
     showToast("Retención iniciada para "+c.nombre);
   }
 
