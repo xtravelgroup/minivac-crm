@@ -2154,7 +2154,7 @@ function dbToVerifLead(r) {
   };
 }
 
-export default function VerificationModule({ currentUser }) {
+export default function VerificationModule({ currentUser, initialLeadId }) {
   const [leads,        setLeads]        = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [detail,       setDetail]       = useState(null);
@@ -2240,6 +2240,14 @@ export default function VerificationModule({ currentUser }) {
     var interval = setInterval(function() { cargarLeads(); }, 30000);
     return function() { clearInterval(interval); };
   }, []);
+
+  // Abrir lead automaticamente si viene initialLeadId
+  useEffect(function() {
+    if (initialLeadId && leads.length > 0 && !detail) {
+      var found = leads.find(function(l){ return l.id === initialLeadId; });
+      if (found) setDetail(found);
+    }
+  }, [initialLeadId, leads.length]);
 
   const updateLead = function(u) {
     var prev = leads.find(function(l){ return l.id === u.id; });
