@@ -641,10 +641,11 @@ function VentaResumen({ draft, destCatalog }) {
     var cat = catalog.find(function(c){ return c.id === d.destId; }) || {};
     return Object.assign({}, d, { nombre: cat.nombre || cat.name || d.destId });
   });
-  var total    = Number(draft.salePrice || 0);
-  var inicial  = Number(draft.pagoInicial || 0);
-  var pagos    = (draft.pagosAdicionales || []).reduce(function(a,p){ return a + Number(p.monto||0); }, 0);
-  var cobrado  = inicial + pagos;
+  var draftExp = draft.exp || {};
+  var total    = Number(draftExp.salePrice || draft.salePrice || 0);
+  var inicial  = Number(draftExp.pagoInicial || draft.pagoInicial || 0);
+  var pagosReales = (draftExp.pagosHistorial || []).filter(function(p){ return !p.programado; }).reduce(function(a,p){ return a + Number(p.monto||0); }, 0);
+  var cobrado  = inicial + pagosReales;
   var saldo    = Math.max(0, total - cobrado);
 
   var rowStyle = { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid #f0f1f4" };
@@ -1254,8 +1255,29 @@ function LeadCard({ lead, isSupervisor, isSelected, onSelect, onClick, onDragSta
 // 
 function KanbanCol({ status, leads, isSupervisor, selectedIds, onSelect, onCardClick, onDragStart, onAI, users }) {
   const sc = STATUS_CFG[status];
-  const hoy      = leads.filter(l => l.fecha === TODAY);
-  const anterior = leads.filter(l => l.fecha !== TODAY);
+  var hoyStr = TODAY;
+  var hoyParts = hoyStr.split("-"); var hoyDate = new Date(Number(hoyParts[0]), Number(hoyParts[1])-1, Number(hoyParts[2]));
+  var diaSemana = hoyDate.getDay();
+  var inicioSemana = new Date(hoyDate); inicioSemana.setDate(hoyDate.getDate() - (diaSemana===0?6:diaSemana-1));
+  var inicioSemStr = inicioSemana.toISOString().slice(0,10);
+
+  const hoy      = leads.filter(l => l.fecha === hoyStr);
+  const semana   = leads.filter(l => l.fecha !== hoyStr && l.fecha >= inicioSemStr);
+  const antiguo  = leads.filter(l => l.fecha < inicioSemStr);
+
+  function renderDivider(label, color) {
+    return (
+      <div style={{ display:"flex", alignItems:"center", gap:"6px", margin:"8px 0" }}>
+        <div style={{ flex:1, height:"1px", background:color||"#e3e6ea" }}/>
+        <span style={{ fontSize:"9px", fontWeight:"700", color:color||"#9ca3af", letterSpacing:"0.08em", textTransform:"uppercase", whiteSpace:"nowrap" }}>{label}</span>
+        <div style={{ flex:1, height:"1px", background:color||"#e3e6ea" }}/>
+      </div>
+    );
+  }
+  function renderCards(arr) {
+    return arr.map(l => <LeadCard key={l.id} lead={l} isSupervisor={isSupervisor} isSelected={selectedIds?.includes(l.id)} onSelect={onSelect} onClick={onCardClick} onDragStart={onDragStart} onAI={onAI} users={users} />);
+  }
+
   return (
     <div style={{ minWidth:"210px", flex:1, display:"flex", flexDirection:"column" }}>
       <div style={{ padding:"7px 11px", borderRadius:"8px 8px 0 0", background:sc.bg, border:`1px solid ${sc.border}`, marginBottom:"5px", display:"flex", justifyContent:"space-between" }}>
@@ -1263,15 +1285,12 @@ function KanbanCol({ status, leads, isSupervisor, selectedIds, onSelect, onCardC
         <span style={{ fontSize:"11px", fontWeight:"700", color:sc.color, background:`${sc.color}20`, padding:"0 7px", borderRadius:"10px" }}>{leads.length}</span>
       </div>
       <div style={{ flex:1, minHeight:"60px" }}>
-        {hoy.map(l => <LeadCard key={l.id} lead={l} isSupervisor={isSupervisor} isSelected={selectedIds?.includes(l.id)} onSelect={onSelect} onClick={onCardClick} onDragStart={onDragStart} onAI={onAI} users={users} />)}
-        {hoy.length > 0 && anterior.length > 0 && (
-          <div style={{ display:"flex", alignItems:"center", gap:"6px", margin:"8px 0" }}>
-            <div style={{ flex:1, height:"1px", background:"#e3e6ea" }}/>
-            <span style={{ fontSize:"9px", fontWeight:"700", color:"#9ca3af", letterSpacing:"0.08em", textTransform:"uppercase", whiteSpace:"nowrap" }}>Días anteriores</span>
-            <div style={{ flex:1, height:"1px", background:"#e3e6ea" }}/>
-          </div>
-        )}
-        {anterior.map(l => <LeadCard key={l.id} lead={l} isSupervisor={isSupervisor} isSelected={selectedIds?.includes(l.id)} onSelect={onSelect} onClick={onCardClick} onDragStart={onDragStart} onAI={onAI} users={users} />)}
+        {hoy.length > 0 && renderDivider("Hoy", "#16a34a")}
+        {renderCards(hoy)}
+        {semana.length > 0 && renderDivider("Esta semana", "#d97706")}
+        {renderCards(semana)}
+        {antiguo.length > 0 && renderDivider("Más de 1 semana", "#9ca3af")}
+        {renderCards(antiguo)}
         {!leads.length && <div style={{ padding:"14px", textAlign:"center", color:"#b0b8c4", fontSize:"11px", border:"1px dashed #e3e6ea", borderRadius:"8px" }}>Sin leads</div>}
       </div>
     </div>
@@ -1344,7 +1363,7 @@ function BriefingAI({ leads, users, currentUser }) {
     setLoading(true); setError(null); setResult(null);
     try {
       const stats = miEquipo.map(v => {
-        const vl = teamLeads.filter(l=>l.vendedorId===v.id);
+        const vl = teamLeads.filter(l=>matchVendedor(l,v));
         return `${v.name}: ${vl.length} leads, ${vl.filter(l=>l.status==="venta").length} ventas, ${vl.filter(l=>daysSince(l.ultimoContacto)>=ALERT_DAYS&&!["venta","no_interesado"].includes(l.status)).length} alertas`;
       }).join("\n");
       const prompt = `Gerente de ventas clubes vacacionales. Analiza el equipo. Responde SOLO con JSON valido.
@@ -1402,9 +1421,10 @@ function CobranzaVendedor({ leads, currentUser, onUpdateLead }) {
   var ventasConSaldo = leads.filter(function(l) {
     return l.vendedorId === currentUser.id && l.status === "venta" && Number(l.salePrice||0) > 0;
   }).map(function(l) {
-    var pagos = (l.pagosAdicionales||[]).reduce(function(a,p){ return a+Number(p.monto||0); }, 0);
-    var cobrado = Number(l.pagoInicial||0) + pagos;
-    var saldo = Math.max(0, Number(l.salePrice||0) - cobrado);
+    var exp = l.exp||{};
+    var pagosReales = (exp.pagosHistorial||[]).filter(function(p){ return !p.programado; }).reduce(function(a,p){ return a+Number(p.monto||0); },0);
+    var cobrado = Number(exp.pagoInicial||l.pagoInicial||0) + pagosReales;
+    var saldo = Math.max(0, Number(exp.salePrice||l.salePrice||0) - cobrado);
     return Object.assign({}, l, { cobrado, saldo });
   }).filter(function(l) { return l.saldo > 0; })
     .sort(function(a,b) { return b.saldo - a.saldo; });
@@ -1593,7 +1613,13 @@ function VendedorView({ leads, users, currentUser, destCatalog, onUpdateLead, in
 // 
 // SUPERVISOR VIEW
 // 
-function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, onBulkReassign, initialLeadId }) {
+function matchVendedor(lead, user) {
+  if (!lead || !user) return false;
+  var vid = lead.vendedorId;
+  return vid===user.id || vid===user.dbId || vid===user.authId;
+}
+
+function SupervisorView({ leads, users, currentUser, vistaUserId, destCatalog, onUpdateLead, onBulkReassign, initialLeadId }) {
   const [tab,           setTab]           = useState("pipeline");
   const [selLead,       setSelLead]       = useState(null);
   useEffect(() => { if (initialLeadId && leads.length) { const f = leads.find(l => l.id === initialLeadId); if (f) setSelLead(f); } }, [initialLeadId, leads]);
@@ -1608,13 +1634,15 @@ function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, 
   const isAdmin   = currentUser.role === "admin" || currentUser.role === "director" || currentUser.role === "supervisor";
   const miEquipo  = isAdmin ? users : users.filter(u => u.supervisorId===currentUser.id);
   const teamIds   = miEquipo.map(u => u.id);
-  const teamLeads = isAdmin ? leads : leads.filter(l => teamIds.includes(l.vendedorId));
+  const allTeamLeads = isAdmin ? leads : leads.filter(function(l){ return miEquipo.some(function(u){ return matchVendedor(l,u); }); });
+  var vistaUser = vistaUserId ? users.find(function(u){ return u.id===vistaUserId; }) : null;
+  const teamLeads = vistaUser ? allTeamLeads.filter(function(l){ return matchVendedor(l,vistaUser); }) : allTeamLeads;
   const alertas   = teamLeads.filter(l => daysSince(l.ultimoContacto)>=ALERT_DAYS && !["venta","no_interesado"].includes(l.status) && !l.bloqueado);
 
-  const filtered = teamLeads.filter(l =>
-    (fVendedor==="all" || l.vendedorId===fVendedor) &&
-    (fStatus==="all" || l.status===fStatus)
-  );
+  const filtered = teamLeads.filter(function(l) {
+    var vendOk = fVendedor==="all" || (function(){ var fu=users.find(function(u){return u.id===fVendedor;}); return fu ? matchVendedor(l,fu) : l.vendedorId===fVendedor; })();
+    return vendOk && (fStatus==="all" || l.status===fStatus);
+  });
 
   const toggleSel      = id => setSelIds(p => p.includes(id)?p.filter(x=>x!==id):[...p,id]);
   const handleDragStart= (e,lead) => { setDragLead(lead); e.dataTransfer.effectAllowed="move"; };
@@ -1626,7 +1654,7 @@ function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, 
   const fmtUSD = n => "$"+Number(n).toLocaleString("en-US");
 
   const vendedorStats = miEquipo.map(v => {
-    const vl = teamLeads.filter(l=>l.vendedorId===v.id);
+    const vl = teamLeads.filter(l=>matchVendedor(l,v));
     const ventas = vl.filter(l=>l.status==="venta").length;
     const alV = vl.filter(l=>daysSince(l.ultimoContacto)>=ALERT_DAYS&&!["venta","no_interesado"].includes(l.status)&&!l.bloqueado).length;
     return { ...v, total:vl.length, ventas, alV, cierre:vl.length>0?(ventas/vl.length*100).toFixed(0):0 };
@@ -1660,15 +1688,22 @@ function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, 
       {tab==="ventas" && (() => {
         const ventas = teamLeads.filter(l=>l.status==="venta");
         const verifs = teamLeads.filter(l=>l.status==="verificacion");
-        const totalMonto = ventas.reduce((a,l)=>a+Number(l.salePrice||0),0);
+        const totalMonto = ventas.reduce((a,l)=>a+Number((l.exp||{}).salePrice||l.salePrice||0),0);
+        const totalCobrado = ventas.reduce(function(a,l){
+          var ex=l.exp||{};
+          var ini=Number(ex.pagoInicial||l.pagoInicial||0);
+          var abonos=(ex.pagosHistorial||[]).filter(function(p){return !p.programado;}).reduce(function(s,p){return s+Number(p.monto||0);},0);
+          return a+ini+abonos;
+        },0);
         return (
           <div>
             <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", marginBottom:"18px" }}>
               {[
-                { l:"Ventas",          v:ventas.length,                                                              c:"#1a7f3c" },
-                { l:"Monto total",     v:fmtUSD(totalMonto),                                                        c:"#925c0a" },
-                { l:"Ticket promedio", v:ventas.length?fmtUSD(Math.round(totalMonto/ventas.length)):"-",            c:"#1565c0" },
-                { l:"Verificacion",    v:verifs.length,                                                              c:"#1565c0" },
+                { l:"Ventas",            v:ventas.length,                                                              c:"#1a7f3c" },
+                { l:"Monto total",       v:fmtUSD(totalMonto),                                                        c:"#925c0a" },
+                { l:"Ingresos cobrados", v:fmtUSD(totalCobrado),                                                      c:"#1a7f3c" },
+                { l:"Ticket promedio",   v:ventas.length?fmtUSD(Math.round(totalMonto/ventas.length)):"-",            c:"#1565c0" },
+                { l:"Verificacion",      v:verifs.length,                                                              c:"#1565c0" },
               ].map(k=>(
                 <div key={k.l} style={{ flex:1, minWidth:"110px", padding:"14px 16px", borderRadius:"12px", background:`${k.c}09`, border:`1px solid ${k.c}20` }}>
                   <div style={{ fontSize:"9px", fontWeight:"700", color:k.c, textTransform:"uppercase", letterSpacing:"0.1em", opacity:0.8, marginBottom:"4px" }}>{k.l}</div>
@@ -1681,20 +1716,21 @@ function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, 
               : (
                 <div style={{ borderRadius:"12px", overflow:"hidden", border:"1px solid rgba(74,222,128,0.2)", marginBottom:"20px" }}>
                   <div style={{ display:"grid", gridTemplateColumns:"90px 1fr 1fr 90px 90px 1fr", background:"rgba(74,222,128,0.05)", borderBottom:"2px solid rgba(74,222,128,0.15)", padding:"8px 16px", gap:"8px" }}>
-                    {["Folio","Cliente","Vendedor","Total","Pago hoy","Destinos"].map((h,i)=>(
+                    {["Fecha","Cliente","Vendedor","Total","Pagado","Spot"].map((h,i)=>(
                       <div key={i} style={{ fontSize:"10px", fontWeight:"700", color:"#1a7f3c", textTransform:"uppercase", letterSpacing:"0.07em" }}>{h}</div>
                     ))}
                   </div>
                   {ventas.map((l,i)=>{
-                    const v=users.find(u=>u.id===l.vendedorId);
+                    const v=users.find(u=>u.dbId===l.vendedorId||u.id===l.vendedorId);
+                    const cobrado=(function(){var ex=l.exp||{};var ini=Number(ex.pagoInicial||l.pagoInicial||0);var ab=(ex.pagosHistorial||[]).filter(function(p){return !p.programado;}).reduce(function(s,p){return s+Number(p.monto||0);},0);return ini+ab;})();
                     return (
                       <div key={l.id} onClick={()=>setSelLead(l)} style={{ display:"grid", gridTemplateColumns:"90px 1fr 1fr 90px 90px 1fr", padding:"10px 16px", gap:"8px", borderBottom:"1px solid rgba(74,222,128,0.07)", background:i%2===0?"rgba(74,222,128,0.03)":"transparent", alignItems:"center", cursor:"pointer" }}>
-                        <div style={{ fontSize:"11px", color:"#9ca3af" }}>{l.folio}</div>
+                        <div style={{ fontSize:"11px", color:"#9ca3af" }}>{(l.fecha||l.createdAt||"").split("T")[0]}</div>
                         <div><div style={{ fontSize:"13px", fontWeight:"600", color:"#1a1f2e" }}>{l.nombre}</div><div style={{ fontSize:"11px", color:"#9ca3af" }}>{l.emisora}</div></div>
-                        <div style={{ fontSize:"12px", color:"#6b7280" }}>{v?.name}</div>
+                        <div style={{ fontSize:"12px", color:"#6b7280" }}>{v?.name||"--"}</div>
                         <div style={{ fontSize:"13px", fontWeight:"700", color:"#925c0a" }}>{fmtUSD(l.salePrice||0)}</div>
-                        <div style={{ fontSize:"12px", fontWeight:"700", color:"#1a7f3c" }}>{fmtUSD(l.pagoInicial||0)}</div>
-                        <div>{(l.destinos||[]).map((d,j)=>{const cat=DESTINOS_CATALOG.find(x=>x.id===d.destId);return <div key={j} style={{ fontSize:"10px", color:"#0ea5a0" }}>{cat?.icon} {cat?.nombre} {d.noches}n {d.tipo?.toUpperCase()}</div>;})}</div>
+                        <div style={{ fontSize:"12px", fontWeight:"700", color:"#1a7f3c" }}>{fmtUSD(cobrado)}</div>
+                        <div style={{ fontSize:"12px", color:"#0ea5a0" }}>{l.emisora||"--"}</div>
                       </div>
                     );
                   })}
@@ -1764,7 +1800,7 @@ function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, 
           <div style={{ fontSize:"12px", color:"#9ca3af", marginBottom:"14px" }}> Arrastra cualquier lead a la columna del vendedor para reasignarlo</div>
           <div style={{ display:"flex", gap:"14px", overflowX:"auto", paddingBottom:"16px" }}>
             {miEquipo.map(v=>{
-              const vl=teamLeads.filter(l=>l.vendedorId===v.id);
+              const vl=teamLeads.filter(l=>matchVendedor(l,v));
               const isOver=dragOverV===v.id;
               return (
                 <div key={v.id} style={{ minWidth:"240px", flex:1 }}
@@ -1921,6 +1957,7 @@ function dbToLead(r) {
     bloqueadoNota:       r.bloqueado_nota      || "",
     destinos:            r.destinos            || [],
     notas:               r.notas               || [],
+    exp:                 r.exp                 || {},
     fecha:               r.fecha               || TODAY,
     tarjetaNumero:       r.tarjeta_numero      || null,
     tarjetaNombre:       r.tarjeta_nombre      || null,
@@ -2390,7 +2427,7 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId }) {
       </div>
 
       {isSup
-        ? <SupervisorView leads={leads} users={usersParaVista} currentUser={activeUser} destCatalog={destCatalog} onUpdateLead={handleUpdateLead} onBulkReassign={handleBulkReassign} initialLeadId={initialLeadId} />
+        ? <SupervisorView leads={leads} users={usersParaVista} currentUser={mappedUser} vistaUserId={vistaUserId} destCatalog={destCatalog} onUpdateLead={handleUpdateLead} onBulkReassign={handleBulkReassign} initialLeadId={initialLeadId} />
         : <VendedorView   leads={leads} users={usersParaVista} currentUser={mappedUser}  destCatalog={destCatalog} onUpdateLead={handleUpdateLead} initialLeadId={initialLeadId} />
       }
 
