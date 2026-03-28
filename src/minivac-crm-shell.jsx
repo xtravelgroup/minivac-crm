@@ -128,7 +128,7 @@ var MODULOS = [
   { id: "comms",        label: "Comunicaciones", icon: "cs",           section: "Principal", roles: ["admin","director","supervisor","vendedor"] },
   { id: "seller",       label: "Ventas",     icon: "seller",       section: "Principal", roles: ["admin","director","supervisor","vendedor","verificador"] },
   { id: "verificacion", label: "Verificacion",   icon: "verificacion", section: "Principal", roles: ["admin","director","supervisor","verificador","cs","cs_gerente"] },
-  { id: "cs",           label: "Membresias",     icon: "cs",           section: "Operacion", roles: ["admin","director","cs","cs_gerente"] },
+  { id: "cs",           label: "Membresias",     icon: "cs",           section: "Operacion", roles: ["admin","director","cs","cs_gerente","vlo","agente_reservas"] },
   { id: "welcome",     label: "Welcome Calls",  icon: "cs",           section: "Operacion", roles: ["admin","director","cs","cs_gerente"] },
   { id: "retencion",  label: "Retencion",      icon: "cs",           section: "Operacion", roles: ["admin","director","cs","cs_gerente"] },
   { id: "reservas",     label: "Reservaciones",  icon: "reservas",     section: "Operacion", roles: ["admin","director","cs","cs_gerente","vlo","agente_reservas"] },
