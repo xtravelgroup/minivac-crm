@@ -118,7 +118,7 @@ serve(async (req) => {
       if (!lead && phoneSearch.length >= 7) {
         const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
         const newLead = {
-          nombre: "Llamada entrante",
+          nombre: "",
           apellido: "",
           tel: from,
           whatsapp: from,

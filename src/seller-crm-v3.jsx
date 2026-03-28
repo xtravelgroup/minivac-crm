@@ -1031,13 +1031,13 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
   );
 }
 // 
-function NuevoLeadModal({ currentUser, users, onClose, onSave }) {
+function NuevoLeadModal({ currentUser, users, onClose, onSave, initialTel }) {
   const isSup      = currentUser.role === "supervisor";
   const isVerif    = currentUser.role === "verificador";
   const canAssign  = isSup || isVerif;
   const vendedores = (users||[]).filter(u => u.role==="vendedor");
   const [nombre,   setNombre]   = useState("");
-  const [tel,      setTel]      = useState("");
+  const [tel,      setTel]      = useState(initialTel || "");
   const [spotId,   setSpotId]   = useState("");
   const [emisora,  setEmisora]  = useState("");
   const [nota,     setNota]     = useState("");
@@ -2149,12 +2149,13 @@ function ZohoCardCapture({ lead, onSaved }) {
 // 
 // ROOT
 // 
-export default function SellerCRMv3({ currentUser: shellUser, initialLeadId }) {
+export default function SellerCRMv3({ currentUser: shellUser, initialLeadId, newCallPhone }) {
   const [leads,        setLeads]      = useState([]);
   const [sbUsers,      setSbUsers]    = useState([]);
   const [loading,      setLoading]    = useState(true);
   const [toast,        setToast]      = useState(null);
   const [showNuevo,    setShowNuevo]  = useState(false);
+  const [prefillTel,   setPrefillTel] = useState("");
   const [vistaUserId,  setVistaUserId]= useState(null);
   const [destCatalog,  setDestCatalog]= useState([]);
 
@@ -2162,6 +2163,14 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId }) {
   var SUP_ROLES = ["admin", "director", "supervisor"];
   var isSup     = SUP_ROLES.includes(rolShell);
   var myAuthId  = shellUser ? (shellUser.auth_id || shellUser.id) : null;
+
+  // Auto-abrir formulario nuevo lead cuando entra llamada de numero desconocido
+  useEffect(function () {
+    if (newCallPhone && !showNuevo) {
+      setPrefillTel(newCallPhone);
+      setShowNuevo(true);
+    }
+  }, [newCallPhone]);
 
   // Auto-abrir lead si viene desde Comunicaciones
   const initialLeadIdRef = useRef(initialLeadId);
@@ -2433,8 +2442,9 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId }) {
 
       {showNuevo && (
         <NuevoLeadModal currentUser={isSup ? activeUser : mappedUser} users={usersParaVista}
-          onClose={function(){ setShowNuevo(false); }}
-          onSave={function(l){ handleAddLead(l); setShowNuevo(false); }} />
+          initialTel={prefillTel}
+          onClose={function(){ setShowNuevo(false); setPrefillTel(""); }}
+          onSave={function(l){ handleAddLead(l); setShowNuevo(false); setPrefillTel(""); }} />
       )}
 
       {toast && (

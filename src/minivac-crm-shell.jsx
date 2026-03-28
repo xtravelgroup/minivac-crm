@@ -517,6 +517,7 @@ export default function MinivacShell() {
   const [verifLeadId, setVerifLeadId] = useState(null);
   const [chatAlertas, limpiarAlertas] = useChatAlertas(user);
   const [agentStatus, setAgentStatus] = useState("offline");
+  const [newCallPhone, setNewCallPhone] = useState("");
   const CALL_ROLES = ["vendedor", "supervisor", "admin", "director", "especialista_radio", "cs", "cs_gerente", "vlo", "agente_reservas"];
   const canReceiveCalls = user && CALL_ROLES.includes(user.rol);
   const twilioEnabled = canReceiveCalls && (agentStatus === "available" || agentStatus === "on_call" || agentStatus === "paused");
@@ -621,7 +622,25 @@ export default function MinivacShell() {
         incomingCall={twilio.incomingCall}
         activeCall={twilio.activeCall}
         callDuration={twilio.callDuration}
-        onAccept={twilio.acceptCall}
+        onAccept={function () {
+          twilio.acceptCall();
+          // Check if caller is a new lead — open form with pre-filled phone
+          var params = twilio.incomingCall ? twilio.incomingCall.parameters || {} : {};
+          var callerNum = params.From || "";
+          if (callerNum && !callerNum.startsWith("client:")) {
+            var cleanNum = callerNum.replace(/[^\d+]/g, "");
+            var searchNum = cleanNum.replace("+", "").slice(-10);
+            fetch("https://gsvnvahrjgswwejnuiyn.supabase.co/rest/v1/leads?tel=ilike.*" + searchNum + "&select=id,nombre&limit=1", {
+              headers: { apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAxNTA0MiwiZXhwIjoyMDg4NTkxMDQyfQ.-P8KH6yhs6AJ1lUwBrwUpcoZV3KGvM7fDlFM3RsYKxw",
+                Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAxNTA0MiwiZXhwIjoyMDg4NTkxMDQyfQ.-P8KH6yhs6AJ1lUwBrwUpcoZV3KGvM7fDlFM3RsYKxw" }
+            }).then(function (r) { return r.json(); }).then(function (data) {
+              if (Array.isArray(data) && data.length > 0 && data[0].nombre && data[0].nombre.trim() !== "") return;
+              // New or unnamed lead — open seller CRM with form
+              setNewCallPhone(callerNum);
+              setActivo("seller");
+            });
+          }
+        }}
         onReject={twilio.rejectCall}
         onHangUp={twilio.hangUp}
         onMute={twilio.toggleMute}
@@ -640,7 +659,7 @@ export default function MinivacShell() {
             {activo === "radio"        && <RadioModule isSupervisor={["admin","director","supervisor","especialista_radio"].includes(user.rol)} isReadOnly={user.rol === "contador"} />}
             {activo === "kb"           && <KnowledgeBase currentUser={user} />}
             {activo === "comms"        && <CommunicationsHub currentUser={user} destCatalog={[]} onVerLead={(lead) => { initialLeadIdRef.current = lead.id; setActivo("seller"); }} />}
-            {activo === "seller"       && <SellerCRM currentUser={user} initialLeadId={initialLeadIdRef.current} />}
+            {activo === "seller"       && <SellerCRM currentUser={user} initialLeadId={initialLeadIdRef.current} newCallPhone={newCallPhone} />}
             {activo === "verificacion" && <VerificationModule currentUser={user} initialLeadId={verifLeadId} />}
             {activo === "reservas"     && <Reservaciones currentUser={user} />}
             {activo === "cs"           && <CSReservas currentUser={user} />}
