@@ -180,7 +180,8 @@ serve(async (req) => {
     });
 
     // Dial the agent — if no answer, action URL will loop back
-    const statusCallback = `${STATUS_URL}?callLogId=${callLogId}`;
+    // Pass agentId so voice-status can log the attempt
+    const statusCallback = `${STATUS_URL}?callLogId=${callLogId}&amp;agentId=${agent.usuario_id}`;
 
     // Agent available — connect immediately, no ring tone or welcome message
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>

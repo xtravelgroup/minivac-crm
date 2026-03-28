@@ -348,6 +348,129 @@ function ColaVivaTab(props) {
   );
 }
 
+// ─── CALL DETAIL MODAL ──────────────────────────────────────
+function CallDetailModal(props) {
+  var call = props.call;
+  var usuarios = props.usuarios;
+  var onClose = props.onClose;
+  if (!call) return null;
+
+  function getAgentName(id) {
+    var u = usuarios.find(function (x) { return x.id === id; });
+    return u ? u.nombre : id || "--";
+  }
+
+  // Parse routing history from notes
+  var history = [];
+  try {
+    if (call.notes) {
+      var parsed = JSON.parse(call.notes);
+      if (Array.isArray(parsed)) history = parsed;
+    }
+  } catch (_) {}
+
+  var statusLabel = function (s) {
+    if (s === "completed") return "Completada";
+    if (s === "no-answer") return "Perdida";
+    if (s === "canceled") return "Cancelada";
+    if (s === "busy") return "Ocupado";
+    if (s === "failed") return "Fallida";
+    if (s === "ringing") return "Timbrando";
+    if (s === "in-progress") return "En curso";
+    return s || "--";
+  };
+
+  var resultDot = function (r) {
+    if (r === "answered") return C.greenDot;
+    return C.redDot;
+  };
+  var resultLabel = function (r) {
+    if (r === "answered") return "Contestó";
+    if (r === "no-answer") return "No contestó";
+    if (r === "busy") return "Ocupado";
+    return r || "Sin respuesta";
+  };
+
+  var overlay = {
+    position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.4)", zIndex: 9999,
+    display: "flex", alignItems: "center", justifyContent: "center",
+  };
+  var modal = {
+    background: "#fff", borderRadius: 12, padding: 28, width: "90%", maxWidth: 520, maxHeight: "80vh", overflowY: "auto",
+    boxShadow: "0 20px 60px rgba(0,0,0,0.2)", fontFamily: C.font,
+  };
+
+  return (
+    <div style={overlay} onClick={onClose}>
+      <div style={modal} onClick={function (e) { e.stopPropagation(); }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: C.t1 }}>Detalle de Llamada</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: C.t3 }}>✕</button>
+        </div>
+
+        {/* Call info grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 20px", marginBottom: 24 }}>
+          <div>
+            <div style={{ fontSize: 11, color: C.t4, fontWeight: 600, marginBottom: 2 }}>ESTADO</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: call.status === "completed" ? C.green : call.status === "no-answer" ? C.red : C.t1 }}>{statusLabel(call.status)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: C.t4, fontWeight: 600, marginBottom: 2 }}>DURACIÓN</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.t1 }}>{fmtDur(call.duration_secs)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: C.t4, fontWeight: 600, marginBottom: 2 }}>DE</div>
+            <div style={{ fontSize: 14, color: C.t1 }}>{call.from_number || "--"}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: C.t4, fontWeight: 600, marginBottom: 2 }}>PARA</div>
+            <div style={{ fontSize: 14, color: C.t1 }}>{call.to_number || "--"}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: C.t4, fontWeight: 600, marginBottom: 2 }}>INICIO</div>
+            <div style={{ fontSize: 14, color: C.t1 }}>{call.started_at ? new Date(call.started_at).toLocaleString() : "--"}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: C.t4, fontWeight: 600, marginBottom: 2 }}>AGENTE FINAL</div>
+            <div style={{ fontSize: 14, color: C.t1 }}>{getAgentName(call.agent_id)}</div>
+          </div>
+        </div>
+
+        {/* Routing history timeline */}
+        {history.length > 0 && (
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.t1, marginBottom: 12 }}>Historial de Enrutamiento ({history.length} intento{history.length > 1 ? "s" : ""})</div>
+            <div style={{ position: "relative", paddingLeft: 24 }}>
+              {/* Vertical line */}
+              <div style={{ position: "absolute", left: 8, top: 6, bottom: 6, width: 2, background: C.border }} />
+              {history.map(function (h, i) {
+                return (
+                  <div key={i} style={{ position: "relative", marginBottom: 16 }}>
+                    {/* Dot */}
+                    <div style={{ position: "absolute", left: -20, top: 4, width: 12, height: 12, borderRadius: "50%", background: resultDot(h.result), border: "2px solid #fff", boxShadow: "0 0 0 1px " + C.border }} />
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.t1 }}>
+                      {getAgentName(h.agent_id)}
+                      <span style={{ fontWeight: 400, color: C.t3, marginLeft: 8 }}>{resultLabel(h.result)}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: C.t4, marginTop: 2 }}>
+                      {h.at ? new Date(h.at).toLocaleTimeString() : ""}
+                      {h.duration > 0 ? " · " + fmtDur(h.duration) : ""}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {history.length === 0 && (
+          <div style={{ fontSize: 13, color: C.t4, fontStyle: "italic" }}>Sin historial de enrutamiento disponible</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── REPORTES TAB ────────────────────────────────────────────
 function ReportesTab(props) {
   var callLogs = props.callLogs;
@@ -356,11 +479,33 @@ function ReportesTab(props) {
   var setFilters = props.setFilters;
   var loading = props.loading;
   var isAdmin = props.isAdmin;
+  var [selectedCall, setSelectedCall] = useState(null);
 
   function getAgentName(id) {
     var u = usuarios.find(function (x) { return x.id === id; });
     return u ? u.nombre : "--";
   }
+
+  function getAttempts(c) {
+    try {
+      if (c.notes) {
+        var parsed = JSON.parse(c.notes);
+        if (Array.isArray(parsed)) return parsed.length;
+      }
+    } catch (_) {}
+    return 0;
+  }
+
+  var statusLabel = function (s) {
+    if (s === "completed") return "Completada";
+    if (s === "no-answer") return "Perdida";
+    if (s === "canceled") return "Cancelada";
+    if (s === "busy") return "Ocupado";
+    if (s === "failed") return "Fallida";
+    if (s === "ringing") return "Timbrando";
+    if (s === "in-progress") return "En curso";
+    return s || "--";
+  };
 
   // KPIs
   var total = callLogs.length;
@@ -382,7 +527,7 @@ function ReportesTab(props) {
   });
 
   function exportCSV() {
-    var header = "Fecha,Hora,Direccion,De,Para,Agente,Estado,Duracion(s)\n";
+    var header = "Fecha,Hora,Direccion,De,Para,Agente,Estado,Duracion(s),Intentos\n";
     var rows = callLogs.map(function (c) {
       var d = c.started_at ? new Date(c.started_at) : null;
       return [
@@ -392,8 +537,9 @@ function ReportesTab(props) {
         c.from_number || "",
         c.to_number || "",
         getAgentName(c.agent_id),
-        c.status || "",
+        statusLabel(c.status),
         c.duration_secs || 0,
+        getAttempts(c),
       ].join(",");
     }).join("\n");
     var blob = new Blob([header + rows], { type: "text/csv" });
@@ -496,30 +642,37 @@ function ReportesTab(props) {
               <th style={thStyle}>Para</th>
               <th style={thStyle}>Agente</th>
               <th style={thStyle}>Estado</th>
+              <th style={thStyle}>Intentos</th>
               <th style={thStyle}>Duracion</th>
             </tr>
           </thead>
           <tbody>
             {callLogs.length === 0 && !loading && (
-              <tr><td colSpan={7} style={{ padding: 30, textAlign: "center", color: C.t4, fontSize: 13 }}>Sin registros</td></tr>
+              <tr><td colSpan={8} style={{ padding: 30, textAlign: "center", color: C.t4, fontSize: 13 }}>Sin registros</td></tr>
             )}
             {callLogs.map(function (c) {
               var sc = statusColor(c.status);
+              var attempts = getAttempts(c);
               return (
-                <tr key={c.id}>
+                <tr key={c.id} onClick={function () { setSelectedCall(c); }} style={{ cursor: "pointer" }}
+                  onMouseEnter={function (e) { e.currentTarget.style.background = "#f8f9fb"; }}
+                  onMouseLeave={function (e) { e.currentTarget.style.background = ""; }}>
                   <td style={tdStyle}>
                     <div>{c.started_at ? new Date(c.started_at).toLocaleDateString() : "--"}</div>
                     <div style={{ fontSize: 11, color: C.t4 }}>{fmtTime(c.started_at)}</div>
                   </td>
                   <td style={tdStyle}>
-                    <span style={{ fontSize: 16 }}>{c.direction === "inbound" ? "📞" : "📱"}</span>
+                    <span style={{ fontSize: 16 }}>{c.direction === "inbound" ? "\u{1F4DE}" : "\u{1F4F1}"}</span>
                     <span style={{ fontSize: 11, color: C.t3, marginLeft: 4 }}>{c.direction === "inbound" ? "Entrada" : "Salida"}</span>
                   </td>
                   <td style={tdStyle}>{c.from_number || "--"}</td>
                   <td style={tdStyle}>{c.to_number || "--"}</td>
                   <td style={tdStyle}>{getAgentName(c.agent_id)}</td>
                   <td style={tdStyle}>
-                    <span style={{ padding: "3px 8px", borderRadius: 10, background: sc.bg, color: sc.color, fontSize: 11, fontWeight: 600 }}>{c.status}</span>
+                    <span style={{ padding: "3px 8px", borderRadius: 10, background: sc.bg, color: sc.color, fontSize: 11, fontWeight: 600 }}>{statusLabel(c.status)}</span>
+                  </td>
+                  <td style={tdStyle}>
+                    <span style={{ fontWeight: 600, color: attempts > 1 ? C.amber : C.t2 }}>{attempts || "--"}</span>
                   </td>
                   <td style={tdStyle}>{fmtDur(c.duration_secs)}</td>
                 </tr>
@@ -528,6 +681,171 @@ function ReportesTab(props) {
           </tbody>
         </table>
       </div>
+
+      {/* Call detail modal */}
+      {selectedCall && <CallDetailModal call={selectedCall} usuarios={usuarios} onClose={function () { setSelectedCall(null); }} />}
+    </div>
+  );
+}
+
+// ─── PERDIDAS TAB ───────────────────────────────────────────
+function PerdidasTab(props) {
+  var usuarios = props.usuarios;
+  var [missedCalls, setMissedCalls] = useState([]);
+  var [loading, setLoading] = useState(true);
+  var [selectedCall, setSelectedCall] = useState(null);
+  var [dateRange, setDateRange] = useState({ desde: daysAgo(30), hasta: today() });
+
+  useEffect(function () {
+    setLoading(true);
+    var url = SB_URL + "/rest/v1/call_log?status=eq.no-answer&direction=eq.inbound&order=started_at.desc&limit=500";
+    if (dateRange.desde) url += "&started_at=gte." + dateRange.desde + "T00:00:00";
+    if (dateRange.hasta) url += "&started_at=lte." + dateRange.hasta + "T23:59:59";
+
+    fetch(url, { headers: HDR })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!Array.isArray(data)) { setMissedCalls([]); setLoading(false); return; }
+
+        // For each missed call, check if the same number called back and was answered
+        var allNumbers = data.map(function (c) { return c.from_number; }).filter(Boolean);
+        var uniqueNumbers = allNumbers.filter(function (n, i) { return allNumbers.indexOf(n) === i; });
+
+        if (uniqueNumbers.length === 0) {
+          setMissedCalls(data.map(function (c) { return Object.assign({}, c, { _resolved: false }); }));
+          setLoading(false);
+          return;
+        }
+
+        // Fetch completed inbound calls from these numbers
+        var numbersParam = uniqueNumbers.map(function (n) { return '"' + n + '"'; }).join(",");
+        fetch(SB_URL + "/rest/v1/call_log?status=eq.completed&direction=eq.inbound&from_number=in.(" + numbersParam + ")&duration_secs=gt.0&order=started_at.desc&limit=1000", { headers: HDR })
+          .then(function (r) { return r.json(); })
+          .then(function (completedData) {
+            var resolvedNumbers = {};
+            if (Array.isArray(completedData)) {
+              completedData.forEach(function (c) {
+                if (c.from_number) resolvedNumbers[c.from_number] = true;
+              });
+            }
+            var enriched = data.map(function (c) {
+              return Object.assign({}, c, { _resolved: !!resolvedNumbers[c.from_number] });
+            });
+            setMissedCalls(enriched);
+            setLoading(false);
+          });
+      })
+      .catch(function () { setLoading(false); });
+  }, [dateRange]);
+
+  function getAgentName(id) {
+    var u = usuarios.find(function (x) { return x.id === id; });
+    return u ? u.nombre : "--";
+  }
+
+  function getAttempts(c) {
+    try {
+      if (c.notes) {
+        var parsed = JSON.parse(c.notes);
+        if (Array.isArray(parsed)) return parsed.length;
+      }
+    } catch (_) {}
+    return 0;
+  }
+
+  var unresolved = missedCalls.filter(function (c) { return !c._resolved; });
+  var resolved = missedCalls.filter(function (c) { return c._resolved; });
+
+  var thStyle = { padding: "8px 10px", fontSize: 11, fontWeight: 700, color: C.t4, textTransform: "uppercase", letterSpacing: "0.04em", textAlign: "left", borderBottom: "2px solid " + C.border };
+  var tdStyle = { padding: "8px 10px", fontSize: 12, color: C.t1, borderBottom: "1px solid " + C.borderL };
+
+  function renderTable(calls, emptyMsg) {
+    return (
+      <div style={{ background: C.surface, border: "1px solid " + C.border, borderRadius: C.r, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: "#f9fafb" }}>
+              <th style={thStyle}>Fecha/Hora</th>
+              <th style={thStyle}>Numero</th>
+              <th style={thStyle}>Intentos</th>
+              <th style={thStyle}>Agentes intentados</th>
+            </tr>
+          </thead>
+          <tbody>
+            {calls.length === 0 && (
+              <tr><td colSpan={4} style={{ padding: 20, textAlign: "center", color: C.t4, fontSize: 13 }}>{emptyMsg}</td></tr>
+            )}
+            {calls.map(function (c) {
+              var attempts = getAttempts(c);
+              return (
+                <tr key={c.id} onClick={function () { setSelectedCall(c); }} style={{ cursor: "pointer" }}
+                  onMouseEnter={function (e) { e.currentTarget.style.background = "#f8f9fb"; }}
+                  onMouseLeave={function (e) { e.currentTarget.style.background = ""; }}>
+                  <td style={tdStyle}>
+                    <div>{c.started_at ? new Date(c.started_at).toLocaleDateString() : "--"}</div>
+                    <div style={{ fontSize: 11, color: C.t4 }}>{fmtTime(c.started_at)}</div>
+                  </td>
+                  <td style={tdStyle}><span style={{ fontWeight: 600 }}>{c.from_number || "--"}</span></td>
+                  <td style={tdStyle}><span style={{ fontWeight: 600, color: C.amber }}>{attempts || "--"}</span></td>
+                  <td style={tdStyle}>{getAgentName(c.agent_id)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* KPI Cards */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+        <StatCard label="Total perdidas" value={missedCalls.length} color={C.red} />
+        <StatCard label="Sin resolver" value={unresolved.length} color={C.red} sub="Cliente no volvio a llamar" />
+        <StatCard label="Resueltas" value={resolved.length} color={C.green} sub="Cliente volvio y fue atendido" />
+      </div>
+
+      {/* Date filters */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 20, alignItems: "flex-end" }}>
+        <div>
+          <label style={{ fontSize: 11, color: C.t4, display: "block", marginBottom: 3 }}>Desde</label>
+          <input type="date" value={dateRange.desde} onChange={function (e) { setDateRange(Object.assign({}, dateRange, { desde: e.target.value })); }}
+            style={{ padding: "6px 10px", border: "1px solid " + C.border, borderRadius: C.r, fontSize: 13, fontFamily: C.font }} />
+        </div>
+        <div>
+          <label style={{ fontSize: 11, color: C.t4, display: "block", marginBottom: 3 }}>Hasta</label>
+          <input type="date" value={dateRange.hasta} onChange={function (e) { setDateRange(Object.assign({}, dateRange, { hasta: e.target.value })); }}
+            style={{ padding: "6px 10px", border: "1px solid " + C.border, borderRadius: C.r, fontSize: 13, fontFamily: C.font }} />
+        </div>
+      </div>
+
+      {loading && <div style={{ padding: 20, textAlign: "center", color: C.t4 }}>Cargando...</div>}
+
+      {!loading && (
+        <div>
+          {/* Unresolved */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.red, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.redDot }} />
+              Sin resolver ({unresolved.length})
+            </div>
+            {renderTable(unresolved, "No hay llamadas perdidas sin resolver")}
+          </div>
+
+          {/* Resolved */}
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.green, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.greenDot }} />
+              Resueltas ({resolved.length})
+            </div>
+            {renderTable(resolved, "No hay llamadas perdidas resueltas")}
+          </div>
+        </div>
+      )}
+
+      {/* Call detail modal */}
+      {selectedCall && <CallDetailModal call={selectedCall} usuarios={usuarios} onClose={function () { setSelectedCall(null); }} />}
     </div>
   );
 }
@@ -647,6 +965,7 @@ export default function TelephonyManagement(props) {
         { id: "agentes", label: "Agentes en Cola" },
         { id: "cola", label: "Cola en Vivo" },
         { id: "reportes", label: "Reportes" },
+        { id: "perdidas", label: "Perdidas" },
       ]
     : [
         { id: "reportes", label: "Mis Llamadas" },
@@ -708,6 +1027,12 @@ export default function TelephonyManagement(props) {
           setFilters={setFilters}
           loading={loadingLogs}
           isAdmin={isAdmin}
+        />
+      )}
+
+      {tab === "perdidas" && isAdmin && (
+        <PerdidasTab
+          usuarios={usuarios}
         />
       )}
     </div>

@@ -63,14 +63,22 @@ serve(async (req) => {
       updates.ended_at = new Date().toISOString();
       updates.duration_secs = callDuration;
 
-      // Reset agent status back to available
+      // Check if call was ever answered — if not, mark as missed (no-answer)
       const logRes = await fetch(`${SB_URL}/rest/v1/call_log?twilio_call_sid=eq.${sid}&limit=1`, { headers: HDR });
       const logData = await logRes.json();
-      if (Array.isArray(logData) && logData.length > 0 && logData[0].agent_id) {
-        await fetch(`${SB_URL}/rest/v1/agent_status?usuario_id=eq.${logData[0].agent_id}`, {
-          method: "PATCH", headers: HDR,
-          body: JSON.stringify({ status: "available", updated_at: new Date().toISOString() }),
-        });
+      if (Array.isArray(logData) && logData.length > 0) {
+        const log = logData[0];
+        // If never answered (no answered_at), this is a missed/abandoned call
+        if (!log.answered_at && log.status !== "completed") {
+          updates.status = "no-answer";
+        }
+        // Reset agent status back to available
+        if (log.agent_id) {
+          await fetch(`${SB_URL}/rest/v1/agent_status?usuario_id=eq.${log.agent_id}`, {
+            method: "PATCH", headers: HDR,
+            body: JSON.stringify({ status: "available", updated_at: new Date().toISOString(), last_heartbeat: new Date().toISOString() }),
+          });
+        }
       }
 
       // Remove ACD queue entry — call is done
