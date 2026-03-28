@@ -2402,48 +2402,86 @@ export default function VerificationModule({ currentUser }) {
                 </button>
               </div>
 
-              {tabActivo==="cobranza" && (
-                <div>
-                  <div style={{ fontSize:"13px", color:"#6b7280", marginBottom:"16px" }}>Ventas con saldo pendiente — ordenadas por fecha de pago programada</div>
-                  {colCobranzaPend.length===0 && <div style={{ textAlign:"center", padding:"40px", color:"#9ca3af", fontSize:"14px" }}>Sin cobros pendientes</div>}
-                  {colCobranzaPend
-                    .slice()
-                    .sort(function(a,b){
-                      var fa = (a.exp&&a.exp.pagosHistorial||[]).find(function(p){ return !p.cobrado; });
-                      var fb = (b.exp&&b.exp.pagosHistorial||[]).find(function(p){ return !p.cobrado; });
-                      var da = fa&&fa.fecha ? fa.fecha : "9999";
-                      var db = fb&&fb.fecha ? fb.fecha : "9999";
-                      return da.localeCompare(db);
-                    })
-                    .map(function(l){
-                      var exp = l.exp||{};
-                      var saldo = getSaldo(l);
-                      var proximoPago = (exp.pagosHistorial||[]).find(function(p){ return !p.cobrado&&p.fecha; });
-                      return (
-                        <div key={l.id} style={{ background:"#fff", border:"1px solid #e3e6ea", borderRadius:"12px", padding:"14px 18px", marginBottom:"10px", display:"flex", alignItems:"center", gap:"16px", cursor:"pointer" }}
-                          onClick={function(){ setDetail(l.id); setTabActivo("pipeline"); }}>
-                          <div style={{ flex:1 }}>
-                            <div style={{ fontSize:"14px", fontWeight:"700", color:"#1a1f2e" }}>{exp.tFirstName} {exp.tLastName}</div>
-                            <div style={{ fontSize:"11px", color:"#9ca3af", marginTop:"2px" }}>{l.phone} · V: {l.sellerName||"--"} · VF: {l.verificadorNombre||"--"}</div>
-                          </div>
-                          <div style={{ textAlign:"center" }}>
-                            <div style={{ fontSize:"10px", color:"#9ca3af", textTransform:"uppercase", fontWeight:700 }}>Saldo</div>
-                            <div style={{ fontSize:"16px", fontWeight:"800", color:"#925c0a" }}>{fmtUSD(saldo)}</div>
-                          </div>
-                          {proximoPago && (
-                            <div style={{ textAlign:"center", background:"#fffbe0", border:"1px solid rgba(251,191,36,0.4)", borderRadius:"8px", padding:"6px 12px" }}>
-                              <div style={{ fontSize:"10px", color:"#925c0a", fontWeight:700, textTransform:"uppercase" }}>Próx. pago</div>
-                              <div style={{ fontSize:"13px", fontWeight:"700", color:"#925c0a" }}>{new Date(proximoPago.fecha+"T12:00:00").toLocaleDateString("es-MX",{day:"2-digit",month:"short"})}</div>
-                              <div style={{ fontSize:"12px", color:"#925c0a" }}>{fmtUSD(proximoPago.monto)}</div>
-                            </div>
-                          )}
-                          <div style={{ fontSize:"11px", color:"#1565c0", fontWeight:600 }}>Ver →</div>
+              {tabActivo==="cobranza" && (function(){
+                var hoyStr = new Date().toISOString().slice(0,10);
+                var hoyDate = new Date(hoyStr+"T00:00:00");
+                var diaSemana = hoyDate.getDay();
+                var inicioSemana = new Date(hoyDate); inicioSemana.setDate(hoyDate.getDate() - (diaSemana===0?6:diaSemana-1));
+                var finSemana = new Date(inicioSemana); finSemana.setDate(inicioSemana.getDate()+6);
+                var inicioSemStr = inicioSemana.toISOString().slice(0,10);
+                var finSemStr = finSemana.toISOString().slice(0,10);
+
+                function getProxFecha(l){ var pp=(l.exp&&l.exp.pagosHistorial||[]).find(function(p){ return p.programado&&!p.cobrado&&p.fecha; }); return pp?pp.fecha:null; }
+
+                var grupoHoy=[]; var grupoSemana=[]; var grupoVencidas=[]; var grupoFuturo=[];
+                colCobranzaPend.forEach(function(l){
+                  var f = getProxFecha(l);
+                  if(!f){ grupoFuturo.push(l); return; }
+                  if(f===hoyStr){ grupoHoy.push(l); }
+                  else if(f<hoyStr){ grupoVencidas.push(l); }
+                  else if(f>=inicioSemStr && f<=finSemStr){ grupoSemana.push(l); }
+                  else { grupoFuturo.push(l); }
+                });
+
+                function sortByFecha(arr){ return arr.slice().sort(function(a,b){ var da=getProxFecha(a)||"9999"; var db=getProxFecha(b)||"9999"; return da.localeCompare(db); }); }
+                grupoHoy=sortByFecha(grupoHoy); grupoSemana=sortByFecha(grupoSemana); grupoVencidas=sortByFecha(grupoVencidas); grupoFuturo=sortByFecha(grupoFuturo);
+
+                function renderCard(l){
+                  var exp=l.exp||{}; var saldo=getSaldo(l);
+                  var proximoPago=(exp.pagosHistorial||[]).find(function(p){ return p.programado&&!p.cobrado&&p.fecha; });
+                  var fechaStr=proximoPago?proximoPago.fecha:null;
+                  var esVencida=fechaStr&&fechaStr<hoyStr;
+                  var esHoy=fechaStr&&fechaStr===hoyStr;
+                  var pillBg=esVencida?"#fef2f2":esHoy?"#ecfdf5":"#fffbe0";
+                  var pillBd=esVencida?"rgba(185,28,28,0.3)":esHoy?"rgba(22,163,74,0.3)":"rgba(251,191,36,0.4)";
+                  var pillColor=esVencida?"#b91c1c":esHoy?"#16a34a":"#925c0a";
+                  return (
+                    <div key={l.id} style={{ background:"#fff", border:"1px solid "+(esVencida?"#fca5a5":"#e3e6ea"), borderRadius:"12px", padding:"14px 18px", marginBottom:"10px", display:"flex", alignItems:"center", gap:"16px", cursor:"pointer" }}
+                      onClick={function(){ setDetail(l.id); setTabActivo("pipeline"); }}>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:"14px", fontWeight:"700", color:"#1a1f2e" }}>{exp.tFirstName} {exp.tLastName}</div>
+                        <div style={{ fontSize:"11px", color:"#9ca3af", marginTop:"2px" }}>{l.phone} · V: {l.sellerName||"--"} · VF: {l.verificadorNombre||"--"}</div>
+                      </div>
+                      <div style={{ textAlign:"center" }}>
+                        <div style={{ fontSize:"10px", color:"#9ca3af", textTransform:"uppercase", fontWeight:700 }}>Saldo</div>
+                        <div style={{ fontSize:"16px", fontWeight:"800", color:"#925c0a" }}>{fmtUSD(saldo)}</div>
+                      </div>
+                      {proximoPago && (
+                        <div style={{ textAlign:"center", background:pillBg, border:"1px solid "+pillBd, borderRadius:"8px", padding:"6px 12px" }}>
+                          <div style={{ fontSize:"10px", color:pillColor, fontWeight:700, textTransform:"uppercase" }}>{esVencida?"Vencida":esHoy?"Hoy":"Próx. pago"}</div>
+                          <div style={{ fontSize:"13px", fontWeight:"700", color:pillColor }}>{new Date(proximoPago.fecha+"T12:00:00").toLocaleDateString("es-MX",{day:"2-digit",month:"short"})}</div>
+                          <div style={{ fontSize:"12px", color:pillColor }}>{fmtUSD(proximoPago.monto)}</div>
                         </div>
-                      );
-                    })
-                  }
-                </div>
-              )}
+                      )}
+                      <div style={{ fontSize:"11px", color:"#1565c0", fontWeight:600 }}>Ver →</div>
+                    </div>
+                  );
+                }
+
+                function renderSeccion(titulo, leads, color, icono){
+                  if(leads.length===0) return null;
+                  return (
+                    <div style={{ marginBottom:"24px" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"10px", paddingBottom:"8px", borderBottom:"2px solid "+color }}>
+                        <span style={{ fontSize:"16px" }}>{icono}</span>
+                        <span style={{ fontSize:"13px", fontWeight:"700", color:color, textTransform:"uppercase", letterSpacing:"0.05em" }}>{titulo}</span>
+                        <span style={{ fontSize:"12px", fontWeight:"700", color:color, background:"rgba(0,0,0,0.05)", borderRadius:"10px", padding:"1px 8px", marginLeft:"4px" }}>{leads.length}</span>
+                      </div>
+                      {leads.map(renderCard)}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div>
+                    {colCobranzaPend.length===0 && <div style={{ textAlign:"center", padding:"40px", color:"#9ca3af", fontSize:"14px" }}>Sin cobros pendientes</div>}
+                    {renderSeccion("Vencidas", grupoVencidas, "#b91c1c", "\u26a0\ufe0f")}
+                    {renderSeccion("Hoy", grupoHoy, "#16a34a", "\ud83d\udfe2")}
+                    {renderSeccion("Esta semana", grupoSemana, "#d97706", "\ud83d\udcc5")}
+                    {renderSeccion("Pr\u00f3ximos pagos", grupoFuturo, "#6b7280", "\ud83d\udd52")}
+                  </div>
+                );
+              })()}
 
               {tabActivo==="pipeline" && <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", alignItems:"start" }}>
                 {[
