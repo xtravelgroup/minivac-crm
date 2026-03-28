@@ -234,6 +234,11 @@ function TabResumen(props){
 }
 
 // ── TAB VENTAS ──
+function toEST(dateStr){
+  if(!dateStr) return "";
+  return new Date(dateStr).toLocaleDateString("en-CA",{timeZone:"America/New_York"});
+}
+
 function getCobrado(l){
   var ini=Number(l.pago_inicial||0);
   var ab=(l.pagos_historial||[]).filter(function(p){return !p.programado;}).reduce(function(a,p){return a+Number(p.monto||0);},0);
@@ -252,8 +257,8 @@ function TabVentas(props){
   var inicioSem = new Date(hoyDate); inicioSem.setDate(hoyDate.getDate()-(diaSem===0?6:diaSem-1));
   var inicioSemStr = inicioSem.toISOString().slice(0,10);
 
-  var leadsHoy = leads.filter(function(l){ return (l.created_at||"").slice(0,10)===hoyStr; });
-  var leadsSem = leads.filter(function(l){ return (l.created_at||"").slice(0,10)>=inicioSemStr; });
+  var leadsHoy = leads.filter(function(l){ return toEST(l.created_at)===hoyStr; });
+  var leadsSem = leads.filter(function(l){ return toEST(l.created_at)>=inicioSemStr; });
 
   function stats(arr){
     return {
@@ -265,7 +270,7 @@ function TabVentas(props){
   }
   var mesActual = new Date(new Date().toLocaleDateString("en-CA",{timeZone:"America/New_York"})+"T00:00:00");
   var inicioMesStr = mesActual.getFullYear()+"-"+String(mesActual.getMonth()+1).padStart(2,"0")+"-01";
-  var leadsMes = leads.filter(function(l){ return (l.created_at||"").slice(0,10)>=inicioMesStr; });
+  var leadsMes = leads.filter(function(l){ return toEST(l.created_at)>=inicioMesStr; });
 
   var sHoy=stats(leadsHoy); var sSem=stats(leadsSem); var sMes=stats(leadsMes);
 
