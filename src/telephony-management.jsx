@@ -246,17 +246,17 @@ function ColaVivaTab(props) {
     return u ? u.nombre : "--";
   }
 
-  // Split queue into waiting/ringing vs active (in-progress)
-  var waiting = acdQueue.filter(function (q) { return q.status === "waiting" || q.status === "ringing"; });
-  var active = acdQueue.filter(function (q) { return q.status === "in-progress"; });
+  // Split queue into queued/ringing vs active (answered)
+  var waiting = acdQueue.filter(function (q) { return q.status === "queued" || q.status === "ringing"; });
+  var active = acdQueue.filter(function (q) { return q.status === "answered"; });
 
   var thStyle = { padding: "10px 12px", fontSize: 11, fontWeight: 700, color: C.t4, textTransform: "uppercase", letterSpacing: "0.04em", textAlign: "left", borderBottom: "2px solid " + C.border };
   var tdStyle = { padding: "10px 12px", fontSize: 13, color: C.t1, borderBottom: "1px solid " + C.borderL };
 
   var statusBadge = function (s) {
-    if (s === "waiting") return { bg: C.amberBg, color: C.amber, label: "En espera" };
+    if (s === "queued") return { bg: C.amberBg, color: C.amber, label: "En espera" };
     if (s === "ringing") return { bg: C.blueBg, color: C.blue, label: "Timbrando" };
-    if (s === "in-progress") return { bg: C.greenBg, color: C.green, label: "En llamada" };
+    if (s === "answered") return { bg: C.greenBg, color: C.green, label: "En llamada" };
     return { bg: C.grayBg, color: C.gray, label: s };
   };
 
@@ -574,8 +574,8 @@ export default function TelephonyManagement(props) {
       .then(function (r) { return r.json(); })
       .then(function (d) { if (Array.isArray(d)) setUsuarios(d); });
 
-    // ACD queue (waiting/ringing/in-progress)
-    fetch(SB_URL + "/rest/v1/acd_queue?status=in.(waiting,ringing,in-progress)&order=created_at.asc", { headers: HDR })
+    // ACD queue (queued/ringing/answered = waiting/ringing/active)
+    fetch(SB_URL + "/rest/v1/acd_queue?status=in.(queued,ringing,answered)&order=created_at.asc", { headers: HDR })
       .then(function (r) { return r.json(); })
       .then(function (d) { if (Array.isArray(d)) setAcdQueue(d); });
 
