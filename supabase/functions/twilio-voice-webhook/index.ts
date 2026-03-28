@@ -199,9 +199,35 @@ serve(async (req) => {
       }
     }
 
-    // Find available agent using queue_agents priority
+    // Find available agent — prioritize the lead's assigned vendedor
     // 5-minute freshness window for heartbeats (agent must have sent heartbeat within 5 min)
     const freshnessWindow = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
+    // If lead has an assigned vendedor, try them first
+    let preferredAgentId: string | null = null;
+    if (!isRetry) {
+      // On first call, read the lead we found/created above
+      if (lead && lead.vendedor_id) {
+        preferredAgentId = lead.vendedor_id;
+        console.log(`Lead has assigned vendedor: ${preferredAgentId}`);
+      }
+    } else {
+      // On retry, look up the lead from the call_log
+      if (callLogId) {
+        try {
+          const clRes = await fetch(`${SB_URL}/rest/v1/call_log?id=eq.${callLogId}&select=lead_id`, { headers: HDR });
+          const clData = await clRes.json();
+          const leadId = Array.isArray(clData) && clData.length > 0 ? clData[0].lead_id : null;
+          if (leadId) {
+            const lRes = await fetch(`${SB_URL}/rest/v1/leads?id=eq.${leadId}&select=vendedor_id&limit=1`, { headers: HDR });
+            const lData = await lRes.json();
+            if (Array.isArray(lData) && lData.length > 0 && lData[0].vendedor_id) {
+              preferredAgentId = lData[0].vendedor_id;
+            }
+          }
+        } catch (_) {}
+      }
+    }
 
     const qaRes = await fetch(`${SB_URL}/rest/v1/queue_agents?activo=eq.true&order=prioridad.asc`, { headers: HDR });
     const qaData = await qaRes.json();
@@ -215,10 +241,47 @@ serve(async (req) => {
       );
       const allAvailable = await agentRes.json();
       if (Array.isArray(allAvailable)) {
+        // Sort: preferred agent first, then by queue priority
         agents = queueAgentIds
           .map((id: string) => allAvailable.find((a: any) => a.usuario_id === id))
           .filter(Boolean);
+
+        // Move preferred agent to front if available
+        if (preferredAgentId) {
+          const prefIdx = agents.findIndex((a: any) => a.usuario_id === preferredAgentId);
+          if (prefIdx > 0) {
+            const pref = agents.splice(prefIdx, 1)[0];
+            agents.unshift(pref);
+            console.log(`Prioritized assigned vendedor ${preferredAgentId}`);
+          } else if (prefIdx === -1) {
+            // Preferred agent not in queue — check if they're available anyway
+            try {
+              const prefRes = await fetch(
+                `${SB_URL}/rest/v1/agent_status?usuario_id=eq.${preferredAgentId}&status=eq.available&last_heartbeat=gte.${freshnessWindow}`,
+                { headers: HDR }
+              );
+              const prefData = await prefRes.json();
+              if (Array.isArray(prefData) && prefData.length > 0) {
+                agents.unshift(prefData[0]);
+                console.log(`Assigned vendedor ${preferredAgentId} available (not in queue), added to front`);
+              }
+            } catch (_) {}
+          }
+        }
       }
+    } else if (preferredAgentId) {
+      // No queue agents at all, but try the preferred agent
+      try {
+        const prefRes = await fetch(
+          `${SB_URL}/rest/v1/agent_status?usuario_id=eq.${preferredAgentId}&status=eq.available&last_heartbeat=gte.${freshnessWindow}`,
+          { headers: HDR }
+        );
+        const prefData = await prefRes.json();
+        if (Array.isArray(prefData) && prefData.length > 0) {
+          agents = prefData;
+          console.log(`No queue agents but assigned vendedor ${preferredAgentId} is available`);
+        }
+      } catch (_) {}
     }
 
     // Build the redirect URL for retries (& must be &amp; in XML/TwiML)

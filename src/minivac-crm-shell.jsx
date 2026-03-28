@@ -634,10 +634,15 @@ export default function MinivacShell() {
               headers: { apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAxNTA0MiwiZXhwIjoyMDg4NTkxMDQyfQ.-P8KH6yhs6AJ1lUwBrwUpcoZV3KGvM7fDlFM3RsYKxw",
                 Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAxNTA0MiwiZXhwIjoyMDg4NTkxMDQyfQ.-P8KH6yhs6AJ1lUwBrwUpcoZV3KGvM7fDlFM3RsYKxw" }
             }).then(function (r) { return r.json(); }).then(function (data) {
-              if (Array.isArray(data) && data.length > 0 && data[0].nombre && data[0].nombre.trim() !== "") return;
-              // New or unnamed lead — open seller CRM with form
-              setNewCallPhone(callerNum);
-              setActivo("seller");
+              if (Array.isArray(data) && data.length > 0 && data[0].nombre && data[0].nombre.trim() !== "") {
+                // Known lead — open their profile in seller CRM
+                initialLeadIdRef.current = data[0].id;
+                setActivo("seller");
+              } else {
+                // New or unnamed lead — open seller CRM with new lead form
+                setNewCallPhone(callerNum);
+                setActivo("seller");
+              }
             });
           }
         }}
