@@ -817,22 +817,21 @@ function TransferirModal(props) {
   var [paso,       setPaso]       = useState(1);
   var [firstName,  setFirstName]  = useState("");
   var [lastName,   setLastName]   = useState("");
-  var [edad,       setEdad]       = useState("");
   var [tFechaNac,  setTFechaNac]  = useState("");
+  var [estadoCivil,setEstadoCivil]= useState("");
   var [tel,        setTel]        = useState("");
   var [email,      setEmail]      = useState("");
   var [conPareja,  setConPareja]  = useState(false);
   var [pFirstName, setPFirstName] = useState("");
   var [pLastName,  setPLastName]  = useState("");
-  var [pEdad,      setPEdad]      = useState("");
   var [pFechaNac,  setPFechaNac]  = useState("");
   var [pTel,       setPTel]       = useState("");
   var [motivo,     setMotivo]     = useState("");
   var [saving,     setSaving]     = useState(false);
   var [err,        setErr]        = useState("");
 
-  var edadN = parseInt(edad) || 0;
-  var edadP = parseInt(pEdad) || 0;
+  var edadN = tFechaNac ? Math.floor((Date.now()-new Date(tFechaNac).getTime())/31557600000) : 0;
+  var edadP = pFechaNac ? Math.floor((Date.now()-new Date(pFechaNac).getTime())/31557600000) : 0;
 
   var resultados = (c.destinos || []).map(function(d) {
     var razones = [];
@@ -843,8 +842,8 @@ function TransferirModal(props) {
   });
 
   var todosCalifican = resultados.every(function(r){ return r.ok; });
-  var okPaso1 = firstName.trim() && lastName.trim() && edad && tel.trim() && email.trim() && motivo.trim();
-  var okPareja = !conPareja || (pFirstName.trim() && pEdad && pTel.trim());
+  var okPaso1 = firstName.trim() && lastName.trim() && tFechaNac && estadoCivil && tel.trim() && email.trim() && motivo.trim();
+  var okPareja = !conPareja || (pFirstName.trim() && pFechaNac && pTel.trim());
 
   function handleConfirmar() {
     setSaving(true); setErr("");
@@ -855,7 +854,7 @@ function TransferirModal(props) {
       var verifNuevo = Object.assign({}, verif, {
         tFirstName: firstName.trim(), tLastName: lastName.trim(),
         tPhone: tel, tEmail: email, edad: edadN,
-        tFechaNac:  tFechaNac,
+        tFechaNac:  tFechaNac, tEstadoCivil: estadoCivil,
         hasPartner: conPareja,
         pFirstName: conPareja ? pFirstName.trim() : "",
         pLastName:  conPareja ? pLastName.trim()  : "",
@@ -868,6 +867,7 @@ function TransferirModal(props) {
         nombre:      nombreNuevo,
         whatsapp:    tel,
         email:       email,
+        estado_civil: estadoCivil,
         verificacion: verifNuevo,
         destinos:    destFiltrados.map(function(d){ return { destId: d.leadDestId || d.nombre, noches: d.noches, tipo: d.tipo, regalo: d.regalo || null }; }),
       }).eq("id", c.id);
@@ -922,7 +922,7 @@ function TransferirModal(props) {
               <div><label style={S.label}>Nombre(s)</label><input style={S.input} value={firstName} onChange={function(e){ setFirstName(e.target.value); }} placeholder="Nombre"/></div>
               <div><label style={S.label}>Apellido(s)</label><input style={S.input} value={lastName} onChange={function(e){ setLastName(e.target.value); }} placeholder="Apellido"/></div>
               <div><label style={S.label}>Fecha de nacimiento</label><input style={S.input} type="date" value={tFechaNac} onChange={function(e){ setTFechaNac(e.target.value); }} max={TODAY}/></div>
-              <div><label style={S.label}>Edad</label><input style={S.input} type="number" value={edad} onChange={function(e){ setEdad(e.target.value); }} placeholder="Edad"/></div>
+              <div><label style={S.label}>Estado civil</label><select style={S.sel} value={estadoCivil} onChange={function(e){ setEstadoCivil(e.target.value); }}><option value="">-- Seleccionar --</option><option value="Soltero">Soltero</option><option value="Casado">Casado</option><option value="Union libre">Union libre</option><option value="Divorciado">Divorciado</option><option value="Viudo">Viudo</option></select></div>
               <div><label style={S.label}>Teléfono / WhatsApp</label><input style={S.input} value={tel} onChange={function(e){ setTel(e.target.value); }} placeholder="+1 555-000-0000"/></div>
               <div style={{gridColumn:"1/-1"}}><label style={S.label}>Email</label><input style={S.input} type="email" value={email} onChange={function(e){ setEmail(e.target.value); }} placeholder="correo@ejemplo.com"/></div>
             </div>
@@ -938,7 +938,6 @@ function TransferirModal(props) {
                 <div><label style={S.label}>Nombre co-prop.</label><input style={S.input} value={pFirstName} onChange={function(e){ setPFirstName(e.target.value); }} placeholder="Nombre"/></div>
                 <div><label style={S.label}>Apellido</label><input style={S.input} value={pLastName} onChange={function(e){ setPLastName(e.target.value); }} placeholder="Apellido"/></div>
                 <div><label style={S.label}>Fecha de nacimiento</label><input style={S.input} type="date" value={pFechaNac} onChange={function(e){ setPFechaNac(e.target.value); }} max={TODAY}/></div>
-                <div><label style={S.label}>Edad</label><input style={S.input} type="number" value={pEdad} onChange={function(e){ setPEdad(e.target.value); }} placeholder="Edad"/></div>
                 <div><label style={S.label}>Teléfono</label><input style={S.input} value={pTel} onChange={function(e){ setPTel(e.target.value); }} placeholder="+1 555-000-0000"/></div>
               </div>
             )}
