@@ -80,7 +80,7 @@ var TABS = [
   {id:"ventas",     l:"Ventas"},
   {id:"reservas",   l:"Reservas"},
   {id:"cobranza",   l:"Cobranza"},
-  {id:"vendedores", l:"Ventas"},
+  {id:"vendedores", l:"Vendedores"},
   {id:"radios",     l:"Radios / ROI"},
 ];
 
@@ -482,17 +482,19 @@ function TabCobranza(props){
 // ── TAB VENDEDORES ──
 function TabVendedoresList(props){
   var leads = props.data.leads;
-  var profiles = props.data.profiles;
+  var usuarios = props.data.usuarios || [];
+  var usrMap = {};
+  usuarios.forEach(function(u){ usrMap[u.id] = u.nombre; });
 
   // Agrupar leads por vendedor
   var vendedores = {};
   leads.forEach(function(l){
-    var nombre = (l.usuarios && l.usuarios.nombre) ? l.usuarios.nombre : "Sin asignar";
-    var v = nombre;
-    if(!vendedores[v]) vendedores[v] = {nombre:v, leads:[], ventas:0, pagado:0};
-    vendedores[v].leads.push(l);
-    if(l.status==="venta"||l.status==="verificacion") vendedores[v].ventas++;
-    vendedores[v].pagado += getCobrado(l);
+    var vid = l.vendedor_id || "sin_asignar";
+    var nombre = usrMap[vid] || "Sin asignar";
+    if(!vendedores[vid]) vendedores[vid] = {nombre:nombre, leads:[], ventas:0, pagado:0};
+    vendedores[vid].leads.push(l);
+    if(l.status==="venta"||l.status==="verificacion") vendedores[vid].ventas++;
+    vendedores[vid].pagado += getCobrado(l);
   });
   var vList = Object.values(vendedores).sort(function(a,b){return b.ventas-a.ventas;});
 
