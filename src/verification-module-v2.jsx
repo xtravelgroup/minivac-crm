@@ -2243,11 +2243,28 @@ export default function VerificationModule({ currentUser, initialLeadId }) {
 
   // Abrir lead automaticamente si viene initialLeadId
   useEffect(function() {
-    if (initialLeadId && leads.length > 0 && !detail) {
+    if (!initialLeadId) return;
+    // Buscar en leads ya cargados
+    if (leads.length > 0) {
       var found = leads.find(function(l){ return l.id === initialLeadId; });
-      if (found) setDetail(found);
+      if (found) { setDetail(found); return; }
     }
-  }, [initialLeadId, leads.length]);
+    // Si no esta en la lista, buscarlo directo en la DB
+    SB.from("leads")
+      .select("*, firma_enviada_at, firma_firmada_at, pagos_historial, sale_price, pago_inicial")
+      .eq("id", initialLeadId)
+      .single()
+      .then(function(res) {
+        if (res.data) {
+          SB.from("usuarios").select("id, nombre, rol").then(function(uRes) {
+            var uMap = {};
+            if (uRes.data) uRes.data.forEach(function(u){ uMap[u.id] = u.nombre; });
+            var row = { ...res.data, vendedor_nombre: uMap[res.data.vendedor_id] || "", verificador_nombre: uMap[res.data.verificador_id] || "" };
+            setDetail(dbToVerifLead(row));
+          });
+        }
+      });
+  }, [initialLeadId]);
 
   const updateLead = function(u) {
     var prev = leads.find(function(l){ return l.id === u.id; });
