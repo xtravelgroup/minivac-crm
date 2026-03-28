@@ -2094,8 +2094,37 @@ export default function CsReservasV3(props) {
         <div style={{fontSize:10,color:"#9ca3af"}}>{fmtDate(TODAY)}</div>
       </div>
 
+      {/* PANEL APROBACIONES PENDIENTES */}
+      {perms.aprobarOperacion&&(function(){
+        var pendientes=operaciones.filter(function(o){return o.status==="pendiente";});
+        if(pendientes.length===0) return null;
+        return <div style={{background:"#fef9e7",borderBottom:"2px solid #f0d080",padding:"10px 24px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+            <span style={{fontSize:13,fontWeight:700,color:AMBER}}>⚠️ Operaciones pendientes de aprobación ({pendientes.length})</span>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {pendientes.map(function(o){
+              var cfg=OP_TIPOS[o.tipo]||{label:o.tipo};
+              var cliente=miembrosEnriquecidos.find(function(m){return m.folio===o.clienteFolio;});
+              return <div key={o.id} style={{display:"flex",alignItems:"center",gap:10,background:"#fff",padding:"8px 12px",borderRadius:8,border:"1px solid #e3e6ea"}}>
+                <span style={S.bdg(cfg.color||AMBER,cfg.bg||"#fef9e7",cfg.br||"#f0d080")}>{cfg.label}</span>
+                {o.extMeses&&<span style={{fontSize:11,color:AMBER,fontWeight:600}}>{o.extMeses} meses</span>}
+                {o.montoReembolso&&<span style={{fontSize:11,color:GREEN,fontWeight:600}}>{fmtUSD(o.montoReembolso)}</span>}
+                <span style={{fontSize:12,fontWeight:600,color:"#1a1f2e"}}>{cliente?cliente.nombre:"--"}</span>
+                <span style={{fontSize:11,color:"#9ca3af"}}>{o.folio} · {o.autor} · {fmtDate(o.creado)}</span>
+                {o.notaCS&&<span style={{fontSize:11,color:"#6b7280",flex:1}}>{o.notaCS}</span>}
+                <div style={{marginLeft:"auto",display:"flex",gap:4}}>
+                  <button style={{background:GREEN,color:"#fff",border:"none",borderRadius:6,padding:"4px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={function(){aprobarOp(o.id);}}>Aprobar</button>
+                  <button style={{background:RED,color:"#fff",border:"none",borderRadius:6,padding:"4px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={function(){rechazarOp(o.id);}}>Rechazar</button>
+                </div>
+              </div>;
+            })}
+          </div>
+        </div>;
+      })()}
+
       {/* BODY */}
-      <div style={{height:"calc(100vh - 52px)",display:"flex",overflow:"hidden"}}>
+      <div style={{height:perms.aprobarOperacion&&operaciones.some(function(o){return o.status==="pendiente";})?"calc(100vh - 52px - 80px)":"calc(100vh - 52px)",display:"flex",overflow:"hidden"}}>
 
         {loading ? (
           <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12}}>
