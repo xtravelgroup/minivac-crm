@@ -120,7 +120,7 @@ var ICONS = {
 };
 
 var MODULOS = [
-  { id: "dashboard",    label: "Dashboard",      icon: "dashboard",    section: "Principal", roles: ["admin","director","supervisor"] },
+  { id: "dashboard",    label: "Dashboard",      icon: "dashboard",    section: "Principal", roles: ["admin","director","supervisor","cs_gerente"] },
   { id: "radio",        label: "Radio",          icon: "radio",        section: "Principal", roles: ["admin","director","especialista_radio","contador"] },
   { id: "kb",           label: "Knowledge Base", icon: "grid",         section: "Principal", roles: ["admin","director"] },
   { id: "comms",        label: "Comunicaciones", icon: "cs",           section: "Principal", roles: ["admin","director","supervisor","vendedor"] },

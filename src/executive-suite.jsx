@@ -86,22 +86,25 @@ var TABS = [
 
 export default function ExecutiveSuite({ currentUser, onVerLead }) {
   var rol = currentUser ? currentUser.rol : "admin";
-  var TABS_VISIBLE = rol === "supervisor"
+  var isCSGerente = rol === "cs_gerente";
+  var TABS_VISIBLE = isCSGerente
+    ? [{id:"cs_ventas", l:"Ventas Semana"}]
+    : rol === "supervisor"
     ? TABS.filter(function(t){ return t.id !== "resumen" && t.id !== "reservas"; })
     : TABS;
-  var [tab, setTab] = useState(rol === "supervisor" ? "ventas" : "resumen");
+  var [tab, setTab] = useState(isCSGerente ? "cs_ventas" : rol === "supervisor" ? "ventas" : "resumen");
   var [data, setData] = useState(null);
   var [loading, setLoading] = useState(true);
 
   useEffect(function(){
     // Cargar datos en paralelo
     Promise.all([
-      SB.from("leads").select("id, nombre, estado_civil, status, emisora_id, emisora, created_at, sale_price, pago_inicial, pagos_historial, vendedor_id, spot_id"),
+      SB.from("leads").select("id, nombre, estado_civil, status, emisora_id, emisora, created_at, sale_price, pago_inicial, pagos_historial, vendedor_id, verificador_id, spot_id"),
       SB.from("reservaciones").select("id, folio, status, total, fee, checkin, checkout, agente_nombre, created_at, destino_nombre, hotel"),
       SB.from("radio_spots").select("id, emisora_id, costo, talento, precio_equipo, fecha, semana, dia_semana, hora, duracion, tipo, incidencia"),
       SB.from("emisoras").select("id, nombre"),
       SB.from("leads").select("id, nombre, emisora, emisora_id, created_at, status, sale_price"),
-      SB.from("usuarios").select("id, nombre"),
+      SB.from("usuarios").select("id, nombre, rol"),
     ]).then(function(results){
       var leads      = (!results[0].error && results[0].data) ? results[0].data : [];
       var reservas   = (!results[1].error && results[1].data) ? results[1].data : [];
@@ -141,7 +144,8 @@ export default function ExecutiveSuite({ currentUser, onVerLead }) {
       tab==="reservas"   && React.createElement(TabReservas,   {data:data}) ||
       tab==="cobranza"   && React.createElement(TabCobranza,   {data:data, onVerLead:onVerLead}) ||
       tab==="vendedores" && React.createElement(TabVendedoresList, {data:data}) ||
-      tab==="radios"     && React.createElement(TabRadios,     {data:data})
+      tab==="radios"     && React.createElement(TabRadios,     {data:data}) ||
+      tab==="cs_ventas"  && React.createElement(TabCSVentas,   {data:data, onVerLead:onVerLead})
     ),
   ]);
 }
@@ -537,6 +541,74 @@ function TabVendedoresList(props){
         ),
       ]),
     ]),
+  ]);
+}
+
+// ── TAB CS VENTAS SEMANA ──
+function TabCSVentas(props){
+  var leads = props.data.leads;
+  var usuarios = props.data.usuarios || [];
+  var usrMap = {};
+  usuarios.forEach(function(u){ usrMap[u.id] = u.nombre; });
+
+  var ventas = leads.filter(function(l){ return l.status==="venta"; });
+
+  // Calcular dias de la semana (lunes a domingo) en EST
+  var hoyStr = new Date().toLocaleDateString("en-CA",{timeZone:"America/New_York"});
+  var hoyDate = new Date(hoyStr+"T00:00:00");
+  var diaSem = hoyDate.getDay();
+  var inicioSem = new Date(hoyDate); inicioSem.setDate(hoyDate.getDate()-(diaSem===0?6:diaSem-1));
+
+  var diasNombres = ["Lunes","Martes","Miercoles","Jueves","Viernes","Sabado","Domingo"];
+  var diasSemana = [];
+  for(var i=0;i<7;i++){
+    var d = new Date(inicioSem);
+    d.setDate(inicioSem.getDate()+i);
+    var dStr = d.toISOString().slice(0,10);
+    var ventasDia = ventas.filter(function(l){ return toEST(l.created_at)===dStr; });
+    diasSemana.push({nombre:diasNombres[i], fecha:dStr, ventas:ventasDia, esHoy:dStr===hoyStr});
+  }
+
+  var ventasSemana = ventas.filter(function(l){ return toEST(l.created_at)>=inicioSem.toISOString().slice(0,10); });
+  var totalEnganche = ventasSemana.reduce(function(s,l){ return s+Number(l.pago_inicial||0); },0);
+  var totalContratos = ventasSemana.reduce(function(s,l){ return s+getContrato(l); },0);
+
+  return React.createElement("div", {style:S.page}, [
+    // KPIs
+    React.createElement("div", {key:"kpis", style:{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12}}, [
+      React.createElement(KpiCard, {key:"a", label:"Ventas Semana", value:ventasSemana.length, color:C.green}),
+      React.createElement(KpiCard, {key:"b", label:"Total Contratos", value:fmtUSD(totalContratos), color:C.violet}),
+      React.createElement(KpiCard, {key:"c", label:"Total Enganche", value:fmtUSD(totalEnganche), color:C.green}),
+      React.createElement(KpiCard, {key:"d", label:"Ticket Promedio", value:ventasSemana.length?fmtUSD(Math.round(totalContratos/ventasSemana.length)):"-", color:C.indigo}),
+    ]),
+    // Tabla por dia
+    React.createElement("div", {key:"dias"}, diasSemana.map(function(dia){
+      return React.createElement("div", {key:dia.fecha, style:Object.assign({},S.card,{marginBottom:12, borderLeft:dia.esHoy?"3px solid "+C.green:"3px solid transparent"})}, [
+        React.createElement("div", {key:"t", style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:dia.ventas.length?12:0}}, [
+          React.createElement("div", {key:"l", style:{fontSize:12, fontWeight:700, color:dia.esHoy?C.green:C.text}}, dia.nombre+" — "+dia.fecha),
+          React.createElement("div", {key:"r", style:{fontSize:12, fontWeight:700, color:dia.ventas.length?C.green:C.muted}}, dia.ventas.length+" venta"+(dia.ventas.length!==1?"s":"")),
+        ]),
+        dia.ventas.length===0
+          ? React.createElement("div",{key:"empty",style:{fontSize:11,color:C.muted,paddingTop:4}},"Sin ventas")
+          : React.createElement("table", {key:"tbl", style:{width:"100%", borderCollapse:"collapse"}}, [
+              React.createElement("thead", {key:"h"}, React.createElement("tr", {},
+                ["Fecha","Cliente","Agente","Verificador","Radio","Enganche"].map(function(h){return React.createElement("th",{key:h,style:S.th},h);})
+              )),
+              React.createElement("tbody", {key:"b"},
+                dia.ventas.map(function(l){
+                  return React.createElement("tr", {key:l.id}, [
+                    React.createElement("td",{key:"f",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},toEST(l.created_at))),
+                    React.createElement("td",{key:"n",style:S.td},React.createElement("span",{style:{fontWeight:600,color:C.indigo,cursor:"pointer",textDecoration:"underline"},onClick:function(){if(props.onVerLead)props.onVerLead(l.id);}},l.nombre||"--")),
+                    React.createElement("td",{key:"a",style:S.td},React.createElement("span",{style:{fontSize:12,color:C.text}},usrMap[l.vendedor_id]||"--")),
+                    React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:12,color:C.text}},usrMap[l.verificador_id]||"--")),
+                    React.createElement("td",{key:"r",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.emisora||"--")),
+                    React.createElement("td",{key:"e",style:S.tdc},React.createElement("span",{style:{fontWeight:700,color:C.green}},fmtUSD(l.pago_inicial||0))),
+                  ]);
+                })
+              ),
+            ]),
+      ]);
+    })),
   ]);
 }
 
