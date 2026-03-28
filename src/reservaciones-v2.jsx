@@ -703,7 +703,7 @@ function ReservaModal(props){
   // Datos del cliente para filtrar
   var clienteEdad    = parseInt(r.edad_titular) || 0;
   var clienteEC      = (r.estado_civil || "").toLowerCase();
-  var clienteHasP    = clienteEC === "casado" || clienteEC === "cohabitante";
+  var clienteHasP    = clienteEC.indexOf("casado")>=0 || clienteEC==="union libre" || clienteEC === "cohabitante";
   // Filtrar hoteles segun restricciones del cliente
   var hotelesLista = (hotelesDB[destClean] || []).filter(function(h){
     if(clienteEdad > 0){
@@ -713,7 +713,10 @@ function ReservaModal(props){
       var match = false;
       for(var mi=0;mi<h.marital.length;mi++){
         var mn=(h.marital[mi]||"").toLowerCase();
-        if(mn===clienteEC || (mn==="casado"&&clienteHasP) || (mn==="soltero"&&!clienteHasP)){ match=true; break; }
+        if(mn===clienteEC) { match=true; break; }
+        if(mn.indexOf("casado")>=0 && clienteHasP) { match=true; break; }
+        if(mn.indexOf("solter")>=0 && !clienteHasP) { match=true; break; }
+        if(mn==="union libre" && clienteHasP) { match=true; break; }
       }
       if(!match) return false;
     }
