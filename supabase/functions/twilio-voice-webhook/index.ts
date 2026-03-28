@@ -104,6 +104,7 @@ serve(async (req) => {
     }
 
     let callLogId = existingLogId;
+    let lead: any = null;
 
     // Only create call_log and ACD queue on first call (not retries)
     if (!isRetry) {
@@ -112,7 +113,7 @@ serve(async (req) => {
       const phoneSearch = cleanPhone.replace("+", "");
       const leadRes = await fetch(`${SB_URL}/rest/v1/leads?tel=ilike.*${phoneSearch.slice(-10)}&limit=1`, { headers: HDR });
       const leads = await leadRes.json();
-      let lead = Array.isArray(leads) && leads.length > 0 ? leads[0] : null;
+      lead = Array.isArray(leads) && leads.length > 0 ? leads[0] : null;
 
       // Auto-create lead if phone number not registered
       if (!lead && phoneSearch.length >= 7) {
@@ -367,10 +368,13 @@ serve(async (req) => {
     return new Response(twiml, { headers: { "Content-Type": "text/xml" } });
 
   } catch (e) {
-    console.error("Voice webhook error:", e);
+    const errMsg = e instanceof Error ? e.message + " | " + e.stack : String(e);
+    console.error("Voice webhook error:", errMsg);
+    // Return error detail in a Say so we can debug from Twilio logs
+    const safeMsg = errMsg.replace(/[<>&"']/g, "").substring(0, 200);
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say language="es-MX">Lo sentimos, ocurrio un error. Por favor intente mas tarde.</Say>
+  <Say language="es-MX">Error: ${safeMsg}</Say>
   <Hangup/>
 </Response>`;
     return new Response(twiml, { headers: { "Content-Type": "text/xml" } });
