@@ -50,6 +50,21 @@ export default function RetencionQueue({ currentUser }) {
   var [actionLead, setActionLead] = useState(null);
   var [motivo, setMotivo] = useState("");
   var [nota, setNota] = useState("");
+  var [notaNueva, setNotaNueva] = useState("");
+
+  function getNotas(l) {
+    if (!l.retencion_nota) return [];
+    try { var parsed = JSON.parse(l.retencion_nota); return Array.isArray(parsed) ? parsed : [{ texto: l.retencion_nota, fecha: l.retencion_created_at }]; }
+    catch(e) { return l.retencion_nota ? [{ texto: l.retencion_nota, fecha: l.retencion_created_at }] : []; }
+  }
+
+  function buildNotas(lead, nuevaNota) {
+    var existing = getNotas(lead);
+    if (nuevaNota && nuevaNota.trim()) {
+      existing.push({ texto: nuevaNota.trim(), fecha: new Date().toISOString(), usuario: currentUser?.nombre || "Sistema" });
+    }
+    return existing.length > 0 ? JSON.stringify(existing) : null;
+  }
 
   function notify(msg, ok) {
     setToast({ msg:msg, ok:ok!==false });
@@ -107,43 +122,57 @@ export default function RetencionQueue({ currentUser }) {
     var retryIdx = Math.min(attempts - 1, RETRY_HOURS.length - 1);
     var hoursDelay = RETRY_HOURS[retryIdx];
     var nextAt = new Date(Date.now() + hoursDelay * 3600000).toISOString();
+    var notas = buildNotas(lead, notaNueva);
 
     SB.from("leads").update({
       retencion_status: "no_contesta",
       retencion_attempts: attempts,
       retencion_next_at: nextAt,
+      retencion_nota: notas,
     }).eq("id", lead.id).then(function(res){
       if(res.error){ notify("Error: "+res.error.message, false); return; }
       notify("No contesta — reintentar en "+hoursDelay+"h (intento "+attempts+")");
-      cargar(); setActionLead(null);
+      setNotaNueva(""); cargar(); setActionLead(null);
     });
   }
 
   function marcarRetenido(lead) {
+    var notas = buildNotas(lead, notaNueva);
     SB.from("leads").update({
       retencion_status: "completado",
       retencion_result: "retenido",
-      retencion_motivo: motivo || null,
-      retencion_nota: nota || null,
+      retencion_motivo: motivo || lead.retencion_motivo || null,
+      retencion_nota: notas,
       retencion_completed_at: new Date().toISOString(),
     }).eq("id", lead.id).then(function(res){
       if(res.error){ notify("Error: "+res.error.message, false); return; }
       notify("Cliente retenido exitosamente");
-      setMotivo(""); setNota(""); cargar(); setActionLead(null);
+      setMotivo(""); setNotaNueva(""); cargar(); setActionLead(null);
     });
   }
 
   function marcarCancelado(lead) {
+    var notas = buildNotas(lead, notaNueva);
     SB.from("leads").update({
       retencion_status: "completado",
       retencion_result: "cancelado",
-      retencion_motivo: motivo || null,
-      retencion_nota: nota || null,
+      retencion_motivo: motivo || lead.retencion_motivo || null,
+      retencion_nota: notas,
       retencion_completed_at: new Date().toISOString(),
     }).eq("id", lead.id).then(function(res){
       if(res.error){ notify("Error: "+res.error.message, false); return; }
       notify("Cliente marcado como cancelado");
-      setMotivo(""); setNota(""); cargar(); setActionLead(null);
+      setMotivo(""); setNotaNueva(""); cargar(); setActionLead(null);
+    });
+  }
+
+  function agregarNota(lead) {
+    if (!notaNueva.trim()) return;
+    var notas = buildNotas(lead, notaNueva);
+    SB.from("leads").update({ retencion_nota: notas }).eq("id", lead.id).then(function(res){
+      if(res.error){ notify("Error: "+res.error.message, false); return; }
+      notify("Nota agregada");
+      setNotaNueva(""); cargar();
     });
   }
 
@@ -162,22 +191,41 @@ export default function RetencionQueue({ currentUser }) {
       React.createElement("td",{key:"att",style:S.tdc}, React.createElement("span",{style:S.bdg(l.retencion_attempts>0?C.amber:C.muted, l.retencion_attempts>0?"rgba(245,158,11,0.1)":"#f4f5f7")}, String(l.retencion_attempts||0))),
       showActions ? React.createElement("td",{key:"act",style:Object.assign({},S.tdc,{whiteSpace:"nowrap"})},
         isOpen
-          ? React.createElement("div", {style:{display:"flex",flexDirection:"column",gap:6,alignItems:"center",padding:"4px 0"}}, [
-              // Motivo
+          ? React.createElement("div", {style:{display:"flex",flexDirection:"column",gap:6,alignItems:"stretch",padding:"4px 0",minWidth:220}}, [
+              // Motivo (pre-loaded)
               React.createElement("select",{key:"mot",value:motivo,onChange:function(e){setMotivo(e.target.value);},style:{fontSize:11,padding:"4px 8px",borderRadius:6,border:"1px solid "+C.border,width:"100%"}},
                 [React.createElement("option",{key:"",value:""},"-- Motivo --")].concat(MOTIVOS.map(function(m){ return React.createElement("option",{key:m,value:m},m); }))
               ),
-              // Nota
-              React.createElement("input",{key:"nota",value:nota,onChange:function(e){setNota(e.target.value);},placeholder:"Nota...",style:{fontSize:11,padding:"4px 8px",borderRadius:6,border:"1px solid "+C.border,width:"100%"}}),
+              // Notas existentes
+              (function(){
+                var notas = getNotas(l);
+                if(notas.length===0) return null;
+                return React.createElement("div",{key:"notas-list",style:{background:"#f8f9fb",borderRadius:6,padding:"6px 8px",maxHeight:100,overflowY:"auto"}},
+                  notas.map(function(n,i){
+                    return React.createElement("div",{key:i,style:{fontSize:10,color:C.sub,marginBottom:i<notas.length-1?4:0}},
+                      React.createElement("span",{style:{fontWeight:600,color:C.text}},n.usuario||""),
+                      " ",
+                      React.createElement("span",{style:{color:C.muted}},n.fecha?toEST(n.fecha):""),
+                      ": ",
+                      n.texto
+                    );
+                  })
+                );
+              })(),
+              // Nueva nota
+              React.createElement("div",{key:"nota-add",style:{display:"flex",gap:4}}, [
+                React.createElement("input",{key:"inp",value:notaNueva,onChange:function(e){setNotaNueva(e.target.value);},placeholder:"Agregar nota...",style:{fontSize:11,padding:"4px 8px",borderRadius:6,border:"1px solid "+C.border,flex:1}}),
+                React.createElement("button",{key:"add",style:S.btn("#fff",C.indigo),onClick:function(){agregarNota(l);}},"+"),
+              ]),
               // Botones
               React.createElement("div",{key:"btns",style:{display:"flex",gap:4,flexWrap:"wrap",justifyContent:"center"}}, [
                 React.createElement("button",{key:"ret",style:S.btn("#fff",C.green),onClick:function(){marcarRetenido(l);}},"Retenido"),
                 React.createElement("button",{key:"nc",style:S.btn("#fff",C.amber),onClick:function(){marcarNoContesta(l);}},"No Contesta"),
                 React.createElement("button",{key:"can",style:S.btn("#fff",C.red),onClick:function(){marcarCancelado(l);}},"Cancelado"),
-                React.createElement("button",{key:"x",style:S.btn(C.muted,"transparent"),onClick:function(){setActionLead(null);setMotivo("");setNota("");}}, "x"),
+                React.createElement("button",{key:"x",style:S.btn(C.muted,"transparent"),onClick:function(){setActionLead(null);setMotivo("");setNotaNueva("");}}, "x"),
               ]),
-            ])
-          : React.createElement("button",{style:S.btn(C.red,"rgba(185,28,28,0.08)"),onClick:function(){setActionLead(l.id);setMotivo("");setNota("");}}, "Gestionar")
+            ].filter(Boolean))
+          : React.createElement("button",{style:S.btn(C.red,"rgba(185,28,28,0.08)"),onClick:function(){setActionLead(l.id);setMotivo(l.retencion_motivo||"");setNotaNueva("");}}, "Gestionar")
       ) : null,
     ].filter(Boolean));
   }
