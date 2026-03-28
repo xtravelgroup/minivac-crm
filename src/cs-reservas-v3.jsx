@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
 import { supabase as SB } from "./supabase.js";
-import { TablaHistorial, registrarEvento } from "./useHistorial.jsx";
+import { TablaHistorial, registrarEvento, useHistorial } from "./useHistorial.jsx";
 
 // ─────────────────────────────────────────────────────────────
 // TEMA ZOHO CLARO — igual que seller / verificador
@@ -1310,6 +1310,44 @@ function EditDestinosModal(props) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// NOTAS TAB — historial de notas del cliente
+// ─────────────────────────────────────────────────────────────
+function NotasTab(props) {
+  var { historial, loading, recargar } = useHistorial(props.leadId);
+  var [txt, setTxt] = useState("");
+  var notas = historial.filter(function(h){ return h.tipo === "nota"; });
+
+  function guardar() {
+    if (!txt.trim()) return;
+    registrarEvento(props.leadId, "nota", txt.trim(), null, { nombre: props.currentUser ? props.currentUser.nombre : "CS" });
+    if (props.onAddEvento && props.clienteFolio) props.onAddEvento(props.clienteFolio, "nota", "sistema", txt.trim(), props.currentUser ? props.currentUser.nombre : "CS");
+    setTxt("");
+    setTimeout(recargar, 500);
+  }
+
+  return (
+    <div>
+      <div style={{marginBottom:14}}>
+        <div style={{display:"flex",gap:8}}>
+          <textarea style={{flex:1,padding:"10px 12px",borderRadius:8,border:"1px solid #e3e6ea",fontSize:13,resize:"vertical",minHeight:60,outline:"none",fontFamily:"inherit"}} value={txt} onChange={function(e){setTxt(e.target.value);}} placeholder="Escribir nota..." onKeyDown={function(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();guardar();}}}/>
+          <button style={{background:"#1565c0",color:"#fff",border:"none",borderRadius:8,padding:"10px 18px",fontSize:13,fontWeight:700,cursor:"pointer",alignSelf:"flex-end",opacity:txt.trim()?"1":"0.5"}} disabled={!txt.trim()} onClick={guardar}>Guardar</button>
+        </div>
+      </div>
+      {loading && <div style={{textAlign:"center",padding:"24px",color:"#9ca3af",fontSize:12}}>Cargando notas...</div>}
+      {!loading && notas.length === 0 && <div style={{textAlign:"center",padding:"40px",color:"#9ca3af",fontSize:13}}>Sin notas registradas</div>}
+      {notas.map(function(n){
+        var fecha = n.created_at ? new Date(n.created_at) : null;
+        var fStr = fecha ? (("0"+fecha.getDate()).slice(-2)+"/"+("0"+(fecha.getMonth()+1)).slice(-2)+"/"+fecha.getFullYear()+" "+("0"+fecha.getHours()).slice(-2)+":"+("0"+fecha.getMinutes()).slice(-2)) : "--";
+        return <div key={n.id} style={{padding:"10px 14px",borderRadius:8,background:"#f8f9fb",border:"1px solid #e3e6ea",marginBottom:8}}>
+          <div style={{fontSize:13,color:"#1a1f2e",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{n.descripcion}</div>
+          <div style={{fontSize:10,color:"#9ca3af",marginTop:6}}>{n.usuario_nombre||"--"} · {fStr}</div>
+        </div>;
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // FICHA DEL MIEMBRO — tabs
 // ─────────────────────────────────────────────────────────────
 function FichaMiembro(props) {
@@ -1337,6 +1375,7 @@ function FichaMiembro(props) {
     {id:"paquete",   label:"📦 Paquete",                          show:true},
     {id:"reservas",  label:"🏨 Reservas"+(resCliente.length?" ("+resCliente.length+")":""), show:true},
     {id:"financiero",label:"💰 Financiero",                       show:perms.verFinanciero},
+    {id:"notas",     label:"📝 Notas",                            show:perms.crearNota||perms.verHistorial},
     {id:"casos",     label:"📋 Casos"+(casosCliente.length?" ("+casosCliente.length+")":""), show:perms.crearCaso||perms.verHistorial},
     {id:"ops",       label:"⚙️ Ops"+(opsCliente.length?" ("+opsCliente.length+")":""),      show:perms.crearOperacion||perms.verHistorial},
     {id:"historial", label:"🕒 Historial",                        show:perms.verHistorial},
@@ -1590,6 +1629,11 @@ function FichaMiembro(props) {
               })}
             </div>
           ) : <div style={{textAlign:"center",padding:"40px",color:"#9ca3af"}}>Sin permiso para ver datos financieros</div>
+        )}
+
+        {/* ── NOTAS ── */}
+        {tab==="notas"&&(
+          <NotasTab leadId={c.id} clienteFolio={c.folio} currentUser={props.currentUser} onAddEvento={props.onAddEvento}/>
         )}
 
         {/* ── CASOS ── */}
@@ -2007,7 +2051,7 @@ export default function CsReservasV3(props) {
     currentUser:currentUser, perms:perms, rol:rolActual,
     reservas:reservas, interacciones:interacciones, casos:casos, ops:operaciones,
     onNuevaReserva:handleNuevaReserva, onVerReserva:handleVerReserva,
-    onNota:handleNota, onCaso:handleCaso, onOp:handleOp, onAprobarOp:aprobarOp, onRechazarOp:rechazarOp, onVerFirma:function(cl){ setFirmaModal(cl); },
+    onNota:handleNota, onAddEvento:addEvento, onCaso:handleCaso, onOp:handleOp, onAprobarOp:aprobarOp, onRechazarOp:rechazarOp, onVerFirma:function(cl){ setFirmaModal(cl); },
     onRetencion:handleRetencion, onComm:comm.open,
     onAbono:function(nuevosAbonos){
       cargarMiembros();
