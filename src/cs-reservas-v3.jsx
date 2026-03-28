@@ -1307,6 +1307,7 @@ function FichaMiembro(props) {
   var [editNombre,    setEditNombre]    = useState(false);
   var [transferir,    setTransferir]    = useState(false);
   var [showRetencion, setShowRetencion] = useState(false);
+  var [retencionOtro, setRetencionOtro] = useState("");
 
   var TABS=[
     {id:"contacto",  label:"📞 Contacto",                         show:perms.verContacto},
@@ -1372,15 +1373,22 @@ function FichaMiembro(props) {
             <button style={S.btn("danger")} onClick={function(){setShowRetencion(true);}}>Retención</button>
           )}
           {showRetencion&&(
-            <div style={{position:"fixed",inset:0,background:"rgba(10,15,25,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}} onClick={function(e){if(e.target===e.currentTarget)setShowRetencion(false);}}>
+            <div style={{position:"fixed",inset:0,background:"rgba(10,15,25,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}} onClick={function(e){if(e.target===e.currentTarget){setShowRetencion(false);setRetencionOtro("");}}}>
               <div style={{background:"#fff",borderRadius:12,width:"100%",maxWidth:420,boxShadow:"0 4px 24px rgba(0,0,0,0.12)",border:"1px solid #e3e6ea"}}>
                 <div style={{padding:"14px 18px",borderBottom:"1px solid #e3e6ea",background:"#f8f9fb",borderRadius:"12px 12px 0 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div style={{fontSize:14,fontWeight:700,color:"#1a1f2e"}}>Motivo de cancelacion</div>
-                  <button style={{background:"none",border:"none",fontSize:18,cursor:"pointer",color:"#9ca3af"}} onClick={function(){setShowRetencion(false);}}>x</button>
+                  <button style={{background:"none",border:"none",fontSize:18,cursor:"pointer",color:"#9ca3af"}} onClick={function(){setShowRetencion(false);setRetencionOtro("");}}>x</button>
                 </div>
                 <div style={{padding:18,display:"flex",flexDirection:"column",gap:8}}>
-                  {["Problemas economicos","No ha podido viajar","Mala experiencia","No entiende el producto","Encontro mejor opcion","Cambio de planes","Otro","Chargeback"].map(function(m){
-                    return <button key={m} style={{textAlign:"left",padding:"10px 14px",borderRadius:8,border:"1px solid #e3e6ea",background:m==="Chargeback"?"rgba(185,28,28,0.06)":"#fff",cursor:"pointer",fontSize:13,fontWeight:500,color:m==="Chargeback"?"#b91c1c":"#1a1f2e"}} onClick={function(){props.onRetencion(c,m);setShowRetencion(false);}}>{m}</button>;
+                  {["Problemas economicos","No ha podido viajar","Mala experiencia","No entiende el producto","No quiere asistir presentacion","Boletos Aereos","No le gusta hoteles","Encontro mejor opcion","Cambio de planes","Otro","Chargeback"].map(function(m){
+                    if(m==="Otro") return <div key={m}>
+                      <button style={{textAlign:"left",padding:"10px 14px",borderRadius:8,border:"1px solid #e3e6ea",background:"#fff",cursor:"pointer",fontSize:13,fontWeight:500,color:"#1a1f2e",width:"100%"}} onClick={function(){setRetencionOtro(retencionOtro?" ":"Otro: ");}}>{m}</button>
+                      {retencionOtro!==""&&<div style={{display:"flex",gap:6,marginTop:6}}>
+                        <input style={{flex:1,padding:"8px 12px",borderRadius:8,border:"1px solid #e3e6ea",fontSize:13,outline:"none"}} placeholder="Detalle..." value={retencionOtro} onChange={function(e){setRetencionOtro(e.target.value);}} autoFocus/>
+                        <button style={{padding:"8px 14px",borderRadius:8,background:"#dc2626",color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer",opacity:retencionOtro.trim()?"1":"0.5"}} disabled={!retencionOtro.trim()} onClick={function(){props.onRetencion(c,"Otro: "+retencionOtro.trim());setShowRetencion(false);setRetencionOtro("");}}>Enviar</button>
+                      </div>}
+                    </div>;
+                    return <button key={m} style={{textAlign:"left",padding:"10px 14px",borderRadius:8,border:"1px solid #e3e6ea",background:m==="Chargeback"?"rgba(185,28,28,0.06)":"#fff",cursor:"pointer",fontSize:13,fontWeight:500,color:m==="Chargeback"?"#b91c1c":"#1a1f2e"}} onClick={function(){props.onRetencion(c,m);setShowRetencion(false);setRetencionOtro("");}}>{m}</button>;
                   })}
                 </div>
               </div>
