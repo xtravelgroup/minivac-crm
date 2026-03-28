@@ -242,10 +242,22 @@ serve(async (req) => {
       );
       const allAvailable = await agentRes.json();
       if (Array.isArray(allAvailable)) {
-        // Sort: preferred agent first, then by queue priority
-        agents = queueAgentIds
-          .map((id: string) => allAvailable.find((a: any) => a.usuario_id === id))
-          .filter(Boolean);
+        // Build priority map from queue_agents
+        const prioMap: Record<string, number> = {};
+        (qaData as any[]).forEach((q: any) => { prioMap[q.usuario_id] = q.prioridad; });
+
+        // Sort by priority first, then round-robin: within same priority,
+        // the agent who has been "available" the longest gets the call first
+        // (updated_at ASC = became available earliest = waited longest)
+        agents = allAvailable.sort((a: any, b: any) => {
+          const pa = prioMap[a.usuario_id] ?? 99;
+          const pb = prioMap[b.usuario_id] ?? 99;
+          if (pa !== pb) return pa - pb;
+          // Same priority: longest time available first (oldest updated_at)
+          const ta = new Date(a.updated_at || 0).getTime();
+          const tb = new Date(b.updated_at || 0).getTime();
+          return ta - tb;
+        });
 
         // Move preferred agent to front if available
         if (preferredAgentId) {
