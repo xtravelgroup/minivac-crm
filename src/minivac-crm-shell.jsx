@@ -505,7 +505,7 @@ export default function MinivacShell() {
   const [showCambiarClave, setShowCambiarClave] = useState(false);
   const [notifPanel, setNotifPanel] = useState(false);
   const initialLeadIdRef = useRef(null);
-  const verifLeadIdRef = useRef(null);
+  const [verifLeadId, setVerifLeadId] = useState(null);
   const [chatAlertas, limpiarAlertas] = useChatAlertas(user);
 
   // Sesión persistente
@@ -612,12 +612,12 @@ export default function MinivacShell() {
           {!activo && <Bienvenida user={user} onNav={handleNav} />}
 
           <Suspense fallback={SUSPENSE_FB}>
-            {activo === "dashboard"    && <ExecutiveSuite currentUser={user} onVerLead={function(leadId){ verifLeadIdRef.current = leadId; setActivo("verificacion"); }} />}
+            {activo === "dashboard"    && <ExecutiveSuite currentUser={user} onVerLead={function(leadId){ setVerifLeadId(leadId); setActivo("verificacion"); }} />}
             {activo === "radio"        && <RadioModule isSupervisor={["admin","director","supervisor","especialista_radio"].includes(user.rol)} isReadOnly={user.rol === "contador"} />}
             {activo === "kb"           && <KnowledgeBase currentUser={user} />}
             {activo === "comms"        && <CommunicationsHub currentUser={user} destCatalog={[]} onVerLead={(lead) => { initialLeadIdRef.current = lead.id; setActivo("seller"); }} />}
             {activo === "seller"       && <SellerCRM currentUser={user} initialLeadId={initialLeadIdRef.current} />}
-            {activo === "verificacion" && <VerificationModule currentUser={user} initialLeadId={verifLeadIdRef.current} />}
+            {activo === "verificacion" && <VerificationModule currentUser={user} initialLeadId={verifLeadId} />}
             {activo === "reservas"     && <Reservaciones currentUser={user} />}
             {activo === "cs"           && <CSReservas currentUser={user} />}
             {activo === "destinos"     && <DestinationsModule />}
