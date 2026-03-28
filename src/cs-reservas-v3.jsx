@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import CommPanel, { useCommPanel, CommPanelTrigger } from "./comm-panel";
 import { supabase as SB } from "./supabase.js";
-import { TablaHistorial } from "./useHistorial.jsx";
+import { TablaHistorial, registrarEvento } from "./useHistorial.jsx";
 
 // ─────────────────────────────────────────────────────────────
 // TEMA ZOHO CLARO — igual que seller / verificador
@@ -1811,6 +1811,9 @@ export default function CsReservasV3() {
 
   function addEvento(clienteFolio,tipo,canal,texto,autor){
     setInteracciones(function(prev){return [{id:uid(),clienteFolio:clienteFolio,tipo:tipo,canal:canal,texto:texto,autor:autor,fecha:new Date().toISOString()},...prev];});
+    // Persistir en lead_historial
+    var m = miembros.find(function(x){return x.folio===clienteFolio;});
+    if(m&&m.id) registrarEvento(m.id, tipo, texto, canal, {nombre:autor});
   }
 
   function handleNuevaReserva(c,d){ if(perms.crearReserva) setModal({tipo:"nueva_res",cliente:c,destino:d||null}); }

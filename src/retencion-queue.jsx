@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase as SB } from "./supabase.js";
+import { registrarEvento } from "./useHistorial.jsx";
 
 var SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
 var SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAxNTA0MiwiZXhwIjoyMDg4NTkxMDQyfQ.-P8KH6yhs6AJ1lUwBrwUpcoZV3KGvM7fDlFM3RsYKxw";
@@ -137,6 +138,7 @@ export default function RetencionQueue({ currentUser }) {
       retencion_nota: notas,
     }).then(function(){
       notify("No contesta — reintentar en "+hoursDelay+"h (intento "+attempts+")");
+      registrarEvento(lead.id, "retencion", "Retención: No contesta — reintentar en "+hoursDelay+"h (intento "+attempts+")", null, {nombre:currentUser?.nombre||"CS"});
       setNotaNueva(""); cargar(); setActionLead(null);
     }).catch(function(e){ notify("Error: "+e.message, false); });
   }
@@ -151,6 +153,7 @@ export default function RetencionQueue({ currentUser }) {
       retencion_completed_at: new Date().toISOString(),
     }).then(function(){
       notify("Cliente retenido exitosamente");
+      registrarEvento(lead.id, "retencion", "Cliente retenido exitosamente — Motivo: "+(motivo||lead.retencion_motivo||"--"), null, {nombre:currentUser?.nombre||"CS"});
       setMotivo(""); setNotaNueva(""); cargar(); setActionLead(null);
     }).catch(function(e){ notify("Error: "+e.message, false); });
   }
@@ -165,6 +168,7 @@ export default function RetencionQueue({ currentUser }) {
       retencion_completed_at: new Date().toISOString(),
     }).then(function(){
       notify("Cliente marcado como cancelado");
+      registrarEvento(lead.id, "cancelacion", "Cliente cancelado — Motivo: "+(motivo||lead.retencion_motivo||"--"), null, {nombre:currentUser?.nombre||"CS"});
       setMotivo(""); setNotaNueva(""); cargar(); setActionLead(null);
     }).catch(function(e){ notify("Error: "+e.message, false); });
   }
@@ -174,6 +178,7 @@ export default function RetencionQueue({ currentUser }) {
     var notas = buildNotas(lead, notaNueva);
     patchLead(lead.id, { retencion_nota: notas }).then(function(){
       notify("Nota agregada");
+      registrarEvento(lead.id, "nota", "Nota retención: "+notaNueva.trim(), null, {nombre:currentUser?.nombre||"CS"});
       setNotaNueva(""); cargar();
     }).catch(function(e){ notify("Error: "+e.message, false); });
   }

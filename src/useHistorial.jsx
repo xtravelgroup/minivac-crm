@@ -49,14 +49,21 @@ export function useHistorial(leadId) {
 // ICONOS Y COLORES POR TIPO DE EVENTO
 // ─────────────────────────────────────────────────────────────
 export var TIPO_CONFIG = {
-  status:  { icon: "🔄", label: "Status",   color: "#1565c0", bg: "#e8f0fe" },
-  destino: { icon: "🗺️", label: "Destino",  color: "#1a7f3c", bg: "#edf7ee" },
-  pago:    { icon: "💳", label: "Pago",     color: "#925c0a", bg: "#fffbe0" },
-  nota:    { icon: "📝", label: "Nota",     color: "#6b7280", bg: "#f4f5f7" },
-  datos:   { icon: "👤", label: "Datos",    color: "#7c3aed", bg: "#f3e8ff" },
-  verif:   { icon: "✅", label: "Verif.",   color: "#1a7f3c", bg: "#edf7ee" },
-  cobro:   { icon: "💰", label: "Cobro",    color: "#b91c1c", bg: "#fef2f2" },
-  firma:   { icon: "✍️", label: "Firma",    color: "#0ea5e9", bg: "#e0f2fe" },
+  status:       { icon: "🔄", label: "Status",       color: "#1565c0", bg: "#e8f0fe" },
+  destino:      { icon: "🗺️", label: "Destino",      color: "#1a7f3c", bg: "#edf7ee" },
+  pago:         { icon: "💳", label: "Pago",         color: "#925c0a", bg: "#fffbe0" },
+  nota:         { icon: "📝", label: "Nota",         color: "#6b7280", bg: "#f4f5f7" },
+  datos:        { icon: "👤", label: "Datos",        color: "#7c3aed", bg: "#f3e8ff" },
+  verif:        { icon: "✅", label: "Verif.",       color: "#1a7f3c", bg: "#edf7ee" },
+  cobro:        { icon: "💰", label: "Cobro",        color: "#b91c1c", bg: "#fef2f2" },
+  firma:        { icon: "✍️", label: "Firma",        color: "#0ea5e9", bg: "#e0f2fe" },
+  retencion:    { icon: "⚠️", label: "Retención",    color: "#b91c1c", bg: "#fef2f2" },
+  welcome:      { icon: "📞", label: "Welcome",      color: "#0ea5a0", bg: "#e0f7f6" },
+  reserva:      { icon: "🏨", label: "Reserva",      color: "#0ea5a0", bg: "#e0f7f6" },
+  caso:         { icon: "📋", label: "Caso",         color: "#1565c0", bg: "#e8f0fe" },
+  operacion:    { icon: "🔧", label: "Operación",    color: "#f59e0b", bg: "#fffbe0" },
+  transferencia:{ icon: "🔀", label: "Transferencia", color: "#7c3aed", bg: "#f3e8ff" },
+  cancelacion:  { icon: "❌", label: "Cancelación",  color: "#b91c1c", bg: "#fef2f2" },
 };
 
 // ─────────────────────────────────────────────────────────────

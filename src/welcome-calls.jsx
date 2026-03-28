@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase as SB } from "./supabase.js";
+import { registrarEvento } from "./useHistorial.jsx";
 
 var SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
 var SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAxNTA0MiwiZXhwIjoyMDg4NTkxMDQyfQ.-P8KH6yhs6AJ1lUwBrwUpcoZV3KGvM7fDlFM3RsYKxw";
@@ -106,6 +107,7 @@ export default function WelcomeCalls({ currentUser }) {
     }).eq("id", lead.id).then(function(res){
       if(res.error){ notify("Error: "+res.error.message, false); return; }
       notify("No contesta — reintentar en "+hoursDelay+"h (intento "+attempts+")");
+      registrarEvento(lead.id, "welcome", "Welcome call: No contesta — reintentar en "+hoursDelay+"h (intento "+attempts+")", null, {nombre:currentUser?.nombre||"CS"});
       cargar();
       setActionLead(null);
     });
@@ -118,6 +120,7 @@ export default function WelcomeCalls({ currentUser }) {
     }).eq("id", lead.id).then(function(res){
       if(res.error){ notify("Error: "+res.error.message, false); return; }
       notify("Welcome call completada");
+      registrarEvento(lead.id, "welcome", "Welcome call completada", null, {nombre:currentUser?.nombre||"CS"});
       cargar();
       setActionLead(null);
     });
@@ -148,7 +151,7 @@ export default function WelcomeCalls({ currentUser }) {
         lead_id: lead.id,
       }),
     }).then(function(r){ return r.json(); }).then(function(r){
-      if(r.id || r.ok) notify("Acceso al portal enviado por email");
+      if(r.id || r.ok){ notify("Acceso al portal enviado por email"); registrarEvento(lead.id, "welcome", "Acceso al portal enviado por email", null, {nombre:currentUser?.nombre||"CS"}); }
       else notify("Error: "+(r.error||r.message||"fallo envio"), false);
     });
   }
@@ -174,7 +177,7 @@ export default function WelcomeCalls({ currentUser }) {
         lead_id: lead.id,
       }),
     }).then(function(r){ return r.json(); }).then(function(r){
-      if(r.id || r.ok) notify("Email de bienvenida enviado");
+      if(r.id || r.ok){ notify("Email de bienvenida enviado"); registrarEvento(lead.id, "welcome", "Email de bienvenida enviado", null, {nombre:currentUser?.nombre||"CS"}); }
       else notify("Error: "+(r.error||r.message||"fallo envio"), false);
     });
   }
@@ -188,7 +191,7 @@ export default function WelcomeCalls({ currentUser }) {
       headers: HDR,
       body: JSON.stringify({ to:tel, use_template:true, lead_id:lead.id, service_key:SERVICE_KEY }),
     }).then(function(r){ return r.json(); }).then(function(r){
-      if(r.ok) notify("WhatsApp de bienvenida enviado");
+      if(r.ok){ notify("WhatsApp de bienvenida enviado"); registrarEvento(lead.id, "welcome", "WhatsApp de bienvenida enviado", null, {nombre:currentUser?.nombre||"CS"}); }
       else notify("Error: "+(r.error||"fallo envio"), false);
     });
   }
