@@ -84,7 +84,7 @@ var TABS = [
   {id:"radios",     l:"Radios / ROI"},
 ];
 
-export default function ExecutiveSuite({ currentUser }) {
+export default function ExecutiveSuite({ currentUser, onVerLead }) {
   var rol = currentUser ? currentUser.rol : "admin";
   var TABS_VISIBLE = rol === "supervisor"
     ? TABS.filter(function(t){ return t.id !== "resumen" && t.id !== "reservas"; })
@@ -137,9 +137,9 @@ export default function ExecutiveSuite({ currentUser }) {
     // Contenido
     React.createElement("div", {key:"body"},
       tab==="resumen"    && React.createElement(TabResumen,    {data:data}) ||
-      tab==="ventas"     && React.createElement(TabVentas,     {data:data}) ||
+      tab==="ventas"     && React.createElement(TabVentas,     {data:data, onVerLead:onVerLead}) ||
       tab==="reservas"   && React.createElement(TabReservas,   {data:data}) ||
-      tab==="cobranza"   && React.createElement(TabCobranza,   {data:data}) ||
+      tab==="cobranza"   && React.createElement(TabCobranza,   {data:data, onVerLead:onVerLead}) ||
       tab==="vendedores" && React.createElement(TabVendedoresList, {data:data}) ||
       tab==="radios"     && React.createElement(TabRadios,     {data:data})
     ),
@@ -255,7 +255,7 @@ function VentasTable(props){
               var vendedor = usrMap[l.vendedor_id] || "--";
               return React.createElement("tr", {key:l.id}, [
                 React.createElement("td",{key:"f",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},toEST(l.created_at))),
-                React.createElement("td",{key:"n",style:S.td},React.createElement("span",{style:{fontWeight:600}},l.nombre||"--")),
+                React.createElement("td",{key:"n",style:S.td},React.createElement("span",{style:{fontWeight:600,color:C.indigo,cursor:"pointer",textDecoration:"underline"},onClick:function(){if(props.onVerLead)props.onVerLead(l.id);}},l.nombre||"--")),
                 React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:12,color:C.text}},vendedor)),
                 React.createElement("td",{key:"s",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.emisora||"--")),
                 React.createElement("td",{key:"c",style:S.tdc},l.sale_price?React.createElement("span",{style:{color:C.violet,fontWeight:700}},fmtUSD(l.sale_price)):"--"),
@@ -366,8 +366,8 @@ function TabVentas(props){
       ]),
     ]),
     // Ventas del dia y semana
-    React.createElement(VentasTable, {key:"vhoy", title:"Ventas del Dia", leads:ventasHoy, usuarios:props.data.usuarios}),
-    React.createElement(VentasTable, {key:"vsem", title:"Ventas de la Semana", leads:ventasSem, usuarios:props.data.usuarios}),
+    React.createElement(VentasTable, {key:"vhoy", title:"Ventas del Dia", leads:ventasHoy, usuarios:props.data.usuarios, onVerLead:props.onVerLead}),
+    React.createElement(VentasTable, {key:"vsem", title:"Ventas de la Semana", leads:ventasSem, usuarios:props.data.usuarios, onVerLead:props.onVerLead}),
   ]);
 }
 
@@ -457,7 +457,7 @@ function TabCobranza(props){
                 var pendiente = (l.sale_price||0) - pagado;
                 var pct2 = l.sale_price>0 ? Math.round((pagado/l.sale_price)*100) : 0;
                 return React.createElement("tr",{key:l.id},[
-                  React.createElement("td",{key:"n",style:S.td},React.createElement("span",{style:{fontWeight:600}},l.nombre||"--")),
+                  React.createElement("td",{key:"n",style:S.td},React.createElement("span",{style:{fontWeight:600,color:C.indigo,cursor:"pointer",textDecoration:"underline"},onClick:function(){if(props.onVerLead)props.onVerLead(l.id);}},l.nombre||"--")),
                   React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.emisora||"--")),
                   React.createElement("td",{key:"p",style:S.tdc},l.sale_price?React.createElement("span",{style:{color:C.violet}},fmtUSD(l.sale_price)):"--"),
                   React.createElement("td",{key:"c",style:S.tdc},React.createElement("span",{style:{color:C.green,fontWeight:700}},fmtUSD(pagado))),
