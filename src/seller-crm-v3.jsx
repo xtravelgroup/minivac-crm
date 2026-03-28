@@ -1254,8 +1254,8 @@ function LeadCard({ lead, isSupervisor, isSelected, onSelect, onClick, onDragSta
 // 
 function KanbanCol({ status, leads, isSupervisor, selectedIds, onSelect, onCardClick, onDragStart, onAI, users }) {
   const sc = STATUS_CFG[status];
-  var hoyStr = new Date().toISOString().slice(0,10);
-  var hoyDate = new Date(hoyStr+"T00:00:00");
+  var hoyStr = TODAY;
+  var hoyParts = hoyStr.split("-"); var hoyDate = new Date(Number(hoyParts[0]), Number(hoyParts[1])-1, Number(hoyParts[2]));
   var diaSemana = hoyDate.getDay();
   var inicioSemana = new Date(hoyDate); inicioSemana.setDate(hoyDate.getDate() - (diaSemana===0?6:diaSemana-1));
   var inicioSemStr = inicioSemana.toISOString().slice(0,10);
