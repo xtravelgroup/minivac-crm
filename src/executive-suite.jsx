@@ -88,7 +88,7 @@ export default function ExecutiveSuite({ currentUser, onVerLead }) {
   var rol = currentUser ? currentUser.rol : "admin";
   var isCSGerente = rol === "cs_gerente";
   var TABS_VISIBLE = isCSGerente
-    ? [{id:"cs_ventas", l:"Ventas Semana"}]
+    ? [{id:"cs_ventas", l:"Ventas Semana"},{id:"cs_cobranza", l:"Cobranza Semana"}]
     : rol === "supervisor"
     ? TABS.filter(function(t){ return t.id !== "resumen" && t.id !== "reservas"; })
     : TABS;
@@ -145,7 +145,8 @@ export default function ExecutiveSuite({ currentUser, onVerLead }) {
       tab==="cobranza"   && React.createElement(TabCobranza,   {data:data, onVerLead:onVerLead}) ||
       tab==="vendedores" && React.createElement(TabVendedoresList, {data:data}) ||
       tab==="radios"     && React.createElement(TabRadios,     {data:data}) ||
-      tab==="cs_ventas"  && React.createElement(TabCSVentas,   {data:data, onVerLead:onVerLead})
+      tab==="cs_ventas"  && React.createElement(TabCSVentas,   {data:data, onVerLead:onVerLead}) ||
+      tab==="cs_cobranza" && React.createElement(TabCSCobranza, {data:data, onVerLead:onVerLead})
     ),
   ]);
 }
@@ -603,6 +604,92 @@ function TabCSVentas(props){
                     React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:12,color:C.text}},usrMap[l.verificador_id]||"--")),
                     React.createElement("td",{key:"r",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.emisora||"--")),
                     React.createElement("td",{key:"e",style:S.tdc},React.createElement("span",{style:{fontWeight:700,color:C.green}},fmtUSD(l.pago_inicial||0))),
+                  ]);
+                })
+              ),
+            ]),
+      ]);
+    })),
+  ]);
+}
+
+// ── TAB CS COBRANZA SEMANA ──
+function TabCSCobranza(props){
+  var leads = props.data.leads;
+  var usuarios = props.data.usuarios || [];
+  var usrMap = {};
+  usuarios.forEach(function(u){ usrMap[u.id] = u.nombre; });
+
+  // Semana actual en EST
+  var hoyStr = new Date().toLocaleDateString("en-CA",{timeZone:"America/New_York"});
+  var hoyDate = new Date(hoyStr+"T00:00:00");
+  var diaSem = hoyDate.getDay();
+  var inicioSem = new Date(hoyDate); inicioSem.setDate(hoyDate.getDate()-(diaSem===0?6:diaSem-1));
+  var inicioSemStr = inicioSem.toISOString().slice(0,10);
+
+  // Buscar pagos (abonos) realizados esta semana
+  var cobros = [];
+  leads.forEach(function(l){
+    var historial = l.pagos_historial || [];
+    // Pago inicial: usar created_at del lead si es venta
+    if(l.status==="venta" && Number(l.pago_inicial||0)>0 && toEST(l.created_at)>=inicioSemStr){
+      cobros.push({lead:l, fecha:toEST(l.created_at), monto:Number(l.pago_inicial), tipo:"Enganche"});
+    }
+    // Abonos de historial
+    historial.forEach(function(p){
+      if(p.programado) return;
+      var fechaPago = p.fecha || "";
+      if(fechaPago>=inicioSemStr){
+        cobros.push({lead:l, fecha:fechaPago, monto:Number(p.monto||0), tipo:"Abono"});
+      }
+    });
+  });
+  cobros.sort(function(a,b){ return a.fecha>b.fecha?-1:a.fecha<b.fecha?1:0; });
+
+  var totalCobrado = cobros.reduce(function(s,c){ return s+c.monto; },0);
+
+  // Agrupar por dia
+  var diasNombres = ["Lunes","Martes","Miercoles","Jueves","Viernes","Sabado","Domingo"];
+  var diasSemana = [];
+  for(var i=0;i<7;i++){
+    var d = new Date(inicioSem);
+    d.setDate(inicioSem.getDate()+i);
+    var dStr = d.toISOString().slice(0,10);
+    var cobrosDia = cobros.filter(function(c){ return c.fecha===dStr; });
+    diasSemana.push({nombre:diasNombres[i], fecha:dStr, cobros:cobrosDia, esHoy:dStr===hoyStr});
+  }
+
+  return React.createElement("div", {style:S.page}, [
+    // KPIs
+    React.createElement("div", {key:"kpis", style:{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12}}, [
+      React.createElement(KpiCard, {key:"a", label:"Cobros Semana", value:cobros.length, color:C.indigo}),
+      React.createElement(KpiCard, {key:"b", label:"Total Cobrado", value:fmtUSD(totalCobrado), color:C.green}),
+      React.createElement(KpiCard, {key:"c", label:"Promedio por Cobro", value:cobros.length?fmtUSD(Math.round(totalCobrado/cobros.length)):"-", color:C.teal}),
+    ]),
+    // Por dia
+    React.createElement("div", {key:"dias"}, diasSemana.map(function(dia){
+      var totalDia = dia.cobros.reduce(function(s,c){ return s+c.monto; },0);
+      return React.createElement("div", {key:dia.fecha, style:Object.assign({},S.card,{marginBottom:12, borderLeft:dia.esHoy?"3px solid "+C.green:"3px solid transparent"})}, [
+        React.createElement("div", {key:"t", style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:dia.cobros.length?12:0}}, [
+          React.createElement("div", {key:"l", style:{fontSize:12, fontWeight:700, color:dia.esHoy?C.green:C.text}}, dia.nombre+" — "+dia.fecha),
+          React.createElement("div", {key:"r", style:{fontSize:12, fontWeight:700, color:dia.cobros.length?C.green:C.muted}}, dia.cobros.length+" cobro"+(dia.cobros.length!==1?"s":"")+(totalDia>0?" — "+fmtUSD(totalDia):"")),
+        ]),
+        dia.cobros.length===0
+          ? React.createElement("div",{key:"empty",style:{fontSize:11,color:C.muted,paddingTop:4}},"Sin cobros")
+          : React.createElement("table", {key:"tbl", style:{width:"100%", borderCollapse:"collapse"}}, [
+              React.createElement("thead", {key:"h"}, React.createElement("tr", {},
+                ["Fecha","Cliente","Agente","Verificador","Tipo","Monto"].map(function(h){return React.createElement("th",{key:h,style:S.th},h);})
+              )),
+              React.createElement("tbody", {key:"b"},
+                dia.cobros.map(function(c,idx){
+                  var l = c.lead;
+                  return React.createElement("tr", {key:l.id+"-"+idx}, [
+                    React.createElement("td",{key:"f",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},c.fecha)),
+                    React.createElement("td",{key:"n",style:S.td},React.createElement("span",{style:{fontWeight:600,color:C.indigo,cursor:"pointer",textDecoration:"underline"},onClick:function(){if(props.onVerLead)props.onVerLead(l.id);}},l.nombre||"--")),
+                    React.createElement("td",{key:"a",style:S.td},React.createElement("span",{style:{fontSize:12,color:C.text}},usrMap[l.vendedor_id]||"--")),
+                    React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:12,color:C.text}},usrMap[l.verificador_id]||"--")),
+                    React.createElement("td",{key:"t",style:S.tdc},React.createElement("span",{style:S.bdg(c.tipo==="Enganche"?C.green:C.indigo,c.tipo==="Enganche"?"rgba(26,127,60,0.08)":"rgba(21,101,192,0.08)")},c.tipo)),
+                    React.createElement("td",{key:"m",style:S.tdc},React.createElement("span",{style:{fontWeight:700,color:C.green}},fmtUSD(c.monto))),
                   ]);
                 })
               ),
