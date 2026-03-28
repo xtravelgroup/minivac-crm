@@ -417,6 +417,9 @@ function TabReservas(props){
 // ── TAB COBRANZA ──
 function TabCobranza(props){
   var leads = props.data.leads;
+  var usuarios = props.data.usuarios || [];
+  var usrMap = {};
+  usuarios.forEach(function(u){ usrMap[u.id] = u.nombre; });
   // Leads con saldo pendiente
   var conSaldo = leads.filter(function(l){
     return l.sale_price && getCobrado(l) < l.sale_price;
@@ -458,7 +461,7 @@ function TabCobranza(props){
                 var pct2 = l.sale_price>0 ? Math.round((pagado/l.sale_price)*100) : 0;
                 return React.createElement("tr",{key:l.id},[
                   React.createElement("td",{key:"n",style:S.td},React.createElement("span",{style:{fontWeight:600,color:C.indigo,cursor:"pointer",textDecoration:"underline"},onClick:function(){if(props.onVerLead)props.onVerLead(l.id);}},l.nombre||"--")),
-                  React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.emisora||"--")),
+                  React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:12,color:C.text}},usrMap[l.vendedor_id]||"--")),
                   React.createElement("td",{key:"p",style:S.tdc},l.sale_price?React.createElement("span",{style:{color:C.violet}},fmtUSD(l.sale_price)):"--"),
                   React.createElement("td",{key:"c",style:S.tdc},React.createElement("span",{style:{color:C.green,fontWeight:700}},fmtUSD(pagado))),
                   React.createElement("td",{key:"pe",style:S.tdc},React.createElement("span",{style:{color:C.red,fontWeight:700}},fmtUSD(pendiente))),
