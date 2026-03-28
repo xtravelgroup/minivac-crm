@@ -653,6 +653,8 @@ function ReservaModal(props){
   var [agente,  setAgente]  = useState(r.agente_nombre || r.agente || cu.nombre);
   var [notas,   setNotas]   = useState(r.notas_agente  || "");
   var [numRes,  setNumRes]  = useState(r.conf || "");
+  var [feeManual, setFeeManual] = useState(r.fee != null ? String(r.fee) : "");
+  var [nochePriceManual, setNochePriceManual] = useState(r.precioNoche != null ? String(r.precioNoche) : "");
   var [agentes, setAgentes] = useState([]);
   useEffect(function(){
     SB.from("profiles").select("id, nombre, rol").then(function(res){
@@ -726,10 +728,12 @@ function ReservaModal(props){
   var habs = hotelObj ? hotelObj.habs : [];
   var noches = (checkin && checkout) ? Math.max(0, Math.round((new Date(checkout+"T12:00:00")-new Date(checkin+"T12:00:00"))/(1000*60*60*24))) : (parseInt(nBase)||3);
   var nExtra = Math.max(0, noches - (parseInt(nBase)||3));
-  var fee = hotelObj ? hotelObj.fee : 0;
+  var feeDefault = hotelObj ? hotelObj.fee : 0;
+  var fee = feeManual !== "" ? parseFloat(feeManual)||0 : feeDefault;
   var habObj = habs.find(function(h){ return h.nombre === habNom; }) || habs[0] || null;
   var upg = habObj && !habObj.base ? habObj.up : 0;
-  var nochePrice = (hotelObj ? hotelObj.precioNoche : 90) + (habObj && !habObj.base ? habObj.up : 0);
+  var nochePriceDefault = (hotelObj ? hotelObj.precioNoche : 90);
+  var nochePrice = nochePriceManual !== "" ? parseFloat(nochePriceManual)||0 : nochePriceDefault;
   var total = fee + upg + nExtra * nochePrice;
 
   useEffect(function(){
@@ -751,7 +755,7 @@ function ReservaModal(props){
     var ni = parseInt(v)||0;
     setHIdx(ni);
     var h = hotelesLista[ni];
-    if(h){ setHotel(h.nombre); setHabNom(""); if(h.regs&&h.regs.length>0) setReg(h.regs[0]); }
+    if(h){ setHotel(h.nombre); setHabNom(""); if(h.regs&&h.regs.length>0) setReg(h.regs[0]); setFeeManual(String(h.fee||0)); setNochePriceManual(String(h.precioNoche||90)); }
   }
 
   // Pasajeros helpers
@@ -789,6 +793,7 @@ function ReservaModal(props){
       checkin:         checkin,
       checkout:        checkout,
       fee:             fee,
+      precio_noche:    nochePrice,
       upg:             upg,
       total:           total,
       agente_nombre:   agente,
@@ -873,6 +878,16 @@ function ReservaModal(props){
             <div><label style={S.lbl}>Check-in</label><input style={S.inp} type="date" value={checkin} onChange={function(e){setCheckin(e.target.value);}}/></div>
             <div><label style={S.lbl}>Check-out</label><input style={S.inp} type="date" value={checkout} min={checkin||""} onChange={function(e){setCheckout(e.target.value);}}/></div>
             <div><label style={S.lbl}>Noches paquete</label><div style={{padding:"8px 12px",background:"#f8f9fb",border:"1px solid #e3e6ea",borderRadius:"8px",fontSize:"13px",color:"#6b7280"}}>{nBase} <span style={{fontSize:10,color:"#9ca3af"}}>(del paquete)</span></div></div>
+          </div>
+
+          {/* Fee y costo noche */}
+          <div style={S.g2}>
+            <div><label style={S.lbl}>Fee de reserva (USD)</label>
+              <input style={S.inp} type="number" min="0" step="0.01" value={feeManual} onChange={function(e){setFeeManual(e.target.value);}} placeholder={String(feeDefault)}/>
+            </div>
+            <div><label style={S.lbl}>Costo por noche extra (USD)</label>
+              <input style={S.inp} type="number" min="0" step="0.01" value={nochePriceManual} onChange={function(e){setNochePriceManual(e.target.value);}} placeholder={String(nochePriceDefault)}/>
+            </div>
           </div>
 
           {/* Resumen fechas y costo */}
@@ -1368,6 +1383,7 @@ export default function ReservacionesModule(props){
       status:      rv.status   || "solicitada",
       conf:        rv.num_confirmacion || "",
       fee:         rv.fee      || 0,
+      precioNoche: rv.precio_noche || null,
       upg:         rv.upgrade  || 0,
       temp:        rv.temporada_extra || 0,
       total:       rv.total    || 0,
