@@ -1593,7 +1593,7 @@ function VendedorView({ leads, users, currentUser, destCatalog, onUpdateLead, in
 // 
 // SUPERVISOR VIEW
 // 
-function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, onBulkReassign, initialLeadId }) {
+function SupervisorView({ leads, users, currentUser, vistaUserId, destCatalog, onUpdateLead, onBulkReassign, initialLeadId }) {
   const [tab,           setTab]           = useState("pipeline");
   const [selLead,       setSelLead]       = useState(null);
   useEffect(() => { if (initialLeadId && leads.length) { const f = leads.find(l => l.id === initialLeadId); if (f) setSelLead(f); } }, [initialLeadId, leads]);
@@ -1608,7 +1608,8 @@ function SupervisorView({ leads, users, currentUser, destCatalog, onUpdateLead, 
   const isAdmin   = currentUser.role === "admin" || currentUser.role === "director" || currentUser.role === "supervisor";
   const miEquipo  = isAdmin ? users : users.filter(u => u.supervisorId===currentUser.id);
   const teamIds   = miEquipo.map(u => u.id);
-  const teamLeads = isAdmin ? leads : leads.filter(l => teamIds.includes(l.vendedorId));
+  const allTeamLeads = isAdmin ? leads : leads.filter(l => teamIds.includes(l.vendedorId));
+  const teamLeads = vistaUserId ? allTeamLeads.filter(l => l.vendedorId===vistaUserId) : allTeamLeads;
   const alertas   = teamLeads.filter(l => daysSince(l.ultimoContacto)>=ALERT_DAYS && !["venta","no_interesado"].includes(l.status) && !l.bloqueado);
 
   const filtered = teamLeads.filter(l =>
@@ -2390,7 +2391,7 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId }) {
       </div>
 
       {isSup
-        ? <SupervisorView leads={leads} users={usersParaVista} currentUser={activeUser} destCatalog={destCatalog} onUpdateLead={handleUpdateLead} onBulkReassign={handleBulkReassign} initialLeadId={initialLeadId} />
+        ? <SupervisorView leads={leads} users={usersParaVista} currentUser={mappedUser} vistaUserId={vistaUserId} destCatalog={destCatalog} onUpdateLead={handleUpdateLead} onBulkReassign={handleBulkReassign} initialLeadId={initialLeadId} />
         : <VendedorView   leads={leads} users={usersParaVista} currentUser={mappedUser}  destCatalog={destCatalog} onUpdateLead={handleUpdateLead} initialLeadId={initialLeadId} />
       }
 
