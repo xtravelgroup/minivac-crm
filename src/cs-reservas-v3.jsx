@@ -93,7 +93,6 @@ var OP_TIPOS = {
   extension:         {label:"Extension vigencia", color:AMBER,  bg:"#fef9e7", br:"#f0d080"},
   reembolso:         {label:"Reembolso",          color:GREEN,  bg:"#edf7ee", br:"#a3d9a5"},
   cambio_destino:    {label:"Cambio de destinos", color:BLUE,   bg:"#e8f0fe", br:"#aac4f0"},
-  descuento_credito: {label:"Descuento/Credito",  color:VIOLET, bg:"#f3e8ff", br:"#c4b5fd"},
 };
 var OP_STATUS = {
   pendiente: {label:"Pend. aprobacion", color:AMBER, bg:"#fef9e7", br:"#f0d080"},
