@@ -232,7 +232,6 @@ function AgentesTab(props) {
 // ─── COLA EN VIVO TAB ────────────────────────────────────────
 function ColaVivaTab(props) {
   var acdQueue = props.acdQueue;
-  var activeCalls = props.activeCalls;
   var usuarios = props.usuarios;
   var tickRef = useRef(0);
   var [, setTick] = useState(0);
@@ -247,16 +246,27 @@ function ColaVivaTab(props) {
     return u ? u.nombre : "--";
   }
 
+  // Split queue into waiting/ringing vs active (in-progress)
+  var waiting = acdQueue.filter(function (q) { return q.status === "waiting" || q.status === "ringing"; });
+  var active = acdQueue.filter(function (q) { return q.status === "in-progress"; });
+
   var thStyle = { padding: "10px 12px", fontSize: 11, fontWeight: 700, color: C.t4, textTransform: "uppercase", letterSpacing: "0.04em", textAlign: "left", borderBottom: "2px solid " + C.border };
   var tdStyle = { padding: "10px 12px", fontSize: 13, color: C.t1, borderBottom: "1px solid " + C.borderL };
 
+  var statusBadge = function (s) {
+    if (s === "waiting") return { bg: C.amberBg, color: C.amber, label: "En espera" };
+    if (s === "ringing") return { bg: C.blueBg, color: C.blue, label: "Timbrando" };
+    if (s === "in-progress") return { bg: C.greenBg, color: C.green, label: "En llamada" };
+    return { bg: C.grayBg, color: C.gray, label: s };
+  };
+
   return (
     <div>
-      {/* Ringing / Waiting */}
+      {/* Waiting / Ringing */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: C.t1, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.amberDot, animation: "pulse 1.5s infinite" }} />
-          En espera / Timbrando ({acdQueue.length})
+          En espera / Timbrando ({waiting.length})
         </div>
         <div style={{ background: C.surface, border: "1px solid " + C.border, borderRadius: C.r, overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -270,18 +280,19 @@ function ColaVivaTab(props) {
               </tr>
             </thead>
             <tbody>
-              {acdQueue.length === 0 && (
+              {waiting.length === 0 && (
                 <tr><td colSpan={5} style={{ padding: 20, textAlign: "center", color: C.t4, fontSize: 13 }}>Sin llamadas en espera</td></tr>
               )}
-              {acdQueue.map(function (q) {
+              {waiting.map(function (q) {
+                var sb = statusBadge(q.status);
                 return (
                   <tr key={q.id}>
                     <td style={tdStyle}><span style={{ fontWeight: 600 }}>{q.from_number || "--"}</span></td>
                     <td style={tdStyle}>
-                      <span style={{ padding: "3px 10px", borderRadius: 12, background: C.amberBg, color: C.amber, fontSize: 11, fontWeight: 600 }}>{q.status}</span>
+                      <span style={{ padding: "3px 10px", borderRadius: 12, background: sb.bg, color: sb.color, fontSize: 11, fontWeight: 600 }}>{sb.label}</span>
                     </td>
                     <td style={tdStyle}>{getAgentName(q.current_agent_id)}</td>
-                    <td style={tdStyle}>{q.attempt_count || 1}</td>
+                    <td style={tdStyle}>{q.attempt_count || 0}</td>
                     <td style={tdStyle}>
                       <span style={{ fontFamily: "monospace" }}>{fmtElapsed(q.ring_started_at || q.created_at)}</span>
                     </td>
@@ -293,11 +304,11 @@ function ColaVivaTab(props) {
         </div>
       </div>
 
-      {/* Active calls */}
+      {/* Active calls (in-progress) */}
       <div>
         <div style={{ fontSize: 14, fontWeight: 700, color: C.t1, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.greenDot }} />
-          Llamadas activas ({activeCalls.length})
+          Llamadas activas ({active.length})
         </div>
         <div style={{ background: C.surface, border: "1px solid " + C.border, borderRadius: C.r, overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -305,23 +316,25 @@ function ColaVivaTab(props) {
               <tr style={{ background: "#f9fafb" }}>
                 <th style={thStyle}>Numero</th>
                 <th style={thStyle}>Agente</th>
-                <th style={thStyle}>Duracion</th>
-                <th style={thStyle}>Inicio</th>
+                <th style={thStyle}>Estado</th>
+                <th style={thStyle}>Tiempo</th>
               </tr>
             </thead>
             <tbody>
-              {activeCalls.length === 0 && (
+              {active.length === 0 && (
                 <tr><td colSpan={4} style={{ padding: 20, textAlign: "center", color: C.t4, fontSize: 13 }}>Sin llamadas activas</td></tr>
               )}
-              {activeCalls.map(function (c) {
+              {active.map(function (q) {
                 return (
-                  <tr key={c.id}>
-                    <td style={tdStyle}><span style={{ fontWeight: 600 }}>{c.from_number || "--"}</span></td>
-                    <td style={tdStyle}>{getAgentName(c.agent_id)}</td>
+                  <tr key={q.id}>
+                    <td style={tdStyle}><span style={{ fontWeight: 600 }}>{q.from_number || "--"}</span></td>
+                    <td style={tdStyle}>{getAgentName(q.current_agent_id)}</td>
                     <td style={tdStyle}>
-                      <span style={{ fontFamily: "monospace", color: C.green, fontWeight: 700 }}>{fmtElapsed(c.answered_at || c.started_at)}</span>
+                      <span style={{ padding: "3px 10px", borderRadius: 12, background: C.greenBg, color: C.green, fontSize: 11, fontWeight: 600 }}>En llamada</span>
                     </td>
-                    <td style={tdStyle}>{fmtTime(c.started_at)}</td>
+                    <td style={tdStyle}>
+                      <span style={{ fontFamily: "monospace", color: C.green, fontWeight: 700 }}>{fmtElapsed(q.ring_started_at || q.created_at)}</span>
+                    </td>
                   </tr>
                 );
               })}
@@ -561,8 +574,8 @@ export default function TelephonyManagement(props) {
       .then(function (r) { return r.json(); })
       .then(function (d) { if (Array.isArray(d)) setUsuarios(d); });
 
-    // ACD queue (ringing/waiting)
-    fetch(SB_URL + "/rest/v1/acd_queue?status=in.(ringing,waiting)&order=created_at.asc", { headers: HDR })
+    // ACD queue (waiting/ringing/in-progress)
+    fetch(SB_URL + "/rest/v1/acd_queue?status=in.(waiting,ringing,in-progress)&order=created_at.asc", { headers: HDR })
       .then(function (r) { return r.json(); })
       .then(function (d) { if (Array.isArray(d)) setAcdQueue(d); });
 
