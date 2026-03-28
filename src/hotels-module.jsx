@@ -16,7 +16,7 @@ var INDIGO = "#6366f1";
 var CATEGORIAS    = ["3 estrellas","4 estrellas","5 estrellas","Boutique","Gran Lujo"];
 var PLANES        = ["Todo Incluido","Todo Incluido Premium","Solo Habitacion","Desayuno incluido","Media pension"];
 var TIPO_CAMA     = ["King","Queen","Doble","Matrimonial","Literas"];
-var ESTADOS_CIVIL = ["Casado","Union libre","Soltero hombre","Soltera mujer","Divorciado","Viudo"];
+var ESTADOS_CIVIL = ["Soltero Hombre","Soltera Mujer","Casado(a)","Union Libre"];
 
 var AMENIDADES_CATS = [
   {cat:"Agua y Playa",   col:TEAL,    items:["Piscina","Piscina infinity","Playa privada","Bar swim-up","Jacuzzi","Deportes acuaticos","Kayak","Centro de buceo","Toboganes"]},

@@ -60,7 +60,7 @@ const TIPO_ICONS = { llamada:"", whatsapp:"", cita:"", email:"", venta:"", verif
 
 
 const EMISORAS = ["Radio Hits","Banda 107","Stereo 94","Exitos 102","Mix 88","La Ke Buena"];
-const ESTADO_CIVIL_OPTIONS = ["Casado","Union libre","Soltero hombre","Soltera mujer"];
+const ESTADO_CIVIL_OPTIONS = ["Soltero Hombre","Soltera Mujer","Casado(a)","Union Libre"];
 
 //  Catalogo de destinos con reglas de calificacion 
 // DESTINOS_CATALOG ahora viene de Supabase — ver SellerCRMv3 donde se carga
@@ -846,7 +846,7 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
                 <SpotSelect value={draft.spotId||""} onChange={function(spotId, emisoraId, label){ set("spotId",spotId||null); set("emisoraId",emisoraId||null); if(label) set("emisora",label); }} disabled={!canEdit}/>
               </div>
             </div>
-            {(draft.estadoCivil==="Casado" || draft.estadoCivil==="Union libre") && (
+            {(draft.estadoCivil==="Casado" || draft.estadoCivil==="Union libre" || draft.estadoCivil==="Casado(a)" || draft.estadoCivil==="Union Libre") && (
             <div style={{ padding:"12px 14px", borderRadius:"10px", background:"#f9fafb", border:"1px solid #e3e6ea" }}>
               <div style={S.sTitle}> Co-propietario</div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px", marginBottom:"8px" }}>

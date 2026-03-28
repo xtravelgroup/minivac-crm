@@ -6,7 +6,7 @@ var SB_TABLE = "destinos_catalog";
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const MARITAL_OPTIONS  = ["Casado", "Unión libre", "Soltero", "Divorciado", "Viudo"];
+const MARITAL_OPTIONS  = ["Soltero Hombre", "Soltera Mujer", "Casado(a)", "Union Libre"];
 const CAPACITY_OPTIONS = ["Parejas", "Familias", "Grupos", "Solo adultos"];
 const PLAN_OPTIONS     = ["Todo Incluido", "Solo Habitación", "Desayuno incluido", "Media pensión", "Todo Incluido Premium"];
 const CATEGORIES       = ["Premium", "Ultra Premium", "Familiar", "Romance", "Boutique", "Eco Premium", "Clásico"];
@@ -1096,7 +1096,7 @@ function DestModal({ data, saving, onSave, onDelete, onClose }) {
                 Estados civiles que califican
               </div>
               <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-                {["Casado","Union libre","Soltero hombre","Soltera mujer","Divorciado","Viudo"].map(function(ec){
+                {["Soltero Hombre","Soltera Mujer","Casado(a)","Union Libre"].map(function(ec){
                   var sel = (f.qc.marital||[]).includes(ec);
                   return (
                     <div key={ec} onClick={function(){
