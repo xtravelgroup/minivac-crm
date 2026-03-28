@@ -2298,8 +2298,10 @@ export default function VerificationModule({ currentUser }) {
   }
   // Columnas NO excluyentes — un lead puede aparecer en varias
   const colCobranzaPend   = leads.filter(function(l){ 
-    var tieneCuotas = (l.exp&&l.exp.pagosHistorial||[]).some(function(p){ return p.programado&&!p.cobrado; });
-    return l.status==="venta" && (getSaldo(l) > 0 || tieneCuotas); 
+    var pagosHist = (l.exp&&l.exp.pagosHistorial)||[];
+    var tieneCuotasPendientes = pagosHist.some(function(p){ return p.programado&&!p.cobrado; });
+    var saldo = getSaldo(l);
+    return l.status==="venta" && saldo > 0 && tieneCuotasPendientes; 
   });
   const colPendienteFirma = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && !l.firma_firmada_at && l.firma_enviada_at; });
   const colVentas         = leads.filter(function(l){ return l.verificacion && l.verificacion.result==="venta" && estaEnSemana(l.verificacion.verifiedAt||l.firma_firmada_at); });
