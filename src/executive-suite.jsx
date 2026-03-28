@@ -96,7 +96,7 @@ export default function ExecutiveSuite({ currentUser }) {
   useEffect(function(){
     // Cargar datos en paralelo
     Promise.all([
-      SB.from("leads").select("id, nombre, estado_civil, status, emisora_id, emisora, created_at, sale_price, pago_inicial, vendedor_id"),
+      SB.from("leads").select("id, nombre, estado_civil, status, emisora_id, emisora, created_at, sale_price, pago_inicial, pagos_historial, vendedor_id"),
       SB.from("reservaciones").select("id, folio, status, total, fee, checkin, checkout, agente_nombre, created_at, destino_nombre, hotel"),
       SB.from("radio_spots").select("id, emisora_id, costo, talento, precio_equipo, fecha, semana, dia_semana, hora, duracion, tipo, incidencia"),
       SB.from("emisoras").select("id, nombre"),
@@ -150,11 +150,8 @@ function TabResumen(props){
   var reservas = props.data.reservas;
 
   var ventas       = leads.filter(function(l){ return l.status==="venta"||l.status==="verificacion"; });
-  var totalIngPag  = leads.reduce(function(s,l){
-    var ph = []||[];
-    return s + ph.reduce(function(a,p){ return a+(p.monto||0); },0);
-  },0);
-  var totalPaq     = totalIngPag;
+  var totalIngPag  = leads.reduce(function(s,l){ return s+getCobrado(l); },0);
+  var totalPaq     = leads.filter(function(l){ return l.status==="venta"||l.status==="verificacion"; }).reduce(function(s,l){ return s+getContrato(l); },0);
   var resActivas   = reservas.filter(function(r){ return r.status==="en_reserva"||r.status==="vlo_proceso"||r.status==="confirmada"; });
   var resCompletadas = reservas.filter(function(r){ return r.status==="completada"; });
 
@@ -237,22 +234,70 @@ function TabResumen(props){
 }
 
 // ── TAB VENTAS ──
+function getCobrado(l){
+  var ini=Number(l.pago_inicial||0);
+  var ab=(l.pagos_historial||[]).filter(function(p){return !p.programado;}).reduce(function(a,p){return a+Number(p.monto||0);},0);
+  return ini+ab;
+}
+function getContrato(l){
+  return Number(l.sale_price||0);
+}
+
 function TabVentas(props){
   var leads = props.data.leads;
+
+  var hoyStr = new Date().toLocaleDateString("en-CA",{timeZone:"America/New_York"});
+  var hoyDate = new Date(hoyStr+"T00:00:00");
+  var diaSem = hoyDate.getDay();
+  var inicioSem = new Date(hoyDate); inicioSem.setDate(hoyDate.getDate()-(diaSem===0?6:diaSem-1));
+  var inicioSemStr = inicioSem.toISOString().slice(0,10);
+
+  var leadsHoy = leads.filter(function(l){ return (l.created_at||"").slice(0,10)===hoyStr; });
+  var leadsSem = leads.filter(function(l){ return (l.created_at||"").slice(0,10)>=inicioSemStr; });
+
+  function stats(arr){
+    return {
+      total: arr.length,
+      ventas: arr.filter(function(l){return l.status==="venta";}).length,
+      cobrado: arr.reduce(function(s,l){return s+getCobrado(l);},0),
+      contratos: arr.filter(function(l){return l.status==="venta";}).reduce(function(s,l){return s+getContrato(l);},0),
+    };
+  }
+  var mesActual = new Date(new Date().toLocaleDateString("en-CA",{timeZone:"America/New_York"})+"T00:00:00");
+  var inicioMesStr = mesActual.getFullYear()+"-"+String(mesActual.getMonth()+1).padStart(2,"0")+"-01";
+  var leadsMes = leads.filter(function(l){ return (l.created_at||"").slice(0,10)>=inicioMesStr; });
+
+  var sHoy=stats(leadsHoy); var sSem=stats(leadsSem); var sMes=stats(leadsMes);
+
   var porEstado = ["nuevo","contactado","interesado","cita","verificacion","venta","no_interesado"].map(function(k){
     var items = leads.filter(function(l){ return l.status===k; });
-    var ingresos = items.reduce(function(s,l){ var ph=[]||[]; return s+ph.reduce(function(a,p){return a+(p.monto||0);},0); },0);
+    var ingresos = items.reduce(function(s,l){ return s+getCobrado(l); },0);
     return {k:k, items:items, ingresos:ingresos};
   });
-  var totalPag = leads.reduce(function(s,l){ var ph=[]||[]; return s+ph.reduce(function(a,p){return a+(p.monto||0);},0); },0);
-  var totalPaq = leads.reduce(function(s,l){ return s+(Number(l.sale_price)||0); },0);
 
   return React.createElement("div", {style:S.page}, [
-    React.createElement("div", {key:"kpis", style:{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12}}, [
-      React.createElement(KpiCard, {key:"a", label:"Total Leads", value:leads.length, color:C.indigo}),
-      React.createElement(KpiCard, {key:"b", label:"Ventas Cerradas", value:leads.filter(function(l){return l.status==="venta";}).length, color:C.green}),
-      React.createElement(KpiCard, {key:"c", label:"Ingresos Cobrados", value:fmtUSD(totalPag), color:C.green}),
-      React.createElement(KpiCard, {key:"d", label:"Valor Total Contratos", value:fmtUSD(totalPaq), color:C.violet}),
+    React.createElement("div", {key:"kpis", style:{display:"flex",flexDirection:"column",gap:12}}, [
+      React.createElement("div", {key:"hoy-label", style:{fontSize:10,fontWeight:700,color:C.green,textTransform:"uppercase",letterSpacing:"0.1em"}}, "Hoy — "+hoyStr),
+      React.createElement("div", {key:"hoy", style:{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12}}, [
+        React.createElement(KpiCard, {key:"a", label:"Leads Hoy", value:sHoy.total, color:C.indigo}),
+        React.createElement(KpiCard, {key:"b", label:"Ventas Hoy", value:sHoy.ventas, color:C.green}),
+        React.createElement(KpiCard, {key:"c", label:"Cobrado Hoy", value:fmtUSD(sHoy.cobrado), color:C.green}),
+        React.createElement(KpiCard, {key:"d", label:"Contratos Hoy", value:fmtUSD(sHoy.contratos), color:C.violet}),
+      ]),
+      React.createElement("div", {key:"sem-label", style:{fontSize:10,fontWeight:700,color:C.amber,textTransform:"uppercase",letterSpacing:"0.1em",marginTop:8}}, "Esta Semana"),
+      React.createElement("div", {key:"sem", style:{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12}}, [
+        React.createElement(KpiCard, {key:"a", label:"Leads Semana", value:sSem.total, color:C.indigo}),
+        React.createElement(KpiCard, {key:"b", label:"Ventas Semana", value:sSem.ventas, color:C.green}),
+        React.createElement(KpiCard, {key:"c", label:"Cobrado Semana", value:fmtUSD(sSem.cobrado), color:C.green}),
+        React.createElement(KpiCard, {key:"d", label:"Contratos Semana", value:fmtUSD(sSem.contratos), color:C.violet}),
+      ]),
+      React.createElement("div", {key:"mes-label", style:{fontSize:10,fontWeight:700,color:C.violet,textTransform:"uppercase",letterSpacing:"0.1em",marginTop:8}}, "Este Mes — "+new Date().toLocaleDateString("es-US",{month:"long",year:"numeric",timeZone:"America/New_York"})),
+      React.createElement("div", {key:"mes", style:{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12}}, [
+        React.createElement(KpiCard, {key:"a", label:"Leads del Mes", value:sMes.total, color:C.indigo}),
+        React.createElement(KpiCard, {key:"b", label:"Ventas del Mes", value:sMes.ventas, color:C.green}),
+        React.createElement(KpiCard, {key:"c", label:"Cobrado del Mes", value:fmtUSD(sMes.cobrado), color:C.green}),
+        React.createElement(KpiCard, {key:"d", label:"Contratos del Mes", value:fmtUSD(sMes.contratos), color:C.violet}),
+      ]),
     ]),
     React.createElement("div", {key:"card", style:S.card}, [
       React.createElement("div", {key:"t", style:S.ctit}, "Leads por Estado"),
@@ -288,7 +333,7 @@ function TabVentas(props){
         React.createElement("tbody", {key:"b"},
           leads.slice(0,15).map(function(l){
             var cfg = STATUS_CFG[l.estado]||{l:l.estado,c:C.muted,bg:"#f4f5f7"};
-            var pagado = ([]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
+            var pagado = getCobrado(l);
             return React.createElement("tr", {key:l.id}, [
               React.createElement("td",{key:"n",style:S.td},React.createElement("span",{style:{fontWeight:600}},l.nombre||"--")),
               React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.emisora||"--")),
@@ -352,12 +397,10 @@ function TabCobranza(props){
   var leads = props.data.leads;
   // Leads con saldo pendiente
   var conSaldo = leads.filter(function(l){
-    var ph = []||[];
-    var pagado = ph.reduce(function(s,p){return s+(p.monto||0);},0);
-    return l.sale_price && pagado < l.sale_price;
+    return l.sale_price && getCobrado(l) < l.sale_price;
   });
-  var totalPagado = leads.reduce(function(s,l){ return s+([]||[]).reduce(function(a,p){return a+(p.monto||0);},0); },0);
-  var totalContratos = leads.reduce(function(s,l){ return s+(l.sale_price||0); },0);
+  var totalPagado = leads.reduce(function(s,l){ return s+getCobrado(l); },0);
+  var totalContratos = leads.reduce(function(s,l){ return s+getContrato(l); },0);
   var totalPendiente = totalContratos - totalPagado;
 
   return React.createElement("div", {style:S.page}, [
@@ -388,7 +431,7 @@ function TabCobranza(props){
             )),
             React.createElement("tbody",{key:"b"},
               conSaldo.map(function(l){
-                var pagado = ([]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
+                var pagado = getCobrado(l);
                 var pendiente = (l.sale_price||0) - pagado;
                 var pct2 = l.sale_price>0 ? Math.round((pagado/l.sale_price)*100) : 0;
                 return React.createElement("tr",{key:l.id},[
@@ -424,7 +467,7 @@ function TabVendedoresList(props){
     if(!vendedores[v]) vendedores[v] = {nombre:v, leads:[], ventas:0, pagado:0};
     vendedores[v].leads.push(l);
     if(l.status==="venta"||l.status==="verificacion") vendedores[v].ventas++;
-    vendedores[v].pagado += ([]||[]).reduce(function(s,p){return s+(p.monto||0);},0);
+    vendedores[v].pagado += getCobrado(l);
   });
   var vList = Object.values(vendedores).sort(function(a,b){return b.ventas-a.ventas;});
 
