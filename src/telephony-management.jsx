@@ -436,6 +436,14 @@ function CallDetailModal(props) {
           </div>
         </div>
 
+        {/* Recording player */}
+        {call.recording_url && (
+          <div style={{ marginBottom: 20, padding: "12px 16px", background: C.blueBg, borderRadius: C.r, border: "1px solid " + C.blue + "33" }}>
+            <div style={{ fontSize: 11, color: C.blue, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Grabacion</div>
+            <audio controls style={{ width: "100%" }} src={call.recording_url + ".mp3"} />
+          </div>
+        )}
+
         {/* Routing history timeline */}
         {history.length > 0 && (
           <div>

@@ -61,7 +61,7 @@ serve(async (req) => {
 
         const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial timeout="30" callerId="${callerIdentity}">
+  <Dial timeout="30" callerId="${callerIdentity}" record="record-from-answer-dual" recordingStatusCallback="${EVENTS_URL}" recordingStatusCallbackMethod="POST">
     <Client statusCallbackEvent="initiated ringing answered completed" statusCallback="${EVENTS_URL}" statusCallbackMethod="POST">${to}</Client>
   </Dial>
   <Say language="es-MX">El agente no contesto.</Say>
@@ -95,7 +95,7 @@ serve(async (req) => {
 
         const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${CALLER_ID}" timeout="30">
+  <Dial callerId="${CALLER_ID}" timeout="30" record="record-from-answer-dual" recordingStatusCallback="${EVENTS_URL}" recordingStatusCallbackMethod="POST">
     <Number statusCallbackEvent="initiated ringing answered completed" statusCallback="${EVENTS_URL}" statusCallbackMethod="POST">${dialTo}</Number>
   </Dial>
 </Response>`;
@@ -355,10 +355,10 @@ serve(async (req) => {
     // Pass agentId so voice-status can log the attempt
     const statusCallback = `${STATUS_URL}?callLogId=${callLogId}&amp;agentId=${agent.usuario_id}`;
 
-    // Agent available — connect immediately, no ring tone or welcome message
+    // Agent available — connect immediately, record the call (dual channel)
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial timeout="10" action="${statusCallback}" method="POST">
+  <Dial timeout="10" action="${statusCallback}" method="POST" record="record-from-answer-dual" recordingStatusCallback="${EVENTS_URL}" recordingStatusCallbackMethod="POST">
     <Client statusCallbackEvent="initiated ringing answered completed" statusCallback="${EVENTS_URL}" statusCallbackMethod="POST">${agentIdentity}</Client>
   </Dial>
 </Response>`;

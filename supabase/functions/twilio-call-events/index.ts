@@ -31,6 +31,21 @@ serve(async (req) => {
       });
     }
 
+    // Handle recording status callback (from <Dial record="...">)
+    const recordingStatus = formData.get("RecordingStatus") as string || "";
+    const recordingSid = formData.get("RecordingSid") as string || "";
+    if (recordingStatus === "completed" && recordingUrl) {
+      const recSid = parentSid || callSid;
+      console.log(`Recording completed: SID=${recordingSid}, URL=${recordingUrl}, CallSid=${recSid}`);
+      if (recSid) {
+        await fetch(`${SB_URL}/rest/v1/call_log?twilio_call_sid=eq.${recSid}`, {
+          method: "PATCH", headers: HDR,
+          body: JSON.stringify({ recording_url: recordingUrl }),
+        });
+      }
+      return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*" } });
+    }
+
     // Handle call status updates
     // Client leg events send the child SID; use ParentCallSid to find the call_log
     const parentSid = formData.get("ParentCallSid") as string || "";
