@@ -96,7 +96,7 @@ export default function ExecutiveSuite({ currentUser }) {
   useEffect(function(){
     // Cargar datos en paralelo
     Promise.all([
-      SB.from("leads").select("id, nombre, estado_civil, status, emisora_id, emisora, created_at, sale_price, pago_inicial, vendedor_id"),
+      SB.from("leads").select("id, nombre, estado_civil, status, emisora_id, emisora, created_at, sale_price, pago_inicial, vendedor_id, exp"),
       SB.from("reservaciones").select("id, folio, status, total, fee, checkin, checkout, agente_nombre, created_at, destino_nombre, hotel"),
       SB.from("radio_spots").select("id, emisora_id, costo, talento, precio_equipo, fecha, semana, dia_semana, hora, duracion, tipo, incidencia"),
       SB.from("emisoras").select("id, nombre"),
@@ -241,10 +241,10 @@ function TabVentas(props){
   var leads = props.data.leads;
   var porEstado = ["nuevo","contactado","interesado","cita","verificacion","venta","no_interesado"].map(function(k){
     var items = leads.filter(function(l){ return l.status===k; });
-    var ingresos = items.reduce(function(s,l){ var ph=[]||[]; return s+ph.reduce(function(a,p){return a+(p.monto||0);},0); },0);
+    var ingresos = items.reduce(function(s,l){ var ex=l.exp||{}; var ini=Number(ex.pagoInicial||l.pago_inicial||0); var ab=(ex.pagosHistorial||[]).filter(function(p){return !p.programado;}).reduce(function(a,p){return a+Number(p.monto||0);},0); return s+ini+ab; },0);
     return {k:k, items:items, ingresos:ingresos};
   });
-  var totalPag = leads.reduce(function(s,l){ var ph=[]||[]; return s+ph.reduce(function(a,p){return a+(p.monto||0);},0); },0);
+  var totalPag = leads.reduce(function(s,l){ var ex=l.exp||{}; var ini=Number(ex.pagoInicial||l.pago_inicial||0); var ab=(ex.pagosHistorial||[]).filter(function(p){return !p.programado;}).reduce(function(a,p){return a+Number(p.monto||0);},0); return s+ini+ab; },0);
   var totalPaq = leads.reduce(function(s,l){ return s+(Number(l.sale_price)||0); },0);
 
   return React.createElement("div", {style:S.page}, [
