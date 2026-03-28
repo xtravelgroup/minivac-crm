@@ -96,20 +96,22 @@ export default function ExecutiveSuite({ currentUser }) {
   useEffect(function(){
     // Cargar datos en paralelo
     Promise.all([
-      SB.from("leads").select("id, nombre, estado_civil, status, emisora_id, emisora, created_at, sale_price, pago_inicial, pagos_historial, vendedor_id"),
+      SB.from("leads").select("id, nombre, estado_civil, status, emisora_id, emisora, created_at, sale_price, pago_inicial, pagos_historial, vendedor_id, spot_id"),
       SB.from("reservaciones").select("id, folio, status, total, fee, checkin, checkout, agente_nombre, created_at, destino_nombre, hotel"),
       SB.from("radio_spots").select("id, emisora_id, costo, talento, precio_equipo, fecha, semana, dia_semana, hora, duracion, tipo, incidencia"),
       SB.from("emisoras").select("id, nombre"),
       SB.from("leads").select("id, nombre, emisora, emisora_id, created_at, status, sale_price"),
+      SB.from("usuarios").select("id, nombre"),
     ]).then(function(results){
       var leads      = (!results[0].error && results[0].data) ? results[0].data : [];
       var reservas   = (!results[1].error && results[1].data) ? results[1].data : [];
       var spots      = (!results[2].error && results[2].data) ? results[2].data : [];
       var emisoras   = (!results[3].error && results[3].data) ? results[3].data : [];
       var leadsRadio = (!results[4].error && results[4].data) ? results[4].data : [];
+      var usuarios   = (!results[5].error && results[5].data) ? results[5].data : [];
       if(results[2].error) console.error("radio_spots error:", results[2].error.message);
       if(results[3].error) console.error("emisoras error:", results[3].error.message);
-      setData({ leads: leads, reservas: reservas, profiles: [], spots: spots, emisoras: emisoras, leadsRadio: leadsRadio });
+      setData({ leads: leads, reservas: reservas, profiles: [], spots: spots, emisoras: emisoras, leadsRadio: leadsRadio, usuarios: usuarios });
       setLoading(false);
     }).catch(function(err){
       console.error("Dashboard error:", err);
@@ -233,6 +235,38 @@ function TabResumen(props){
   ]);
 }
 
+function VentasTable(props){
+  var leads = props.leads;
+  var usuarios = props.usuarios || [];
+  var usrMap = {};
+  usuarios.forEach(function(u){ usrMap[u.id] = u.nombre; });
+
+  return React.createElement("div", {style:S.card}, [
+    React.createElement("div", {key:"t", style:S.ctit}, props.title),
+    leads.length===0
+      ? React.createElement("div",{key:"empty",style:{textAlign:"center",padding:"20px",color:C.muted,fontSize:12}},"Sin ventas en este periodo")
+      : React.createElement("table", {key:"tbl", style:{width:"100%", borderCollapse:"collapse"}}, [
+          React.createElement("thead", {key:"h"}, React.createElement("tr", {},
+            ["Fecha","Cliente","Vendedor","Spot","Contrato","Pagado"].map(function(h){return React.createElement("th",{key:h,style:S.th},h);})
+          )),
+          React.createElement("tbody", {key:"b"},
+            leads.map(function(l){
+              var pagado = getCobrado(l);
+              var vendedor = usrMap[l.vendedor_id] || "--";
+              return React.createElement("tr", {key:l.id}, [
+                React.createElement("td",{key:"f",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},toEST(l.created_at))),
+                React.createElement("td",{key:"n",style:S.td},React.createElement("span",{style:{fontWeight:600}},l.nombre||"--")),
+                React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:12,color:C.text}},vendedor)),
+                React.createElement("td",{key:"s",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.emisora||"--")),
+                React.createElement("td",{key:"c",style:S.tdc},l.sale_price?React.createElement("span",{style:{color:C.violet,fontWeight:700}},fmtUSD(l.sale_price)):"--"),
+                React.createElement("td",{key:"p",style:S.tdc},pagado>0?React.createElement("span",{style:{color:C.green,fontWeight:700}},fmtUSD(pagado)):"--"),
+              ]);
+            })
+          ),
+        ]),
+  ]);
+}
+
 // ── TAB VENTAS ──
 function toEST(dateStr){
   if(!dateStr) return "";
@@ -271,6 +305,9 @@ function TabVentas(props){
   var mesActual = new Date(new Date().toLocaleDateString("en-CA",{timeZone:"America/New_York"})+"T00:00:00");
   var inicioMesStr = mesActual.getFullYear()+"-"+String(mesActual.getMonth()+1).padStart(2,"0")+"-01";
   var leadsMes = leads.filter(function(l){ return toEST(l.created_at)>=inicioMesStr; });
+
+  var ventasHoy = leadsHoy.filter(function(l){ return l.status==="venta"; });
+  var ventasSem = leadsSem.filter(function(l){ return l.status==="venta"; });
 
   var sHoy=stats(leadsHoy); var sSem=stats(leadsSem); var sMes=stats(leadsMes);
 
@@ -328,29 +365,9 @@ function TabVentas(props){
         ),
       ]),
     ]),
-    // Tabla leads recientes
-    React.createElement("div", {key:"rec", style:S.card}, [
-      React.createElement("div", {key:"t", style:S.ctit}, "Leads Recientes"),
-      React.createElement("table", {key:"tbl", style:{width:"100%", borderCollapse:"collapse"}}, [
-        React.createElement("thead", {key:"h"}, React.createElement("tr", {},
-          ["Cliente","Vendedor","Estado","Paquete","Pagado","Fecha"].map(function(h){return React.createElement("th",{key:h,style:S.th},h);})
-        )),
-        React.createElement("tbody", {key:"b"},
-          leads.slice(0,15).map(function(l){
-            var cfg = STATUS_CFG[l.estado]||{l:l.estado,c:C.muted,bg:"#f4f5f7"};
-            var pagado = getCobrado(l);
-            return React.createElement("tr", {key:l.id}, [
-              React.createElement("td",{key:"n",style:S.td},React.createElement("span",{style:{fontWeight:600}},l.nombre||"--")),
-              React.createElement("td",{key:"v",style:S.td},React.createElement("span",{style:{fontSize:11,color:C.sub}},l.emisora||"--")),
-              React.createElement("td",{key:"e",style:S.td},React.createElement("span",{style:S.bdg(cfg.c,cfg.bg)},cfg.l)),
-              React.createElement("td",{key:"p",style:S.tdc},l.sale_price?React.createElement("span",{style:{color:C.violet}},fmtUSD(l.sale_price)):"--"),
-              React.createElement("td",{key:"m",style:S.tdc},pagado>0?React.createElement("span",{style:{color:C.green,fontWeight:700}},fmtUSD(pagado)):"--"),
-              React.createElement("td",{key:"f",style:S.tdc},React.createElement("span",{style:{fontSize:11,color:C.muted}},(l.created_at||"").split("T")[0]||"--")),
-            ]);
-          })
-        ),
-      ]),
-    ]),
+    // Ventas del dia y semana
+    React.createElement(VentasTable, {key:"vhoy", title:"Ventas del Dia", leads:ventasHoy, usuarios:props.data.usuarios}),
+    React.createElement(VentasTable, {key:"vsem", title:"Ventas de la Semana", leads:ventasSem, usuarios:props.data.usuarios}),
   ]);
 }
 
