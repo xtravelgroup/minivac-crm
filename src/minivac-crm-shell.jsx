@@ -131,7 +131,7 @@ var MODULOS = [
   { id: "cs",           label: "Membresias",     icon: "cs",           section: "Operacion", roles: ["admin","director","cs","cs_gerente"] },
   { id: "welcome",     label: "Welcome Calls",  icon: "cs",           section: "Operacion", roles: ["admin","director","cs","cs_gerente"] },
   { id: "retencion",  label: "Retencion",      icon: "cs",           section: "Operacion", roles: ["admin","director","cs","cs_gerente"] },
-  { id: "reservas",     label: "Reservaciones",  icon: "reservas",     section: "Operacion", roles: ["admin","director","cs","cs_gerente"] },
+  { id: "reservas",     label: "Reservaciones",  icon: "reservas",     section: "Operacion", roles: ["admin","director","cs","cs_gerente","vlo","agente_reservas"] },
   { id: "destinos",     label: "Destinos",       icon: "destinos",     section: "Catalogo",  roles: ["admin","director"] },
   { id: "hoteles",      label: "Hoteles",        icon: "hoteles",      section: "Catalogo",  roles: ["admin","director"] },
 
