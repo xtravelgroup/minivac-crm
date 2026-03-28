@@ -909,7 +909,7 @@ function SectionPagos({ lead, exp, onAbonoGuardado, onRecargar }) {
     s.onerror = function() { setZohoError("No se pudo cargar SDK de Zoho"); };
     document.head.appendChild(s);
   }, []);
-  var totalPagado = (Number(exp.pagoInicial)||0) + (exp.pagosHistorial||[]).reduce(function(s,p){ return s+(Number(p.monto)||0); },0);
+  var totalPagado = (Number(exp.pagoInicial)||0) + (exp.pagosHistorial||[]).filter(function(p){ return !p.programado; }).reduce(function(s,p){ return s+(Number(p.monto)||0); },0);
   var saldo       = Math.max(0, (exp.salePrice||0) - totalPagado);
 
   var [monto,   setMonto]   = useState("");
@@ -997,7 +997,7 @@ function SectionPagos({ lead, exp, onAbonoGuardado, onRecargar }) {
               <span style={{fontSize:13,fontWeight:700,color:"#1a7f3c"}}>{fmtUSD(exp.pagoInicial)}</span>
             </div>
           )}
-          {(exp.pagosHistorial||[]).map(function(p){
+          {(exp.pagosHistorial||[]).filter(function(p){ return !p.programado; }).map(function(p){
             return (
               <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f0f1f4"}}>
                 <div>
