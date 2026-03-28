@@ -1957,11 +1957,13 @@ export default function CsReservasV3(props) {
     var folio="OP-"+uid().slice(0,5).toUpperCase();
     var extLabel=datos.extMeses?" ("+datos.extMeses+" meses)":"";
     var reemLabel=datos.montoReembolso?" ("+fmtUSD(datos.montoReembolso)+")":"";
+    var autoAprobado = perms.aprobarOperacion;
+    var status = autoAprobado ? "aprobado" : "pendiente";
     if(selected){
-      setOperaciones(function(p){return [{id:uid(),clienteFolio:selected.folio,tipo:datos.tipo,folio:folio,status:"pendiente",autor:datos.autor,creado:new Date().toISOString(),notaCS:datos.notaCS,detalle:datos.detalle,extMeses:datos.extMeses,montoReembolso:datos.montoReembolso},...p];});
-      addEvento(selected.folio,"operacion","sistema",folio+" — "+(OP_TIPOS[datos.tipo]||{label:datos.tipo}).label+extLabel+reemLabel+" pendiente. "+datos.notaCS,datos.autor);
+      setOperaciones(function(p){return [{id:uid(),clienteFolio:selected.folio,tipo:datos.tipo,folio:folio,status:status,autor:datos.autor,creado:new Date().toISOString(),notaCS:datos.notaCS,detalle:datos.detalle,extMeses:datos.extMeses,montoReembolso:datos.montoReembolso,aprobadoPor:autoAprobado?currentUser.nombre:null,aprobadoEn:autoAprobado?new Date().toISOString():null},...p];});
+      addEvento(selected.folio,"operacion","sistema",folio+" — "+(OP_TIPOS[datos.tipo]||{label:datos.tipo}).label+extLabel+reemLabel+(autoAprobado?" aprobado.":" pendiente. ")+datos.notaCS,datos.autor);
     }
-    showToast("Operación enviada a aprobación");
+    showToast(autoAprobado?"Operación aprobada":"Operación enviada a aprobación");
   }
 
   function aprobarOp(opId){
