@@ -1254,8 +1254,29 @@ function LeadCard({ lead, isSupervisor, isSelected, onSelect, onClick, onDragSta
 // 
 function KanbanCol({ status, leads, isSupervisor, selectedIds, onSelect, onCardClick, onDragStart, onAI, users }) {
   const sc = STATUS_CFG[status];
-  const hoy      = leads.filter(l => l.fecha === TODAY);
-  const anterior = leads.filter(l => l.fecha !== TODAY);
+  var hoyStr = new Date().toISOString().slice(0,10);
+  var hoyDate = new Date(hoyStr+"T00:00:00");
+  var diaSemana = hoyDate.getDay();
+  var inicioSemana = new Date(hoyDate); inicioSemana.setDate(hoyDate.getDate() - (diaSemana===0?6:diaSemana-1));
+  var inicioSemStr = inicioSemana.toISOString().slice(0,10);
+
+  const hoy      = leads.filter(l => l.fecha === hoyStr);
+  const semana   = leads.filter(l => l.fecha !== hoyStr && l.fecha >= inicioSemStr);
+  const antiguo  = leads.filter(l => l.fecha < inicioSemStr);
+
+  function renderDivider(label, color) {
+    return (
+      <div style={{ display:"flex", alignItems:"center", gap:"6px", margin:"8px 0" }}>
+        <div style={{ flex:1, height:"1px", background:color||"#e3e6ea" }}/>
+        <span style={{ fontSize:"9px", fontWeight:"700", color:color||"#9ca3af", letterSpacing:"0.08em", textTransform:"uppercase", whiteSpace:"nowrap" }}>{label}</span>
+        <div style={{ flex:1, height:"1px", background:color||"#e3e6ea" }}/>
+      </div>
+    );
+  }
+  function renderCards(arr) {
+    return arr.map(l => <LeadCard key={l.id} lead={l} isSupervisor={isSupervisor} isSelected={selectedIds?.includes(l.id)} onSelect={onSelect} onClick={onCardClick} onDragStart={onDragStart} onAI={onAI} users={users} />);
+  }
+
   return (
     <div style={{ minWidth:"210px", flex:1, display:"flex", flexDirection:"column" }}>
       <div style={{ padding:"7px 11px", borderRadius:"8px 8px 0 0", background:sc.bg, border:`1px solid ${sc.border}`, marginBottom:"5px", display:"flex", justifyContent:"space-between" }}>
@@ -1263,15 +1284,12 @@ function KanbanCol({ status, leads, isSupervisor, selectedIds, onSelect, onCardC
         <span style={{ fontSize:"11px", fontWeight:"700", color:sc.color, background:`${sc.color}20`, padding:"0 7px", borderRadius:"10px" }}>{leads.length}</span>
       </div>
       <div style={{ flex:1, minHeight:"60px" }}>
-        {hoy.map(l => <LeadCard key={l.id} lead={l} isSupervisor={isSupervisor} isSelected={selectedIds?.includes(l.id)} onSelect={onSelect} onClick={onCardClick} onDragStart={onDragStart} onAI={onAI} users={users} />)}
-        {hoy.length > 0 && anterior.length > 0 && (
-          <div style={{ display:"flex", alignItems:"center", gap:"6px", margin:"8px 0" }}>
-            <div style={{ flex:1, height:"1px", background:"#e3e6ea" }}/>
-            <span style={{ fontSize:"9px", fontWeight:"700", color:"#9ca3af", letterSpacing:"0.08em", textTransform:"uppercase", whiteSpace:"nowrap" }}>Días anteriores</span>
-            <div style={{ flex:1, height:"1px", background:"#e3e6ea" }}/>
-          </div>
-        )}
-        {anterior.map(l => <LeadCard key={l.id} lead={l} isSupervisor={isSupervisor} isSelected={selectedIds?.includes(l.id)} onSelect={onSelect} onClick={onCardClick} onDragStart={onDragStart} onAI={onAI} users={users} />)}
+        {hoy.length > 0 && renderDivider("Hoy", "#16a34a")}
+        {renderCards(hoy)}
+        {semana.length > 0 && renderDivider("Esta semana", "#d97706")}
+        {renderCards(semana)}
+        {antiguo.length > 0 && renderDivider("Más de 1 semana", "#9ca3af")}
+        {renderCards(antiguo)}
         {!leads.length && <div style={{ padding:"14px", textAlign:"center", color:"#b0b8c4", fontSize:"11px", border:"1px dashed #e3e6ea", borderRadius:"8px" }}>Sin leads</div>}
       </div>
     </div>
