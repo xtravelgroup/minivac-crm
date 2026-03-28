@@ -732,6 +732,7 @@ function UpsalePanel({ exp, onSave }) {
   const [selBenef,  setSelBenef]  = useState([]);
   const [precioOvr, setPrecioOvr] = useState({});
 
+  const upsales  = (exp.destinos||[]).filter(function(d){ return d.upsale; });
   const destCat  = DEST_MAP[destId];
   const existIds = (exp.destinos||[]).map(d => d.destId);
   const totalBenef = selBenef.reduce((s,id) => {
@@ -741,7 +742,7 @@ function UpsalePanel({ exp, onSave }) {
 
   const handleAddDestino = () => {
     if (!destId || !destPrecio) return;
-    const newDestinos = [...(exp.destinos||[]), { destId, tipo:destTipo, noches:destNoches, regalo:null }];
+    const newDestinos = [...(exp.destinos||[]), { destId, tipo:destTipo, noches:destNoches, regalo:null, upsale:true, upsalePrecio:Number(destPrecio) }];
     const montoUp = Number(destPrecio);
     onSave({ ...exp, destinos:newDestinos, salePrice:(exp.salePrice||0)+montoUp, upsaleMonto:(exp.upsaleMonto||0)+montoUp });
     setDestId(""); setDestPrecio(""); setOpen(false);
@@ -763,6 +764,24 @@ function UpsalePanel({ exp, onSave }) {
           {open ? "Cerrar" : "+ Agregar"}
         </button>
       </div>
+      {upsales.map(function(d,i){
+        var cat = DEST_MAP[d.destId];
+        return (
+          <div key={i} style={{ display:"flex", alignItems:"center", gap:"10px", padding:"8px 12px", borderRadius:"8px", background:"rgba(21,101,192,0.05)", border:"1px solid rgba(21,101,192,0.2)", marginBottom:"6px", marginTop:"8px" }}>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:"13px", fontWeight:"600", color:"#1a385a" }}>{cat?cat.nombre:d.destId} — {d.tipo.toUpperCase()} {d.noches}n</div>
+              <div style={{ fontSize:"11px", color:"#6b7280" }}>Upsale · {fmtUSD(d.upsalePrecio||0)}</div>
+            </div>
+            <button onClick={function(){
+              var idx = (exp.destinos||[]).findIndex(function(x,j){ return x.upsale && j === (exp.destinos||[]).filter(function(_,k){ return (exp.destinos||[])[k].upsale; }).indexOf(d)+((exp.destinos||[]).findIndex(function(x){ return !x.upsale; })>-1 ? (exp.destinos||[]).filter(function(x){ return !x.upsale; }).length : 0); });
+              var newDestinos = (exp.destinos||[]).filter(function(x,j){ return !(x.upsale && x.destId===d.destId && x.upsalePrecio===d.upsalePrecio); });
+              onSave(Object.assign({},exp,{ destinos:newDestinos, salePrice:Math.max(0,(exp.salePrice||0)-(d.upsalePrecio||0)), upsaleMonto:Math.max(0,(exp.upsaleMonto||0)-(d.upsalePrecio||0)) }));
+            }} style={{ fontSize:"11px", color:"#b91c1c", background:"#fef2f2", border:"1px solid #f5b8b8", borderRadius:"6px", padding:"3px 8px", cursor:"pointer" }}>
+              Borrar
+            </button>
+          </div>
+        );
+      })}
 
       {open && (
         <div style={{ marginTop:"14px" }}>
@@ -1301,7 +1320,7 @@ function SectionPaquete({ exp, destMap: dm, onEdit }) {
         <button style={{ ...S.btn("indigo"), padding:"5px 12px", fontSize:"12px" }} onClick={onEdit}>Editar expediente</button>
       </div>
       <div style={{ marginBottom:"14px" }}>
-        {(exp.destinos||[]).map((d,i) => {
+        {(exp.destinos||[]).filter(function(d){ return !d.upsale; }).map((d,i) => {
           const cat = dmap[d.destId];
           if (!cat) return null;
           return (
