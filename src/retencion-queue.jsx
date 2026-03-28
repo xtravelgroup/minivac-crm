@@ -117,6 +117,12 @@ export default function RetencionQueue({ currentUser }) {
   // Cancelados (perdidos)
   var cancelados = leads.filter(function(l){ return l.retencion_result === "cancelado"; });
 
+  function patchLead(id, body) {
+    return fetch(SB_URL + "/rest/v1/leads?id=eq." + id, {
+      method: "PATCH", headers: HDR, body: JSON.stringify(body),
+    }).then(function(r){ if(!r.ok) return r.text().then(function(t){ throw new Error(t); }); });
+  }
+
   function marcarNoContesta(lead) {
     var attempts = (lead.retencion_attempts || 0) + 1;
     var retryIdx = Math.min(attempts - 1, RETRY_HOURS.length - 1);
@@ -124,56 +130,52 @@ export default function RetencionQueue({ currentUser }) {
     var nextAt = new Date(Date.now() + hoursDelay * 3600000).toISOString();
     var notas = buildNotas(lead, notaNueva);
 
-    SB.from("leads").update({
+    patchLead(lead.id, {
       retencion_status: "no_contesta",
       retencion_attempts: attempts,
       retencion_next_at: nextAt,
       retencion_nota: notas,
-    }).eq("id", lead.id).then(function(res){
-      if(res.error){ notify("Error: "+res.error.message, false); return; }
+    }).then(function(){
       notify("No contesta — reintentar en "+hoursDelay+"h (intento "+attempts+")");
       setNotaNueva(""); cargar(); setActionLead(null);
-    });
+    }).catch(function(e){ notify("Error: "+e.message, false); });
   }
 
   function marcarRetenido(lead) {
     var notas = buildNotas(lead, notaNueva);
-    SB.from("leads").update({
+    patchLead(lead.id, {
       retencion_status: "completado",
       retencion_result: "retenido",
       retencion_motivo: motivo || lead.retencion_motivo || null,
       retencion_nota: notas,
       retencion_completed_at: new Date().toISOString(),
-    }).eq("id", lead.id).then(function(res){
-      if(res.error){ notify("Error: "+res.error.message, false); return; }
+    }).then(function(){
       notify("Cliente retenido exitosamente");
       setMotivo(""); setNotaNueva(""); cargar(); setActionLead(null);
-    });
+    }).catch(function(e){ notify("Error: "+e.message, false); });
   }
 
   function marcarCancelado(lead) {
     var notas = buildNotas(lead, notaNueva);
-    SB.from("leads").update({
+    patchLead(lead.id, {
       retencion_status: "completado",
       retencion_result: "cancelado",
       retencion_motivo: motivo || lead.retencion_motivo || null,
       retencion_nota: notas,
       retencion_completed_at: new Date().toISOString(),
-    }).eq("id", lead.id).then(function(res){
-      if(res.error){ notify("Error: "+res.error.message, false); return; }
+    }).then(function(){
       notify("Cliente marcado como cancelado");
       setMotivo(""); setNotaNueva(""); cargar(); setActionLead(null);
-    });
+    }).catch(function(e){ notify("Error: "+e.message, false); });
   }
 
   function agregarNota(lead) {
     if (!notaNueva.trim()) return;
     var notas = buildNotas(lead, notaNueva);
-    SB.from("leads").update({ retencion_nota: notas }).eq("id", lead.id).then(function(res){
-      if(res.error){ notify("Error: "+res.error.message, false); return; }
+    patchLead(lead.id, { retencion_nota: notas }).then(function(){
       notify("Nota agregada");
       setNotaNueva(""); cargar();
-    });
+    }).catch(function(e){ notify("Error: "+e.message, false); });
   }
 
   function renderRow(l, showActions) {
