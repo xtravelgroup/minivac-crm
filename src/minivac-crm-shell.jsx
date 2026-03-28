@@ -26,6 +26,7 @@ const HotelsModule       = React.lazy(() => import("./hotels-module.jsx"));
 const WelcomeCalls       = React.lazy(() => import("./welcome-calls.jsx"));
 const RetencionQueue     = React.lazy(() => import("./retencion-queue.jsx"));
 const TelephonyMgmt     = React.lazy(() => import("./telephony-management.jsx"));
+const AgentPhone        = React.lazy(() => import("./agent-phone.jsx"));
 
 // ─── Constantes ───────────────────────────────────────────────
 const SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
@@ -140,6 +141,7 @@ var MODULOS = [
   { id: "comisiones",   label: "Comisiones",     icon: "comisiones",   section: "Finanzas",  roles: ["admin","director","supervisor","vendedor","contador","verificador"] },
   { id: "usuarios",     label: "Usuarios",       icon: "usuarios",     section: "Config",    roles: ["admin","director"] },
   { id: "telefonia",    label: "Gestion Llamadas", icon: "vonage",     section: "Operacion", roles: ["admin","director","supervisor","vendedor","cs","cs_gerente","vlo","agente_reservas","especialista_radio"] },
+  { id: "telefono",     label: "Telefono",         icon: "vonage",     section: "Principal", roles: ["admin","director","supervisor","vendedor","cs","cs_gerente","vlo","agente_reservas","especialista_radio"] },
 ];
 
 function tieneAcceso(user, modId) {
@@ -517,7 +519,8 @@ export default function MinivacShell() {
   const [agentStatus, setAgentStatus] = useState("offline");
   const CALL_ROLES = ["vendedor", "supervisor", "admin", "director", "especialista_radio", "cs", "cs_gerente", "vlo", "agente_reservas"];
   const canReceiveCalls = user && CALL_ROLES.includes(user.rol);
-  const twilio = useTwilioDevice(user ? user.id : null, agentStatus === "available" && canReceiveCalls);
+  const twilioEnabled = canReceiveCalls && (agentStatus === "available" || agentStatus === "on_call" || agentStatus === "paused");
+  const twilio = useTwilioDevice(user ? user.id : null, twilioEnabled);
 
   // Sesión persistente
   useEffect(() => {
@@ -622,6 +625,7 @@ export default function MinivacShell() {
         onReject={twilio.rejectCall}
         onHangUp={twilio.hangUp}
         onMute={twilio.toggleMute}
+        onTransfer={twilio.transferCall}
       />
       <Topbar user={user} activo={activo} chatAlertas={chatAlertas} setNotifPanel={setNotifPanel} agentStatusBar={canReceiveCalls ? <AgentStatusBar currentUser={user} onStatusChange={setAgentStatus} /> : null} />
 
@@ -648,6 +652,7 @@ export default function MinivacShell() {
             {activo === "comisiones"   && <CommissionsModule currentUser={user} />}
             {activo === "usuarios"     && <RolesPermissions currentUser={user} />}
             {activo === "telefonia"    && <TelephonyMgmt currentUser={user} />}
+            {activo === "telefono"     && <AgentPhone currentUser={user} onMakeCall={twilio.makeCall} isRegistered={twilio.isRegistered} />}
             {activo === "automatizaciones" && <AutomationsModule />}
             {activo === "portal"       && <ClientPortal />}
           </Suspense>

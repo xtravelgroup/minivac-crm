@@ -27,7 +27,81 @@ serve(async (req) => {
     const from = formData.get("From") as string || "";
     const to = formData.get("To") as string || "";
 
-    console.log(`Incoming call: ${from} -> ${to}, SID: ${callSid}, retry: ${isRetry}`);
+    console.log(`Call: ${from} -> ${to}, SID: ${callSid}, retry: ${isRetry}`);
+
+    // ── Outbound call from browser client → forward to outbound handler
+    if (from.startsWith("client:") && !isRetry) {
+      const callerIdentity = from.replace("client:", "");
+      const CALLER_ID = Deno.env.get("TWILIO_CALLER_ID") || "+17867835400";
+
+      // Internal call: agent_xxx → agent_yyy
+      if (to.startsWith("agent_")) {
+        const callerUserId = callerIdentity.replace("agent_", "");
+        const targetUserId = to.replace("agent_", "");
+
+        // Create call_log for internal call
+        await fetch(`${SB_URL}/rest/v1/call_log`, {
+          method: "POST", headers: HDR,
+          body: JSON.stringify({
+            twilio_call_sid: callSid,
+            direction: "internal",
+            from_number: callerIdentity,
+            to_number: to,
+            status: "ringing",
+            started_at: new Date().toISOString(),
+            agent_id: callerUserId,
+          }),
+        });
+
+        // Set caller to on_call
+        await fetch(`${SB_URL}/rest/v1/agent_status?usuario_id=eq.${callerUserId}`, {
+          method: "PATCH", headers: HDR,
+          body: JSON.stringify({ status: "on_call", updated_at: new Date().toISOString() }),
+        });
+
+        const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial timeout="30" callerId="${callerIdentity}">
+    <Client statusCallbackEvent="initiated ringing answered completed" statusCallback="${EVENTS_URL}" statusCallbackMethod="POST">${to}</Client>
+  </Dial>
+  <Say language="es-MX">El agente no contesto.</Say>
+</Response>`;
+        return new Response(twiml, { headers: { "Content-Type": "text/xml" } });
+      }
+
+      // External outbound call
+      if (to) {
+        let dialTo = to.replace(/[^\d+]/g, "");
+        if (!dialTo.startsWith("+")) dialTo = "+1" + dialTo;
+        const callerUserId = callerIdentity.replace("agent_", "");
+
+        await fetch(`${SB_URL}/rest/v1/call_log`, {
+          method: "POST", headers: HDR,
+          body: JSON.stringify({
+            twilio_call_sid: callSid,
+            direction: "outbound",
+            from_number: CALLER_ID,
+            to_number: dialTo,
+            status: "ringing",
+            started_at: new Date().toISOString(),
+            agent_id: callerUserId,
+          }),
+        });
+
+        await fetch(`${SB_URL}/rest/v1/agent_status?usuario_id=eq.${callerUserId}`, {
+          method: "PATCH", headers: HDR,
+          body: JSON.stringify({ status: "on_call", updated_at: new Date().toISOString() }),
+        });
+
+        const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial callerId="${CALLER_ID}" timeout="30">
+    <Number statusCallbackEvent="initiated ringing answered completed" statusCallback="${EVENTS_URL}" statusCallbackMethod="POST">${dialTo}</Number>
+  </Dial>
+</Response>`;
+        return new Response(twiml, { headers: { "Content-Type": "text/xml" } });
+      }
+    }
 
     let callLogId = existingLogId;
 

@@ -157,6 +157,60 @@ export default function useTwilioDevice(userId, enabled) {
     if (activeCall) activeCall.mute(!activeCall.isMuted());
   }, [activeCall]);
 
+  // Make outbound call (to agent identity or phone number)
+  var makeCall = useCallback(function (to) {
+    if (!deviceRef.current || !to) return null;
+    var call = deviceRef.current.connect({ params: { To: to } });
+    call.then(function (c) {
+      setActiveCall(c);
+      setCallDuration(0);
+      c.on("disconnect", function () {
+        setActiveCall(null);
+        setCallDuration(0);
+        if (timerRef.current) clearInterval(timerRef.current);
+      });
+      c.on("cancel", function () {
+        setActiveCall(null);
+        setCallDuration(0);
+      });
+    });
+    return call;
+  }, []);
+
+  // Transfer active call to another agent
+  var transferCall = useCallback(function (targetAgent, targetName) {
+    if (!activeCall) return Promise.resolve(false);
+    var callSid = activeCall.parameters ? activeCall.parameters.CallSid : null;
+    if (!callSid) {
+      console.error("No CallSid available for transfer");
+      return Promise.resolve(false);
+    }
+    return fetch(SB_URL + "/functions/v1/twilio-outbound", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "transfer",
+        callSid: callSid,
+        targetAgent: targetAgent,
+        targetName: targetName || targetAgent,
+      }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success) {
+          // Disconnect our leg after transfer
+          activeCall.disconnect();
+          return true;
+        }
+        console.error("Transfer failed:", data);
+        return false;
+      })
+      .catch(function (e) {
+        console.error("Transfer error:", e);
+        return false;
+      });
+  }, [activeCall]);
+
   return {
     device: device,
     incomingCall: incomingCall,
@@ -167,5 +221,7 @@ export default function useTwilioDevice(userId, enabled) {
     rejectCall: rejectCall,
     hangUp: hangUp,
     toggleMute: toggleMute,
+    makeCall: makeCall,
+    transferCall: transferCall,
   };
 }
