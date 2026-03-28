@@ -1364,14 +1364,15 @@ function FichaMiembro(props) {
           {perms.crearReserva
             ? <button style={S.btn("teal")} onClick={function(){props.onNuevaReserva(c);}}>+ Reserva</button>
             : <button style={Object.assign({},S.btn("ghost"),{opacity:0.45,cursor:"not-allowed"})} disabled>+ Reserva</button>}
-          {perms.crearNota&&<button style={S.btn("ghost")} onClick={function(){props.onNota(c);}}>+ Nota</button>}
           {perms.crearCaso&&<button style={S.btn("indigo")} onClick={function(){props.onCaso(c);}}>+ Caso</button>}
-          {perms.crearOperacion&&<button style={S.btn("warn")} onClick={function(){props.onOp(c);}}>+ Op.</button>}
-          {c.firma_contrato&&<button style={S.btn("indigo")} onClick={function(){props.onVerFirma(c);}}>📄 Ver certificado</button>}
-          <CommPanelTrigger cliente={c} onOpen={props.onComm}/>
+          {perms.crearOperacion&&<button style={S.btn("warn")} onClick={function(){props.onOp(c);}}>+ Cambios</button>}
+          {perms.crearNota&&<button style={S.btn("ghost")} onClick={function(){props.onNota(c);}}>+ Nota</button>}
+          <button style={S.btn("indigo")} onClick={function(){ setTransferir(true); }}>Transferir</button>
           {perms.iniciarRetencion&&c.statusCliente==="activo"&&(
             <button style={S.btn("danger")} onClick={function(){setShowRetencion(true);}}>Retención</button>
           )}
+          <CommPanelTrigger cliente={c} onOpen={props.onComm}/>
+          {c.firma_contrato&&<button style={S.btn("indigo")} onClick={function(){props.onVerFirma(c);}}>📄 Ver certificado</button>}
           {showRetencion&&(
             <div style={{position:"fixed",inset:0,background:"rgba(10,15,25,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}} onClick={function(e){if(e.target===e.currentTarget){setShowRetencion(false);setRetencionOtro("");}}}>
               <div style={{background:"#fff",borderRadius:12,width:"100%",maxWidth:420,boxShadow:"0 4px 24px rgba(0,0,0,0.12)",border:"1px solid #e3e6ea"}}>
@@ -1394,7 +1395,6 @@ function FichaMiembro(props) {
               </div>
             </div>
           )}
-          <button style={S.btn("indigo")} onClick={function(){ setTransferir(true); }}>Transferir</button>
         </div>
       </div>
 
