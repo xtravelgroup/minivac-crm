@@ -211,7 +211,7 @@ function leadToMiembro(r) {
     membresia:      "Silver",
     vendedor:       r.vendedor_nombre || "",
     compra:         r.created_at ? r.created_at.split("T")[0] : TODAY,
-    vigencia:       daysFromNow(730),
+    vigencia:       (function(){ var d=new Date(r.created_at||Date.now()); d.setMonth(d.getMonth()+18); return d.toLocaleDateString("en-CA",{timeZone:"America/New_York"}); })(),
     precioPaquete:  Number(r.sale_price) || 0,
     pagoInicial:    Number(r.pago_inicial) || 0,
     totalPagado:    totalPagado,
