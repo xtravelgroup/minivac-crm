@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef, Suspense } from "react";
 import { createClient } from "@supabase/supabase-js";
 import KnowledgeBase from "./knowledge-base-module.jsx";
 import CommunicationsHub from "./communications-hub.jsx";
+import AgentStatusBar from "./agent-status-bar.jsx";
+import useTwilioDevice from "./use-twilio-device.jsx";
+import IncomingCallModal from "./incoming-call-modal.jsx";
 
 var SB = createClient(
   "https://gsvnvahrjgswwejnuiyn.supabase.co",
@@ -339,7 +342,7 @@ function Sidebar({ user, activo, col, onNav, onToggleCol, onLogout, onCambiarCla
 }
 
 // ─── Topbar ───────────────────────────────────────────────────
-function Topbar({ user, activo, chatAlertas = [], setNotifPanel }) {
+function Topbar({ user, activo, chatAlertas = [], setNotifPanel, agentStatusBar }) {
   const mod  = MODULOS.find(m => m.id === activo) || null;
   const meta = ROL_META[user.rol] || ROL_META.vendedor;
 
@@ -351,7 +354,8 @@ function Topbar({ user, activo, chatAlertas = [], setNotifPanel }) {
         {mod && <><span style={{ fontSize: "11px", color: T.t4 }}>/</span><span style={{ fontSize: "13px", fontWeight: "600", color: T.t1 }}>{mod.label}</span></>}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        {agentStatusBar}
         {/* Campana con badge */}
         <button onClick={() => setNotifPanel(p => !p)}
           style={{ width: "32px", height: "32px", borderRadius: T.r, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -511,6 +515,10 @@ export default function MinivacShell() {
   const initialLeadIdRef = useRef(null);
   const [verifLeadId, setVerifLeadId] = useState(null);
   const [chatAlertas, limpiarAlertas] = useChatAlertas(user);
+  const [agentStatus, setAgentStatus] = useState("offline");
+  const CALL_ROLES = ["vendedor", "supervisor", "admin", "director", "especialista_radio", "cs", "cs_gerente", "vlo", "agente_reservas"];
+  const canReceiveCalls = user && CALL_ROLES.includes(user.rol);
+  const twilio = useTwilioDevice(user ? user.id : null, agentStatus === "available" && canReceiveCalls);
 
   // Sesión persistente
   useEffect(() => {
@@ -607,7 +615,16 @@ export default function MinivacShell() {
         </div>
       )}
 
-      <Topbar user={user} activo={activo} chatAlertas={chatAlertas} setNotifPanel={setNotifPanel} />
+      <IncomingCallModal
+        incomingCall={twilio.incomingCall}
+        activeCall={twilio.activeCall}
+        callDuration={twilio.callDuration}
+        onAccept={twilio.acceptCall}
+        onReject={twilio.rejectCall}
+        onHangUp={twilio.hangUp}
+        onMute={twilio.toggleMute}
+      />
+      <Topbar user={user} activo={activo} chatAlertas={chatAlertas} setNotifPanel={setNotifPanel} agentStatusBar={canReceiveCalls ? <AgentStatusBar currentUser={user} onStatusChange={setAgentStatus} /> : null} />
 
       <div style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: "0" }}>
         <Sidebar user={user} activo={activo} col={col} onNav={handleNav} onToggleCol={() => setCol(!col)} onLogout={handleLogout} onCambiarClave={() => setShowCambiarClave(true)} />
