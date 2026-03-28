@@ -1344,7 +1344,11 @@ function FichaMiembro(props) {
             </div>
           </div>
           <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
-            <span style={S.bdg(GREEN,"#edf7ee","#a3d9a5")}>✅ Miembro activo</span>
+            {c.statusCliente==="retencion"
+              ?<span style={S.bdg(AMBER,"#fef9e7","#f0d080")}>⚠️ En retención</span>
+              :c.statusCliente==="cancelado"
+              ?<span style={S.bdg(RED,"#fef2f2","#f5b8b8")}>❌ Cancelado</span>
+              :<span style={S.bdg(GREEN,"#edf7ee","#a3d9a5")}>✅ Miembro activo</span>}
             <span style={S.bdg(MEMBCOLOR[c.membresia]||"#6b7280","#f4f5f7","#e3e6ea")}>{c.membresia}</span>
             {c.saldoPendiente>0&&<span style={S.bdg(AMBER,"#fef9e7","#f0d080")}>Saldo {fmtUSD(c.saldoPendiente)}</span>}
             {c.verificacion&&!c.verificacion.firma_firmada_at&&<span style={S.bdg(RED,"#fef2f2","#f5b8b8")}>✍️ Firma pendiente</span>}
