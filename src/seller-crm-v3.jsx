@@ -1716,20 +1716,21 @@ function SupervisorView({ leads, users, currentUser, vistaUserId, destCatalog, o
               : (
                 <div style={{ borderRadius:"12px", overflow:"hidden", border:"1px solid rgba(74,222,128,0.2)", marginBottom:"20px" }}>
                   <div style={{ display:"grid", gridTemplateColumns:"90px 1fr 1fr 90px 90px 1fr", background:"rgba(74,222,128,0.05)", borderBottom:"2px solid rgba(74,222,128,0.15)", padding:"8px 16px", gap:"8px" }}>
-                    {["Folio","Cliente","Vendedor","Total","Pago hoy","Destinos"].map((h,i)=>(
+                    {["Fecha","Cliente","Vendedor","Total","Pagado","Spot"].map((h,i)=>(
                       <div key={i} style={{ fontSize:"10px", fontWeight:"700", color:"#1a7f3c", textTransform:"uppercase", letterSpacing:"0.07em" }}>{h}</div>
                     ))}
                   </div>
                   {ventas.map((l,i)=>{
-                    const v=users.find(u=>u.id===l.vendedorId);
+                    const v=users.find(u=>u.dbId===l.vendedorId||u.id===l.vendedorId);
+                    const cobrado=(function(){var ex=l.exp||{};var ini=Number(ex.pagoInicial||l.pagoInicial||0);var ab=(ex.pagosHistorial||[]).filter(function(p){return !p.programado;}).reduce(function(s,p){return s+Number(p.monto||0);},0);return ini+ab;})();
                     return (
                       <div key={l.id} onClick={()=>setSelLead(l)} style={{ display:"grid", gridTemplateColumns:"90px 1fr 1fr 90px 90px 1fr", padding:"10px 16px", gap:"8px", borderBottom:"1px solid rgba(74,222,128,0.07)", background:i%2===0?"rgba(74,222,128,0.03)":"transparent", alignItems:"center", cursor:"pointer" }}>
-                        <div style={{ fontSize:"11px", color:"#9ca3af" }}>{l.folio}</div>
+                        <div style={{ fontSize:"11px", color:"#9ca3af" }}>{(l.fecha||l.createdAt||"").split("T")[0]}</div>
                         <div><div style={{ fontSize:"13px", fontWeight:"600", color:"#1a1f2e" }}>{l.nombre}</div><div style={{ fontSize:"11px", color:"#9ca3af" }}>{l.emisora}</div></div>
-                        <div style={{ fontSize:"12px", color:"#6b7280" }}>{v?.name}</div>
+                        <div style={{ fontSize:"12px", color:"#6b7280" }}>{v?.name||"--"}</div>
                         <div style={{ fontSize:"13px", fontWeight:"700", color:"#925c0a" }}>{fmtUSD(l.salePrice||0)}</div>
-                        <div style={{ fontSize:"12px", fontWeight:"700", color:"#1a7f3c" }}>{fmtUSD(l.pagoInicial||0)}</div>
-                        <div>{(l.destinos||[]).map((d,j)=>{const cat=DESTINOS_CATALOG.find(x=>x.id===d.destId);return <div key={j} style={{ fontSize:"10px", color:"#0ea5a0" }}>{cat?.icon} {cat?.nombre} {d.noches}n {d.tipo?.toUpperCase()}</div>;})}</div>
+                        <div style={{ fontSize:"12px", fontWeight:"700", color:"#1a7f3c" }}>{fmtUSD(cobrado)}</div>
+                        <div style={{ fontSize:"12px", color:"#0ea5a0" }}>{l.emisora||"--"}</div>
                       </div>
                     );
                   })}
