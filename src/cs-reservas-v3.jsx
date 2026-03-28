@@ -218,7 +218,7 @@ function leadToMiembro(r) {
     saldoPendiente: saldo,
     pagos:          pagos,
     reservasData:   r.reservas_historial || [],
-    statusCliente:  "activo",
+    statusCliente:  r.retencion_result==="cancelado"?"cancelado":(r.retencion_status==="pendiente"||r.retencion_status==="no_contesta")?"retencion":"activo",
     motivoRetencion:null,
     destinos:       destinos,
     _exp:           exp,
