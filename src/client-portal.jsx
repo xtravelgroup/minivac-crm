@@ -1143,18 +1143,44 @@ export default function ClientPortal(){
     var hash = window.location.hash;
 
     if(token && emailParam){
-      // Verify OTP token from invite email
+      // Verify OTP token from invite email and auto-login
       setAuthMode("loading");
       portalSB.auth.verifyOtp({ email:emailParam, token:token, type:"recovery" }).then(function(res){
+        // Clean URL immediately
+        window.history.replaceState(null,"",window.location.pathname);
         if(res.error){
           console.error("OTP verify error:", res.error.message);
-          setAuthMode(null);
-          setAuthChecked(true);
+          // Token may be expired/used — try existing session
+          return portalSB.auth.getSession().then(function(sessRes){
+            if(sessRes.data.session){
+              return loadClientData(sessRes.data.session.user.email).then(function(clientData){
+                if(clientData) setUser(clientData);
+                setAuthMode(null);
+                setAuthChecked(true);
+              });
+            } else {
+              setAuthMode(null);
+              setAuthChecked(true);
+            }
+          });
         } else {
-          setAuthMode("set-password");
+          // OTP verified — auto-login with client data
+          var verifiedEmail = (res.data.user && res.data.user.email) || emailParam;
+          return loadClientData(verifiedEmail).then(function(clientData){
+            if(clientData){
+              setUser(clientData);
+              setAuthMode(null);
+              setAuthChecked(true);
+            } else {
+              // No lead data found — show set-password as fallback
+              setAuthMode("set-password");
+            }
+          });
         }
-        // Clean URL
-        window.history.replaceState(null,"",window.location.pathname);
+      }).catch(function(err){
+        console.error("Portal auth error:", err);
+        setAuthMode(null);
+        setAuthChecked(true);
       });
     } else if(hash && hash.includes("access_token")){
       // Fallback: Supabase hash-based redirect
