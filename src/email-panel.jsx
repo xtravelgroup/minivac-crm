@@ -210,6 +210,14 @@ function buildTemplates(lead) {
       isPaquete: true,
     },
     {
+      id:      "portal",
+      label:   "🔑 Acceso al portal",
+      subject: "",
+      html:    "",
+      text:    "",
+      isPortal: true,
+    },
+    {
       id:      "libre",
       label:   "✏️ Email libre",
       subject: "",
@@ -419,8 +427,36 @@ IDs exactos: ${destinos.map(d => d.destId).join(", ")}`;
 
   useEffect(() => { cargarEmails(); }, [lead?.id]);
 
+  async function enviarPortalInvite() {
+    if (!lead.email) { notify("El lead no tiene email registrado", false); return; }
+    setSending(true);
+    try {
+      const res = await fetch(`${EDGE_URL}/portal-invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${ANON_KEY}` },
+        body: JSON.stringify({
+          email: lead.email,
+          nombre: lead.nombre || lead.name || "",
+          lead_id: lead.id,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        notify("🔑 Invitación al portal enviada");
+        setTimeout(cargarEmails, 1000);
+      } else {
+        notify("Error: " + (data.error || "fallo envio"), false);
+      }
+    } catch (err) {
+      notify("Error de red: " + err.message, false);
+    } finally {
+      setSending(false);
+    }
+  }
+
   async function selectTemplate(tpl) {
     if (tpl.disabled) { notify(tpl.disabledMsg, false); return; }
+    if (tpl.isPortal) { enviarPortalInvite(); return; }
     setSelTpl(tpl);
     setShowCompose(true);
 
@@ -523,8 +559,8 @@ IDs exactos: ${destinos.map(d => d.destId).join(", ")}`;
         <div style={S.label}>📨 Enviar email</div>
         <div style={S.row}>
           {templates.map(tpl => (
-            <button key={tpl.id} style={S.tplBtn(tpl.disabled || !lead.email)} onClick={() => selectTemplate(tpl)}>
-              {tpl.label}
+            <button key={tpl.id} style={S.tplBtn(tpl.disabled || !lead.email || (tpl.isPortal && sending))} onClick={() => selectTemplate(tpl)} disabled={tpl.disabled || !lead.email || (tpl.isPortal && sending)}>
+              {tpl.isPortal && sending ? "Enviando..." : tpl.label}
             </button>
           ))}
         </div>
