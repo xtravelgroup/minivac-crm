@@ -197,11 +197,12 @@ export function useCommPanel(){
 
   function open(c, canal){
     setCliente(c);
-    if(canal) setCanalInicial(canal);
+    setCanalInicial(canal||null);
     setVisible(true);
   }
   function close(){
     setVisible(false);
+    setCanalInicial(null);
   }
   function addLog(entry){
     setLogs(function(prev){ return [entry,...prev]; });
@@ -707,7 +708,7 @@ export default function CommPanel(props){
 
   useEffect(function(){
     if(visible) setCanal(props.canalInicial || "llamada");
-  },[visible, cliente]);
+  },[visible, cliente, props.canalInicial]);
 
   if(!visible||!cliente) return null;
 
