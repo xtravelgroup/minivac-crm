@@ -28,13 +28,13 @@ const QUEUE_CONFIG: Record<string, { name: string; welcome: string; hold: string
   },
   cs: {
     name: "Customer Service",
-    disclaimer: "Gracias por llamar a X Travel Group. Esta llamada puede ser grabada o monitoreada por motivos de calidad.",
+    disclaimer: 'Gracias por llamar a <lang xml:lang="en-US">X Travel Group</lang>. Esta llamada puede ser grabada o monitoreada por motivos de calidad.',
     welcome: "Un agente de servicio al cliente le atendera en breve.",
     hold: "Por favor permanezca en linea. Un agente le atendera pronto.",
   },
   reservas: {
     name: "Reservaciones",
-    disclaimer: "Gracias por llamar a X Travel Group. Esta llamada puede ser grabada o monitoreada por motivos de calidad.",
+    disclaimer: 'Gracias por llamar a <lang xml:lang="en-US">X Travel Group</lang>. Esta llamada puede ser grabada o monitoreada por motivos de calidad.',
     welcome: "Un agente del departamento de reservaciones le atendera en breve.",
     hold: "Por favor permanezca en linea. Un agente de reservaciones le atendera pronto.",
   },
@@ -47,7 +47,8 @@ function resolveQueue(toNumber: string, urlQueue: string | null): string {
 }
 
 // ── Business hours check ──────────────────────────────────
-async function isOpen(queue: string): Promise<boolean> {
+// Returns { open: true } or { open: false, reason: "holiday"|"schedule", holidayLabel?: string }
+async function checkSchedule(queue: string): Promise<{ open: boolean; reason?: string; holidayLabel?: string }> {
   const now = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
   const todayStr = now.toLocaleDateString("en-CA"); // YYYY-MM-DD
   const dayOfWeek = now.getDay(); // 0=Sun
@@ -61,7 +62,7 @@ async function isOpen(queue: string): Promise<boolean> {
   const holidays = await holRes.json();
   if (Array.isArray(holidays) && holidays.length > 0) {
     console.log(`[schedule] Queue ${queue} closed: holiday "${holidays[0].label}"`);
-    return false;
+    return { open: false, reason: "holiday", holidayLabel: holidays[0].label };
   }
 
   // Check weekly schedule
@@ -71,25 +72,33 @@ async function isOpen(queue: string): Promise<boolean> {
   );
   const schedules = await schRes.json();
   if (!Array.isArray(schedules) || schedules.length === 0) {
-    // No schedule configured = always open (backwards compatible)
-    return true;
+    return { open: true };
   }
   const sch = schedules[0];
   if (!sch.is_active) {
     console.log(`[schedule] Queue ${queue} closed: day ${dayOfWeek} inactive`);
-    return false;
+    return { open: false, reason: "schedule" };
   }
   if (currentTime < sch.open_time || currentTime >= sch.close_time) {
     console.log(`[schedule] Queue ${queue} closed: ${currentTime} outside ${sch.open_time}-${sch.close_time}`);
-    return false;
+    return { open: false, reason: "schedule" };
   }
-  return true;
+  return { open: true };
 }
 
-function closedResponse(_queueName: string): Response {
+const SCHEDULE_MSG = "de Lunes a Viernes de 9 a m a 8 p m y Sabados de 10 a m a 6 p m, hora del Este";
+
+function closedResponse(reason: string, holidayLabel?: string): Response {
+  let msg: string;
+  const xtg = '<lang xml:lang="en-US">X Travel Group</lang>';
+  if (reason === "holiday") {
+    msg = `Gracias por llamar a ${xtg}. Estamos cerrados por ${holidayLabel || "dia festivo"}. Contactanos en el proximo dia laboral en nuestro horario de atencion al cliente ${SCHEDULE_MSG}.`;
+  } else {
+    msg = `Gracias por llamar a ${xtg}. Nos ha contactado fuera de nuestro horario de atencion al cliente. Por favor llamenos ${SCHEDULE_MSG}.`;
+  }
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say language="es-MX">Gracias por llamar a X Travel Group. Nos ha contactado fuera de nuestro horario de atencion al cliente. Por favor llamenos de Lunes a Viernes de 9 a m a 8 p m y Sabados de 10 a m a 6 p m, hora del Este.</Say>
+  <Say voice="Polly.Lupe" language="es-MX"><speak>${msg}</speak></Say>
   <Hangup/>
 </Response>`;
   return new Response(twiml, { headers: { "Content-Type": "text/xml" } });
@@ -193,10 +202,10 @@ serve(async (req) => {
 
     // ── Business hours check (only on first inbound call, not retries or outbound)
     if (!isRetry && !from.startsWith("client:")) {
-      const open = await isOpen(queue);
-      if (!open) {
-        console.log(`[schedule] Rejecting call ${callSid} — queue ${queue} is closed`);
-        return closedResponse(qCfg.name);
+      const scheduleCheck = await checkSchedule(queue);
+      if (!scheduleCheck.open) {
+        console.log(`[schedule] Rejecting call ${callSid} — queue ${queue} is closed (${scheduleCheck.reason})`);
+        return closedResponse(scheduleCheck.reason || "schedule", scheduleCheck.holidayLabel);
       }
     }
 
@@ -408,7 +417,7 @@ serve(async (req) => {
 
       if (!isRetry) {
         // First time: disclaimer (if configured) + welcome message then ring
-        const disclaimerSay = qCfg.disclaimer ? `\n  <Say language="es-MX">${qCfg.disclaimer}</Say>` : "";
+        const disclaimerSay = qCfg.disclaimer ? `\n  <Say voice="Polly.Lupe" language="es-MX"><speak>${qCfg.disclaimer}</speak></Say>` : "";
         twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>${disclaimerSay}
   <Say language="es-MX">${qCfg.welcome}</Say>
@@ -470,7 +479,7 @@ serve(async (req) => {
 
     // Agent available — connect immediately, record the call (dual channel)
     // Play disclaimer before connecting (only on first call, not retries)
-    const disclaimerDial = (!isRetry && qCfg.disclaimer) ? `\n  <Say language="es-MX">${qCfg.disclaimer}</Say>` : "";
+    const disclaimerDial = (!isRetry && qCfg.disclaimer) ? `\n  <Say voice="Polly.Lupe" language="es-MX"><speak>${qCfg.disclaimer}</speak></Say>` : "";
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>${disclaimerDial}
   <Dial timeout="10" action="${statusCallback}" method="POST" record="record-from-answer-dual" recordingStatusCallback="${EVENTS_URL}" recordingStatusCallbackMethod="POST">
