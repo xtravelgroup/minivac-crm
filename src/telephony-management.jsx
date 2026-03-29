@@ -1335,6 +1335,224 @@ function RendimientoTab(props) {
   );
 }
 
+// ─── HORARIOS TAB ───────────────────────────────────────────
+var DAY_LABELS = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
+var QUEUE_LABELS = { ventas: "Sala A - Ventas", cs: "Customer Service", reservas: "Reservaciones" };
+
+function HorariosTab() {
+  var [schedules, setSchedules] = useState([]);
+  var [holidays, setHolidays] = useState([]);
+  var [loading, setLoading] = useState(true);
+  var [saving, setSaving] = useState(false);
+  var [newHol, setNewHol] = useState({ date: "", label: "", queue: "all" });
+  var [toast, setToast] = useState(null);
+
+  function notify(msg, ok) {
+    setToast({ msg: msg, ok: ok !== false });
+    setTimeout(function () { setToast(null); }, 3000);
+  }
+
+  function loadData() {
+    setLoading(true);
+    Promise.all([
+      fetch(SB_URL + "/rest/v1/queue_schedule?order=queue,day_of_week", { headers: HDR }).then(function (r) { return r.json(); }),
+      fetch(SB_URL + "/rest/v1/queue_holidays?order=date.asc", { headers: HDR }).then(function (r) { return r.json(); }),
+    ]).then(function (res) {
+      if (Array.isArray(res[0])) setSchedules(res[0]);
+      if (Array.isArray(res[1])) setHolidays(res[1]);
+      setLoading(false);
+    });
+  }
+
+  useEffect(function () { loadData(); }, []);
+
+  function updateSchedule(id, field, value) {
+    // Optimistic update
+    setSchedules(function (prev) {
+      return prev.map(function (s) {
+        if (s.id !== id) return s;
+        var updated = Object.assign({}, s);
+        updated[field] = value;
+        return updated;
+      });
+    });
+    var body = {};
+    body[field] = value;
+    fetch(SB_URL + "/rest/v1/queue_schedule?id=eq." + id, {
+      method: "PATCH", headers: HDR, body: JSON.stringify(body),
+    }).then(function (r) {
+      if (!r.ok) notify("Error al guardar", false);
+    });
+  }
+
+  function addHoliday() {
+    if (!newHol.date || !newHol.label) { notify("Fecha y nombre requeridos", false); return; }
+    setSaving(true);
+    fetch(SB_URL + "/rest/v1/queue_holidays", {
+      method: "POST", headers: Object.assign({}, HDR, { Prefer: "return=representation" }),
+      body: JSON.stringify(newHol),
+    }).then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (Array.isArray(d) && d.length > 0) {
+          setHolidays(function (prev) { return prev.concat(d).sort(function (a, b) { return a.date.localeCompare(b.date); }); });
+          setNewHol({ date: "", label: "", queue: "all" });
+          notify("Festivo agregado");
+        }
+        setSaving(false);
+      });
+  }
+
+  function deleteHoliday(id) {
+    fetch(SB_URL + "/rest/v1/queue_holidays?id=eq." + id, { method: "DELETE", headers: HDR })
+      .then(function () {
+        setHolidays(function (prev) { return prev.filter(function (h) { return h.id !== id; }); });
+        notify("Festivo eliminado");
+      });
+  }
+
+  if (loading) return <div style={{ padding: 20, color: C.t3 }}>Cargando horarios...</div>;
+
+  // Group schedules by queue
+  var byQueue = {};
+  schedules.forEach(function (s) {
+    if (!byQueue[s.queue]) byQueue[s.queue] = [];
+    byQueue[s.queue].push(s);
+  });
+
+  var inputStyle = { padding: "5px 8px", border: "1px solid " + C.border, borderRadius: 4, fontSize: 13, fontFamily: C.font, width: 80 };
+  var toggleOn = { padding: "4px 12px", borderRadius: 4, border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: C.font, background: C.greenBg, color: C.green };
+  var toggleOff = { padding: "4px 12px", borderRadius: 4, border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: C.font, background: C.redBg, color: C.red };
+
+  return (
+    <div>
+      {toast && (
+        <div style={{ position: "fixed", top: 20, right: 20, zIndex: 10000, padding: "10px 20px", borderRadius: 8, background: toast.ok ? C.green : C.red, color: "#fff", fontSize: 13, fontWeight: 600, fontFamily: C.font, boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
+          {toast.msg}
+        </div>
+      )}
+
+      {/* Weekly schedule per queue */}
+      <div style={{ fontSize: 15, fontWeight: 700, color: C.t1, marginBottom: 16 }}>Horario Semanal por Cola</div>
+
+      {["ventas", "cs", "reservas"].map(function (q) {
+        var rows = byQueue[q] || [];
+        rows.sort(function (a, b) { return a.day_of_week - b.day_of_week; });
+        return (
+          <div key={q} style={{ marginBottom: 24, background: C.surface, border: "1px solid " + C.border, borderRadius: C.r, overflow: "hidden" }}>
+            <div style={{ padding: "12px 16px", background: C.brandLt, borderBottom: "1px solid " + C.border }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: C.brand }}>{QUEUE_LABELS[q] || q}</span>
+            </div>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "#f9fafb" }}>
+                  <th style={{ padding: "8px 16px", textAlign: "left", fontSize: 11, fontWeight: 700, color: C.t4, borderBottom: "1px solid " + C.border }}>DIA</th>
+                  <th style={{ padding: "8px 16px", textAlign: "center", fontSize: 11, fontWeight: 700, color: C.t4, borderBottom: "1px solid " + C.border }}>ESTADO</th>
+                  <th style={{ padding: "8px 16px", textAlign: "center", fontSize: 11, fontWeight: 700, color: C.t4, borderBottom: "1px solid " + C.border }}>APERTURA</th>
+                  <th style={{ padding: "8px 16px", textAlign: "center", fontSize: 11, fontWeight: 700, color: C.t4, borderBottom: "1px solid " + C.border }}>CIERRE</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(function (s) {
+                  return (
+                    <tr key={s.id} style={{ borderBottom: "1px solid " + C.borderL }}>
+                      <td style={{ padding: "8px 16px", fontSize: 13, fontWeight: 600, color: C.t1 }}>{DAY_LABELS[s.day_of_week]}</td>
+                      <td style={{ padding: "8px 16px", textAlign: "center" }}>
+                        <button onClick={function () { updateSchedule(s.id, "is_active", !s.is_active); }}
+                          style={s.is_active ? toggleOn : toggleOff}>
+                          {s.is_active ? "Abierto" : "Cerrado"}
+                        </button>
+                      </td>
+                      <td style={{ padding: "8px 16px", textAlign: "center" }}>
+                        <input type="time" value={s.open_time} disabled={!s.is_active}
+                          onChange={function (e) { updateSchedule(s.id, "open_time", e.target.value); }}
+                          style={Object.assign({}, inputStyle, { opacity: s.is_active ? 1 : 0.4 })} />
+                      </td>
+                      <td style={{ padding: "8px 16px", textAlign: "center" }}>
+                        <input type="time" value={s.close_time} disabled={!s.is_active}
+                          onChange={function (e) { updateSchedule(s.id, "close_time", e.target.value); }}
+                          style={Object.assign({}, inputStyle, { opacity: s.is_active ? 1 : 0.4 })} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
+
+      {/* Holidays management */}
+      <div style={{ fontSize: 15, fontWeight: 700, color: C.t1, marginBottom: 12, marginTop: 8 }}>Dias Festivos (Cerrados)</div>
+      <div style={{ background: C.surface, border: "1px solid " + C.border, borderRadius: C.r, padding: 16, marginBottom: 16 }}>
+        {/* Add holiday form */}
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: 16, flexWrap: "wrap" }}>
+          <div>
+            <label style={{ fontSize: 11, color: C.t4, display: "block", marginBottom: 3 }}>Fecha</label>
+            <input type="date" value={newHol.date} onChange={function (e) { setNewHol(Object.assign({}, newHol, { date: e.target.value })); }}
+              style={{ padding: "6px 10px", border: "1px solid " + C.border, borderRadius: C.r, fontSize: 13, fontFamily: C.font }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: C.t4, display: "block", marginBottom: 3 }}>Nombre</label>
+            <input type="text" value={newHol.label} placeholder="Ej: Navidad"
+              onChange={function (e) { setNewHol(Object.assign({}, newHol, { label: e.target.value })); }}
+              style={{ padding: "6px 10px", border: "1px solid " + C.border, borderRadius: C.r, fontSize: 13, fontFamily: C.font, width: 180 }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: C.t4, display: "block", marginBottom: 3 }}>Cola</label>
+            <select value={newHol.queue} onChange={function (e) { setNewHol(Object.assign({}, newHol, { queue: e.target.value })); }}
+              style={{ padding: "6px 10px", border: "1px solid " + C.border, borderRadius: C.r, fontSize: 13, fontFamily: C.font }}>
+              <option value="all">Todas las colas</option>
+              <option value="ventas">Ventas</option>
+              <option value="cs">Customer Service</option>
+              <option value="reservas">Reservaciones</option>
+            </select>
+          </div>
+          <button onClick={addHoliday} disabled={saving}
+            style={{ padding: "7px 16px", background: C.brand, color: "#fff", border: "none", borderRadius: C.r, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: C.font }}>
+            Agregar Festivo
+          </button>
+        </div>
+
+        {/* Holiday list */}
+        {holidays.length === 0 && (
+          <div style={{ padding: 16, textAlign: "center", color: C.t4, fontSize: 13 }}>No hay festivos configurados</div>
+        )}
+        {holidays.length > 0 && (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid " + C.border }}>
+                <th style={{ padding: "6px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: C.t4 }}>FECHA</th>
+                <th style={{ padding: "6px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: C.t4 }}>NOMBRE</th>
+                <th style={{ padding: "6px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: C.t4 }}>COLA</th>
+                <th style={{ padding: "6px 12px", textAlign: "center", fontSize: 11, fontWeight: 700, color: C.t4 }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {holidays.map(function (h) {
+                var qLabel = h.queue === "all" ? "Todas" : (QUEUE_LABELS[h.queue] || h.queue);
+                var isPast = h.date < today();
+                return (
+                  <tr key={h.id} style={{ borderBottom: "1px solid " + C.borderL, opacity: isPast ? 0.5 : 1 }}>
+                    <td style={{ padding: "8px 12px", fontSize: 13, color: C.t1, fontWeight: 600 }}>{h.date}</td>
+                    <td style={{ padding: "8px 12px", fontSize: 13, color: C.t2 }}>{h.label}</td>
+                    <td style={{ padding: "8px 12px", fontSize: 12, color: C.t3 }}>{qLabel}</td>
+                    <td style={{ padding: "8px 12px", textAlign: "center" }}>
+                      <button onClick={function () { deleteHoliday(h.id); }}
+                        style={{ padding: "3px 10px", background: C.redBg, color: C.red, border: "none", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: C.font }}>
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN MODULE ─────────────────────────────────────────────
 export default function TelephonyManagement(props) {
   var currentUser = props.currentUser;
@@ -1468,6 +1686,7 @@ export default function TelephonyManagement(props) {
         { id: "reportes", label: "Reportes" },
         { id: "perdidas", label: "Perdidas" },
         { id: "rendimiento", label: "Rendimiento AI" },
+        { id: "horarios", label: "Horarios" },
       ]
     : [
         { id: "reportes", label: "Mis Llamadas" },
@@ -1568,6 +1787,10 @@ export default function TelephonyManagement(props) {
           usuarios={usuarios}
           activeQueue={activeQueue}
         />
+      )}
+
+      {tab === "horarios" && isAdmin && (
+        <HorariosTab />
       )}
     </div>
   );

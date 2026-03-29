@@ -44,6 +44,55 @@ function resolveQueue(toNumber: string, urlQueue: string | null): string {
   return QUEUE_MAP[clean] || "ventas";
 }
 
+// ── Business hours check ──────────────────────────────────
+async function isOpen(queue: string): Promise<boolean> {
+  const now = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
+  const todayStr = now.toLocaleDateString("en-CA"); // YYYY-MM-DD
+  const dayOfWeek = now.getDay(); // 0=Sun
+  const currentTime = ("0" + now.getHours()).slice(-2) + ":" + ("0" + now.getMinutes()).slice(-2);
+
+  // Check holidays first (queue-specific or "all")
+  const holRes = await fetch(
+    `${SB_URL}/rest/v1/queue_holidays?date=eq.${todayStr}&queue=in.(all,${queue})&limit=1`,
+    { headers: HDR }
+  );
+  const holidays = await holRes.json();
+  if (Array.isArray(holidays) && holidays.length > 0) {
+    console.log(`[schedule] Queue ${queue} closed: holiday "${holidays[0].label}"`);
+    return false;
+  }
+
+  // Check weekly schedule
+  const schRes = await fetch(
+    `${SB_URL}/rest/v1/queue_schedule?queue=eq.${queue}&day_of_week=eq.${dayOfWeek}&limit=1`,
+    { headers: HDR }
+  );
+  const schedules = await schRes.json();
+  if (!Array.isArray(schedules) || schedules.length === 0) {
+    // No schedule configured = always open (backwards compatible)
+    return true;
+  }
+  const sch = schedules[0];
+  if (!sch.is_active) {
+    console.log(`[schedule] Queue ${queue} closed: day ${dayOfWeek} inactive`);
+    return false;
+  }
+  if (currentTime < sch.open_time || currentTime >= sch.close_time) {
+    console.log(`[schedule] Queue ${queue} closed: ${currentTime} outside ${sch.open_time}-${sch.close_time}`);
+    return false;
+  }
+  return true;
+}
+
+function closedResponse(queueName: string): Response {
+  const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say language="es-MX">Gracias por llamar a ${queueName}. En este momento nos encontramos fuera de nuestro horario de atencion. Por favor intente nuevamente durante nuestro horario laboral. Gracias.</Say>
+  <Hangup/>
+</Response>`;
+  return new Response(twiml, { headers: { "Content-Type": "text/xml" } });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization,content-type,apikey" } });
@@ -137,6 +186,15 @@ serve(async (req) => {
   </Dial>
 </Response>`;
         return new Response(twiml, { headers: { "Content-Type": "text/xml" } });
+      }
+    }
+
+    // ── Business hours check (only on first inbound call, not retries or outbound)
+    if (!isRetry && !from.startsWith("client:")) {
+      const open = await isOpen(queue);
+      if (!open) {
+        console.log(`[schedule] Rejecting call ${callSid} — queue ${queue} is closed`);
+        return closedResponse(qCfg.name);
       }
     }
 
