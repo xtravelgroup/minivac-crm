@@ -41,23 +41,57 @@ serve(async (req) => {
       // Try parent SID first, then child SID
       const recSid = parentSid || callSid;
       console.log(`Recording completed: SID=${recordingSid}, URL=${recordingUrl}, CallSid=${callSid}, ParentSid=${parentSid}, using=${recSid}`);
+      let savedCallId = "";
       if (recSid) {
         // Try matching by parent SID (most common for inbound)
-        const res1 = await fetch(`${SB_URL}/rest/v1/call_log?twilio_call_sid=eq.${recSid}&select=id`, { headers: HDR });
+        const res1 = await fetch(`${SB_URL}/rest/v1/call_log?twilio_call_sid=eq.${recSid}&select=id,queue`, { headers: HDR });
         const data1 = await res1.json();
         if (Array.isArray(data1) && data1.length > 0) {
           await fetch(`${SB_URL}/rest/v1/call_log?twilio_call_sid=eq.${recSid}`, {
             method: "PATCH", headers: HDR,
             body: JSON.stringify({ recording_url: recordingUrl }),
           });
+          savedCallId = data1[0].id;
           console.log(`Recording saved for SID ${recSid}`);
+
+          // Auto-trigger AI analysis for ventas queue calls
+          if (data1[0].queue === "ventas" && savedCallId) {
+            try {
+              const fnUrl = (Deno.env.get("SUPABASE_URL") || SB_URL) + "/functions/v1/call-analysis";
+              fetch(fnUrl, {
+                method: "POST",
+                headers: { ...HDR, "Content-Type": "application/json" },
+                body: JSON.stringify({ call_id: savedCallId }),
+              }).then(() => console.log(`AI analysis triggered for call ${savedCallId}`))
+                .catch((e: Error) => console.error(`AI analysis trigger failed: ${e.message}`));
+            } catch (e) {
+              console.error(`AI analysis trigger error:`, e);
+            }
+          }
         } else if (parentSid && callSid) {
           // Fallback: try child SID
+          const res2 = await fetch(`${SB_URL}/rest/v1/call_log?twilio_call_sid=eq.${callSid}&select=id,queue`, { headers: HDR });
+          const data2 = await res2.json();
           await fetch(`${SB_URL}/rest/v1/call_log?twilio_call_sid=eq.${callSid}`, {
             method: "PATCH", headers: HDR,
             body: JSON.stringify({ recording_url: recordingUrl }),
           });
           console.log(`Recording saved (fallback child SID) for ${callSid}`);
+
+          // Auto-trigger AI analysis for ventas queue calls (fallback path)
+          if (Array.isArray(data2) && data2.length > 0 && data2[0].queue === "ventas") {
+            try {
+              const fnUrl = (Deno.env.get("SUPABASE_URL") || SB_URL) + "/functions/v1/call-analysis";
+              fetch(fnUrl, {
+                method: "POST",
+                headers: { ...HDR, "Content-Type": "application/json" },
+                body: JSON.stringify({ call_id: data2[0].id }),
+              }).then(() => console.log(`AI analysis triggered for call ${data2[0].id}`))
+                .catch((e: Error) => console.error(`AI analysis trigger failed: ${e.message}`));
+            } catch (e) {
+              console.error(`AI analysis trigger error:`, e);
+            }
+          }
         }
       }
       return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*" } });

@@ -744,6 +744,35 @@ function ReportesTab(props) {
   var loading = props.loading;
   var isAdmin = props.isAdmin;
   var [selectedCall, setSelectedCall] = useState(null);
+  var [scoreMap, setScoreMap] = useState({});
+
+  // Load AI scores for all calls
+  useEffect(function () {
+    if (callLogs.length === 0) return;
+    var ids = callLogs.filter(function (c) { return c.recording_url; }).map(function (c) { return c.id; });
+    if (ids.length === 0) return;
+    // Fetch in batches of 50 using call_log_id filter
+    var batchSize = 50;
+    var promises = [];
+    for (var i = 0; i < ids.length; i += batchSize) {
+      var batch = ids.slice(i, i + batchSize);
+      var url = SB_URL + "/rest/v1/call_analysis?call_log_id=in.(" + batch.join(",") + ")&select=call_log_id,analysis";
+      promises.push(fetch(url, { headers: HDR }).then(function (r) { return r.json(); }));
+    }
+    Promise.all(promises).then(function (results) {
+      var map = {};
+      results.forEach(function (arr) {
+        if (Array.isArray(arr)) {
+          arr.forEach(function (a) {
+            if (a.analysis && a.analysis.puntaje_total !== undefined) {
+              map[a.call_log_id] = a.analysis.puntaje_total;
+            }
+          });
+        }
+      });
+      setScoreMap(map);
+    });
+  }, [callLogs]);
 
   function getAgentName(id) {
     var u = usuarios.find(function (x) { return x.id === id; });
@@ -934,6 +963,12 @@ function ReportesTab(props) {
                   <td style={tdStyle}>{getAgentName(c.agent_id)}</td>
                   <td style={tdStyle}>
                     <span style={{ padding: "3px 8px", borderRadius: 10, background: sc.bg, color: sc.color, fontSize: 11, fontWeight: 600 }}>{statusLabel(c.status)}</span>
+                    {scoreMap[c.id] !== undefined && (
+                      <span style={{ marginLeft: 6, padding: "2px 7px", borderRadius: 10, fontSize: 11, fontWeight: 800,
+                        background: scoreMap[c.id] >= 70 ? C.greenBg : scoreMap[c.id] >= 40 ? C.amberBg : C.redBg,
+                        color: scoreMap[c.id] >= 70 ? C.green : scoreMap[c.id] >= 40 ? C.amber : C.red,
+                      }}>{scoreMap[c.id]}</span>
+                    )}
                   </td>
                   <td style={tdStyle}>
                     <span style={{ fontWeight: 600, color: attempts > 1 ? C.amber : C.t2 }}>{attempts || "--"}</span>
