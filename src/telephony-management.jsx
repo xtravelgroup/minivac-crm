@@ -92,6 +92,7 @@ function AgentesTab(props) {
   var usuarios = props.usuarios;
   var callCounts = props.callCounts;
   var onRefresh = props.onRefresh;
+  var activeQueue = props.activeQueue || "ventas";
   var [adding, setAdding] = useState("");
   var [saving, setSaving] = useState(false);
   var tickRef = useRef(0);
@@ -112,7 +113,7 @@ function AgentesTab(props) {
     setSaving(true);
     fetch(SB_URL + "/rest/v1/queue_agents", {
       method: "POST", headers: HDR,
-      body: JSON.stringify({ usuario_id: adding, activo: true, prioridad: 5 }),
+      body: JSON.stringify({ usuario_id: adding, activo: true, prioridad: 5, queue: activeQueue }),
     }).then(function () { setSaving(false); setAdding(""); onRefresh(); });
   }
 
@@ -699,6 +700,7 @@ function ReportesTab(props) {
 // ─── PERDIDAS TAB ───────────────────────────────────────────
 function PerdidasTab(props) {
   var usuarios = props.usuarios;
+  var activeQueue = props.activeQueue || "ventas";
   var [missedCalls, setMissedCalls] = useState([]);
   var [loading, setLoading] = useState(true);
   var [selectedCall, setSelectedCall] = useState(null);
@@ -706,7 +708,7 @@ function PerdidasTab(props) {
 
   useEffect(function () {
     setLoading(true);
-    var url = SB_URL + "/rest/v1/call_log?status=eq.no-answer&direction=eq.inbound&order=started_at.desc&limit=500";
+    var url = SB_URL + "/rest/v1/call_log?queue=eq." + activeQueue + "&status=eq.no-answer&direction=eq.inbound&order=started_at.desc&limit=500";
     if (dateRange.desde) url += "&started_at=gte." + dateRange.desde + "T00:00:00";
     if (dateRange.hasta) url += "&started_at=lte." + dateRange.hasta + "T23:59:59";
 
@@ -744,7 +746,7 @@ function PerdidasTab(props) {
           });
       })
       .catch(function () { setLoading(false); });
-  }, [dateRange]);
+  }, [dateRange, activeQueue]);
 
   function getAgentName(id) {
     var u = usuarios.find(function (x) { return x.id === id; });
@@ -864,6 +866,13 @@ export default function TelephonyManagement(props) {
   var ADMIN_ROLES = ["admin", "director", "supervisor"];
   var isAdmin = currentUser && ADMIN_ROLES.includes(currentUser.rol);
 
+  var QUEUES = [
+    { id: "ventas", label: "Sala A - Ventas" },
+    { id: "cs", label: "Customer Service" },
+    { id: "reservas", label: "Reservaciones" },
+  ];
+
+  var [activeQueue, setActiveQueue] = useState("ventas");
   var [tab, setTab] = useState("agentes");
   var [queueAgents, setQueueAgents] = useState([]);
   var [agentStatuses, setAgentStatuses] = useState([]);
@@ -885,8 +894,8 @@ export default function TelephonyManagement(props) {
 
   // ── Load base data ──
   var loadData = useCallback(function () {
-    // Queue agents
-    fetch(SB_URL + "/rest/v1/queue_agents?order=prioridad.asc", { headers: HDR })
+    // Queue agents — filtered by activeQueue
+    fetch(SB_URL + "/rest/v1/queue_agents?queue=eq." + activeQueue + "&order=prioridad.asc", { headers: HDR })
       .then(function (r) { return r.json(); })
       .then(function (d) { if (Array.isArray(d)) setQueueAgents(d); });
 
@@ -900,19 +909,19 @@ export default function TelephonyManagement(props) {
       .then(function (r) { return r.json(); })
       .then(function (d) { if (Array.isArray(d)) setUsuarios(d); });
 
-    // ACD queue (queued/ringing/answered = waiting/ringing/active)
-    fetch(SB_URL + "/rest/v1/acd_queue?status=in.(queued,ringing,answered)&order=created_at.asc", { headers: HDR })
+    // ACD queue — filtered by activeQueue
+    fetch(SB_URL + "/rest/v1/acd_queue?queue=eq." + activeQueue + "&status=in.(queued,ringing,answered)&order=created_at.asc", { headers: HDR })
       .then(function (r) { return r.json(); })
       .then(function (d) { if (Array.isArray(d)) setAcdQueue(d); });
 
-    // Active calls (in-progress or ringing)
-    fetch(SB_URL + "/rest/v1/call_log?status=in.(in-progress,ringing)&order=started_at.desc", { headers: HDR })
+    // Active calls — filtered by activeQueue
+    fetch(SB_URL + "/rest/v1/call_log?queue=eq." + activeQueue + "&status=in.(in-progress,ringing)&order=started_at.desc", { headers: HDR })
       .then(function (r) { return r.json(); })
       .then(function (d) { if (Array.isArray(d)) setActiveCalls(d); });
 
-    // Calls today per agent
+    // Calls today per agent — filtered by activeQueue
     var todayStart = today() + "T00:00:00";
-    fetch(SB_URL + "/rest/v1/call_log?started_at=gte." + todayStart + "&status=eq.completed&select=agent_id", { headers: HDR })
+    fetch(SB_URL + "/rest/v1/call_log?queue=eq." + activeQueue + "&started_at=gte." + todayStart + "&status=eq.completed&select=agent_id", { headers: HDR })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!Array.isArray(d)) return;
@@ -920,14 +929,14 @@ export default function TelephonyManagement(props) {
         d.forEach(function (c) { if (c.agent_id) counts[c.agent_id] = (counts[c.agent_id] || 0) + 1; });
         setCallCounts(counts);
       });
-  }, []);
+  }, [activeQueue]);
 
   useEffect(function () { loadData(); }, [loadData]);
 
   // ── Load call logs for reports ──
   useEffect(function () {
     setLoadingLogs(true);
-    var url = SB_URL + "/rest/v1/call_log?order=started_at.desc&limit=500";
+    var url = SB_URL + "/rest/v1/call_log?queue=eq." + activeQueue + "&order=started_at.desc&limit=500";
     if (filters.desde) url += "&started_at=gte." + filters.desde + "T00:00:00";
     if (filters.hasta) url += "&started_at=lte." + filters.hasta + "T23:59:59";
     if (filters.agent_id) url += "&agent_id=eq." + filters.agent_id;
@@ -942,7 +951,7 @@ export default function TelephonyManagement(props) {
       .then(function (r) { return r.json(); })
       .then(function (d) { if (Array.isArray(d)) setCallLogs(d); setLoadingLogs(false); })
       .catch(function () { setLoadingLogs(false); });
-  }, [filters, isAdmin]);
+  }, [filters, isAdmin, activeQueue]);
 
   // ── Realtime subscriptions ──
   useEffect(function () {
@@ -993,12 +1002,35 @@ export default function TelephonyManagement(props) {
     <div style={{ padding: 24, fontFamily: C.font, color: C.t1 }}>
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: C.t1 }}>
-          {isAdmin ? "Gestion de Telefonia" : "Mis Llamadas"}
-        </h1>
-        <p style={{ fontSize: 13, color: C.t3, margin: "4px 0 0" }}>
-          {isAdmin ? "Administra la cola de llamadas, agentes y reportes" : "Historial de tus llamadas"}
-        </p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: C.t1 }}>
+              {isAdmin ? "Gestion de Telefonia" : "Mis Llamadas"}
+            </h1>
+            <p style={{ fontSize: 13, color: C.t3, margin: "4px 0 0" }}>
+              {isAdmin ? "Administra la cola de llamadas, agentes y reportes" : "Historial de tus llamadas"}
+            </p>
+          </div>
+          {isAdmin && (
+            <div style={{ display: "flex", gap: 4, background: C.grayBg, borderRadius: 8, padding: 3 }}>
+              {QUEUES.map(function (q) {
+                var isActive = activeQueue === q.id;
+                return (
+                  <button key={q.id} onClick={function () { setActiveQueue(q.id); }}
+                    style={{
+                      padding: "7px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: C.font,
+                      border: "none", borderRadius: 6,
+                      background: isActive ? C.brand : "transparent",
+                      color: isActive ? "#fff" : C.t3,
+                      transition: "all 0.15s ease",
+                    }}>
+                    {q.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
@@ -1016,6 +1048,7 @@ export default function TelephonyManagement(props) {
           usuarios={usuarios}
           callCounts={callCounts}
           onRefresh={loadData}
+          activeQueue={activeQueue}
         />
       )}
 
@@ -1041,6 +1074,7 @@ export default function TelephonyManagement(props) {
       {tab === "perdidas" && isAdmin && (
         <PerdidasTab
           usuarios={usuarios}
+          activeQueue={activeQueue}
         />
       )}
     </div>

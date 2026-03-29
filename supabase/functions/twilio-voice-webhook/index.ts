@@ -11,6 +11,39 @@ const EVENTS_URL = `${SB_URL}/functions/v1/twilio-call-events`;
 // Phone ring tone hosted on Supabase Storage (12s: 2 ring cycles of 2s tone + 4s silence)
 const RING_TONE = `${SB_URL}/storage/v1/object/public/audio/phone_ring.wav`;
 
+// ── Queue routing by phone number ──────────────────────────
+// Map Twilio numbers to queue names. When you get the CS and Reservas numbers,
+// add them here. Format: "+1XXXXXXXXXX": "queue_name"
+const QUEUE_MAP: Record<string, string> = {
+  "+17867835400": "ventas",
+  "+17867835592": "cs",
+  "+17867834775": "reservas",
+};
+
+const QUEUE_CONFIG: Record<string, { name: string; welcome: string; hold: string; callerIdOverride?: string }> = {
+  ventas: {
+    name: "Sala A - Ventas",
+    welcome: "Ya estas participando. Por favor permanecer en linea para ser atendido por un promotor.",
+    hold: "Por favor permanezca en linea. Un promotor le atendera en breve.",
+  },
+  cs: {
+    name: "Customer Service",
+    welcome: "Gracias por llamar. Un agente de servicio al cliente le atendera en breve.",
+    hold: "Por favor permanezca en linea. Un agente le atendera pronto.",
+  },
+  reservas: {
+    name: "Reservaciones",
+    welcome: "Gracias por llamar al departamento de reservaciones. Un agente le atendera en breve.",
+    hold: "Por favor permanezca en linea. Un agente de reservaciones le atendera pronto.",
+  },
+};
+
+function resolveQueue(toNumber: string, urlQueue: string | null): string {
+  if (urlQueue && QUEUE_CONFIG[urlQueue]) return urlQueue;
+  const clean = toNumber.replace(/[^\d+]/g, "");
+  return QUEUE_MAP[clean] || "ventas";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization,content-type,apikey" } });
@@ -27,7 +60,11 @@ serve(async (req) => {
     const from = formData.get("From") as string || "";
     const to = formData.get("To") as string || "";
 
-    console.log(`Call: ${from} -> ${to}, SID: ${callSid}, retry: ${isRetry}`);
+    // Determine which queue this call belongs to
+    const urlQueue = reqUrl.searchParams.get("queue");
+    const queue = resolveQueue(to, urlQueue);
+    const qCfg = QUEUE_CONFIG[queue] || QUEUE_CONFIG.ventas;
+    console.log(`Call: ${from} -> ${to}, SID: ${callSid}, retry: ${isRetry}, queue: ${queue}`);
 
     // ── Outbound call from browser client → forward to outbound handler
     if (from.startsWith("client:") && !isRetry) {
@@ -158,6 +195,7 @@ serve(async (req) => {
         to_number: to,
         status: "ringing",
         started_at: new Date().toISOString(),
+        queue: queue,
       };
       if (lead) callLog.lead_id = lead.id;
 
@@ -191,6 +229,7 @@ serve(async (req) => {
             attempt_count: 0,
             agents_tried: [],
             ring_started_at: new Date().toISOString(),
+            queue: queue,
           }),
         });
         const acdText = await acdRes.text();
@@ -230,7 +269,7 @@ serve(async (req) => {
       }
     }
 
-    const qaRes = await fetch(`${SB_URL}/rest/v1/queue_agents?activo=eq.true&order=prioridad.asc`, { headers: HDR });
+    const qaRes = await fetch(`${SB_URL}/rest/v1/queue_agents?activo=eq.true&queue=eq.${queue}&order=prioridad.asc`, { headers: HDR });
     const qaData = await qaRes.json();
     const queueAgentIds = Array.isArray(qaData) ? qaData.map((q: any) => q.usuario_id) : [];
 
@@ -299,7 +338,7 @@ serve(async (req) => {
 
     // Build the redirect URL for retries (& must be &amp; in XML/TwiML)
     const nextN = loopCount + 1;
-    const retryUrl = `${SELF_URL}?retry=1&amp;callLogId=${callLogId}&amp;n=${nextN}`;
+    const retryUrl = `${SELF_URL}?retry=1&amp;callLogId=${callLogId}&amp;n=${nextN}&amp;queue=${queue}`;
 
     if (agents.length === 0) {
       // No agents available — short loop (~6s per cycle) to check for agents frequently
@@ -311,7 +350,7 @@ serve(async (req) => {
         // First time: welcome message then ring, then redirect to check again
         twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say language="es-MX">Ya estas participando. Por favor permanecer en linea para ser atendido por un promotor.</Say>
+  <Say language="es-MX">${qCfg.welcome}</Say>
   <Play loop="1">${RING_TONE}</Play>
   <Redirect method="POST">${retryUrl}</Redirect>
 </Response>`;
@@ -319,7 +358,7 @@ serve(async (req) => {
         // Every 4th retry (~24s): repeat hold message then ring
         twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say language="es-MX">Por favor permanezca en linea. Un promotor le atendera en breve.</Say>
+  <Say language="es-MX">${qCfg.hold}</Say>
   <Play loop="1">${RING_TONE}</Play>
   <Redirect method="POST">${retryUrl}</Redirect>
 </Response>`;

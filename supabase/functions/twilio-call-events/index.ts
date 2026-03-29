@@ -31,6 +31,9 @@ serve(async (req) => {
       });
     }
 
+    // Client leg events send the child SID; use ParentCallSid to find the call_log
+    const parentSid = formData.get("ParentCallSid") as string || "";
+
     // Handle recording status callback (from <Dial record="...">)
     const recordingStatus = formData.get("RecordingStatus") as string || "";
     const recordingSid = formData.get("RecordingSid") as string || "";
@@ -47,8 +50,6 @@ serve(async (req) => {
     }
 
     // Handle call status updates
-    // Client leg events send the child SID; use ParentCallSid to find the call_log
-    const parentSid = formData.get("ParentCallSid") as string || "";
     const sid = parentSid || callSid;
     console.log(`Call event: status=${callStatus}, CallSid=${callSid}, ParentCallSid=${parentSid}, using=${sid}`);
     if (!sid) return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*" } });
