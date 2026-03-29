@@ -2211,7 +2211,7 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId, new
     var query = SB.from("leads").select("*").order("created_at", {ascending:false});
     // Para vendedor, buscar su dbId correcto
     if (!isSup && myAuthId) {
-      var meEnSb = sbUsers.find(function(u){ return u.authId === myAuthId || u.id === myAuthId; });
+      var meEnSb = sbUsers.find(function(u){ return u.authId === myAuthId || u.id === myAuthId || u.dbId === myAuthId; });
       var miDbId = meEnSb ? meEnSb.dbId : myAuthId;
       query = query.eq("vendedor_id", miDbId);
     }
@@ -2283,7 +2283,7 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId, new
           // Ahora cargar leads con los usuarios ya cargados
           var query = SB.from("leads").select("*").order("created_at", {ascending:false});
           if (!isSup && myAuthId) {
-            var me = mapped.find(function(u){ return u.authId === myAuthId || u.id === myAuthId; });
+            var me = mapped.find(function(u){ return u.authId === myAuthId || u.id === myAuthId || u.dbId === myAuthId; });
             if (me && me.dbId) query = query.eq("vendedor_id", me.dbId);
           }
           query.then(function(res2) {
