@@ -349,6 +349,42 @@ function ColaVivaTab(props) {
   );
 }
 
+// ─── RECORDING PLAYER ───────────────────────────────────────
+function RecordingPlayer(props) {
+  var recordingUrl = props.url;
+  var [blobUrl, setBlobUrl] = useState(null);
+  var [loading, setLoading] = useState(true);
+  var [error, setError] = useState(false);
+
+  useEffect(function () {
+    if (!recordingUrl) return;
+    setLoading(true);
+    setError(false);
+    var proxyUrl = SB_URL + "/functions/v1/twilio-recording-proxy?url=" + encodeURIComponent(recordingUrl);
+    fetch(proxyUrl)
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.blob();
+      })
+      .then(function (blob) {
+        var url = URL.createObjectURL(blob);
+        setBlobUrl(url);
+        setLoading(false);
+      })
+      .catch(function () {
+        setError(true);
+        setLoading(false);
+      });
+    return function () {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [recordingUrl]);
+
+  if (loading) return <div style={{ fontSize: 12, color: C.t3, padding: "8px 0" }}>Cargando grabacion...</div>;
+  if (error) return <div style={{ fontSize: 12, color: C.red, padding: "8px 0" }}>Error al cargar grabacion</div>;
+  return <audio controls preload="auto" style={{ width: "100%" }} src={blobUrl} />;
+}
+
 // ─── CALL DETAIL MODAL ──────────────────────────────────────
 function CallDetailModal(props) {
   var call = props.call;
@@ -441,7 +477,7 @@ function CallDetailModal(props) {
         {call.recording_url && (
           <div style={{ marginBottom: 20, padding: "12px 16px", background: C.blueBg, borderRadius: C.r, border: "1px solid " + C.blue + "33" }}>
             <div style={{ fontSize: 11, color: C.blue, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Grabacion</div>
-            <audio controls style={{ width: "100%" }} src={SB_URL + "/functions/v1/twilio-recording-proxy?url=" + encodeURIComponent(call.recording_url)} />
+            <RecordingPlayer url={call.recording_url} />
           </div>
         )}
 
