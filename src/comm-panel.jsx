@@ -192,23 +192,25 @@ async function enviarWhatsApp(destino, texto, leadId){
 export function useCommPanel(){
   var [visible, setVisible]   = useState(false);
   var [cliente, setCliente]   = useState(null);
-  var [canalInicial, setCanalInicial] = useState(null);
+  var [canalInicial, setCanalInicial] = useState("llamada");
+  var [openCount, setOpenCount] = useState(0);
   var [logs,    setLogs]      = useState([]);
 
   function open(c, canal){
     setCliente(c);
-    setCanalInicial(canal||null);
+    setCanalInicial(canal||"llamada");
+    setOpenCount(function(n){ return n+1; });
     setVisible(true);
   }
   function close(){
     setVisible(false);
-    setCanalInicial(null);
+    setCanalInicial("llamada");
   }
   function addLog(entry){
     setLogs(function(prev){ return [entry,...prev]; });
   }
 
-  return { visible, cliente, logs, open, close, addLog, setLogs, canalInicial };
+  return { visible, cliente, logs, open, close, addLog, setLogs, canalInicial, openCount };
 }
 
 // ?? Estilos internos ??
@@ -704,11 +706,11 @@ export default function CommPanel(props){
   var onLog       = props.onLog||function(){};
   var logs        = props.logs||[];
 
-  var [canal, setCanal] = useState("llamada");
+  var [canal, setCanal] = useState(props.canalInicial || "llamada");
 
   useEffect(function(){
-    if(visible) setCanal(props.canalInicial || "llamada");
-  },[visible, cliente, props.canalInicial]);
+    setCanal(props.canalInicial || "llamada");
+  },[props.openCount]);
 
   if(!visible||!cliente) return null;
 

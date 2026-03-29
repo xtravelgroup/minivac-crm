@@ -2312,6 +2312,8 @@ export default function CsReservasV3(props) {
       <CommPanel
         visible={comm.visible}
         cliente={comm.cliente}
+        canalInicial={comm.canalInicial}
+        openCount={comm.openCount}
         logs={comm.logs}
         currentUser={currentUser}
         onClose={comm.close}
