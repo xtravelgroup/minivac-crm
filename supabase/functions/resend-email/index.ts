@@ -5,7 +5,7 @@ const ANTHROPIC_KEY  = Deno.env.get("ANTHROPIC_API_KEY") || "";
 const UNSPLASH_KEY   = "omrp-MWVGbHhNROvFOmPsyJAujUKyPUpWpm8RL491Lo";
 const FROM_EMAIL = "members@xtravelgroup.com";
 const FROM_NAME  = "X Travel Group";
-const CORS = {"Access-Control-Allow-Origin":"*","Access-Control-Allow-Methods":"POST, GET, OPTIONS","Access-Control-Allow-Headers":"Content-Type, Authorization"};
+const CORS = {"Access-Control-Allow-Origin":"*","Access-Control-Allow-Methods":"POST, GET, OPTIONS","Access-Control-Allow-Headers":"Content-Type, Authorization, apikey, x-client-info"};
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   const SB = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
