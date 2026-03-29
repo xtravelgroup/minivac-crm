@@ -27,6 +27,7 @@ const WelcomeCalls       = React.lazy(() => import("./welcome-calls.jsx"));
 const RetencionQueue     = React.lazy(() => import("./retencion-queue.jsx"));
 const TelephonyMgmt     = React.lazy(() => import("./telephony-management.jsx"));
 const AgentPhone        = React.lazy(() => import("./agent-phone.jsx"));
+const FinanceModule     = React.lazy(() => import("./finance-module.jsx"));
 
 // ─── Constantes ───────────────────────────────────────────────
 const SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
@@ -139,6 +140,7 @@ var MODULOS = [
   { id: "hoteles",      label: "Hoteles",        icon: "hoteles",      section: "Catalogo",  roles: ["admin","director"] },
 
   { id: "comisiones",   label: "Comisiones",     icon: "comisiones",   section: "Finanzas",  roles: ["admin","director","supervisor","vendedor","contador","verificador"] },
+  { id: "finanzas",     label: "Finanzas P&L",   icon: "comisiones",   section: "Finanzas",  roles: ["admin","director","contador"] },
   { id: "usuarios",     label: "Usuarios",       icon: "usuarios",     section: "Config",    roles: ["admin","director"] },
   { id: "telefonia",    label: "Gestion Llamadas", icon: "vonage",     section: "Operacion", roles: ["admin","director","supervisor","vendedor","cs","cs_gerente","vlo","agente_reservas","especialista_radio"] },
   { id: "telefono",     label: "Telefono",         icon: "vonage",     section: "Principal", roles: ["admin","director","supervisor","vendedor","cs","cs_gerente","vlo","agente_reservas","especialista_radio"] },
@@ -675,6 +677,7 @@ export default function MinivacShell() {
             {activo === "hoteles"      && <HotelsModule />}
             {/* paquetes eliminado */}
             {activo === "comisiones"   && <CommissionsModule currentUser={user} />}
+            {activo === "finanzas"    && <FinanceModule currentUser={user} />}
             {activo === "usuarios"     && <RolesPermissions currentUser={user} />}
             {activo === "telefonia"    && <TelephonyMgmt currentUser={user} />}
             {activo === "telefono"     && <AgentPhone currentUser={user} onMakeCall={twilio.makeCall} isRegistered={twilio.isRegistered} />}
