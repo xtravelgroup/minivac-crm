@@ -79,12 +79,32 @@ export default function IncomingCallModal(props) {
 
   var callerParams = incomingCall ? incomingCall.parameters || {} : {};
   var callerNumber = callerParams.From || "Numero desconocido";
+  var isInternal = callerNumber.startsWith("client:agent_");
 
   // For active call, try to get the remote party info
   if (activeCall && !incomingCall) {
     var activeParams = activeCall.parameters || {};
     callerNumber = activeParams.From || activeParams.To || callerNumber;
+    isInternal = callerNumber.startsWith("client:agent_");
   }
+
+  // Resolve internal caller name
+  var [internalName, setInternalName] = useState("");
+  useEffect(function () {
+    if (!isInternal) { setInternalName(""); return; }
+    var userId = callerNumber.replace("client:agent_", "");
+    if (!userId) return;
+    fetch(SB_URL + "/rest/v1/usuarios?id=eq." + userId + "&select=nombre,rol&limit=1", { headers: HDR })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (Array.isArray(data) && data.length > 0) {
+          setInternalName(data[0].nombre || "Agente");
+        }
+      })
+      .catch(function () {});
+  }, [callerNumber, isInternal]);
+
+  var displayName = isInternal ? (internalName || "Agente") : callerNumber;
 
   var statusDot = function (s) {
     if (s === "available") return "#22c55e";
@@ -114,10 +134,10 @@ export default function IncomingCallModal(props) {
         <div style={card}>
           <div style={{ fontSize: 40, marginBottom: 10 }}>{"\u{1F4DE}"}</div>
           <div style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>
-            Llamada entrante
+            {isInternal ? "Llamada interna" : "Llamada entrante"}
           </div>
           <div style={{ fontSize: 20, fontWeight: 800, color: "#1a1f2e", marginBottom: 4 }}>
-            {callerNumber}
+            {displayName}
           </div>
           <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 24 }}>
             Sonando... {ringTime}s
@@ -175,7 +195,7 @@ export default function IncomingCallModal(props) {
             </span>
           </div>
           <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 14 }}>
-            {callerNumber}
+            {displayName}
           </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
             <button onClick={onMute} title={isMuted ? "Activar mic" : "Silenciar"} style={{

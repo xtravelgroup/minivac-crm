@@ -625,9 +625,10 @@ export default function MinivacShell() {
         onAccept={function () {
           twilio.acceptCall();
           // Check if caller is a new lead — open form with pre-filled phone
+          // Skip for internal calls (agent-to-agent)
           var params = twilio.incomingCall ? twilio.incomingCall.parameters || {} : {};
           var callerNum = params.From || "";
-          if (callerNum && !callerNum.startsWith("client:")) {
+          if (callerNum && !callerNum.startsWith("client:") && !callerNum.startsWith("agent_")) {
             var cleanNum = callerNum.replace(/[^\d+]/g, "");
             var searchNum = cleanNum.replace("+", "").slice(-10);
             fetch("https://gsvnvahrjgswwejnuiyn.supabase.co/rest/v1/leads?tel=ilike.*" + searchNum + "&select=id,nombre&limit=1", {
