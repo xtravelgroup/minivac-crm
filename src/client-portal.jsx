@@ -170,8 +170,8 @@ function SetPasswordScreen(props){
           <div style={{fontSize:"12px",color:"#9ca3af",marginTop:"4px"}}>Portal del Socio</div>
         </div>
         <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"16px",padding:"24px 22px",boxShadow:"0 4px 16px rgba(26,56,90,0.1)"}}>
-          <div style={{fontSize:"16px",fontWeight:"700",color:"#1a385a",marginBottom:"4px"}}>Crea tu contrasena</div>
-          <div style={{fontSize:"13px",color:"#6b7280",marginBottom:"18px"}}>Para acceder a tu portal de miembro</div>
+          <div style={{fontSize:"16px",fontWeight:"700",color:"#1a385a",marginBottom:"4px"}}>Establece tu contrasena</div>
+          <div style={{fontSize:"13px",color:"#6b7280",marginBottom:"18px"}}>Elige una contrasena para tu portal</div>
           <div style={{marginBottom:"14px"}}>
             <label style={S.lbl}>Nueva contrasena</label>
             <input style={S.inp} type="password" value={pass} onChange={function(e){setPass(e.target.value);setErr("");}} placeholder="Minimo 6 caracteres"/>
@@ -181,7 +181,7 @@ function SetPasswordScreen(props){
             <input style={S.inp} type="password" value={pass2} onChange={function(e){setPass2(e.target.value);setErr("");}} placeholder="Repite tu contrasena"/>
           </div>
           {err&&<div style={{fontSize:"12px",color:RED,marginBottom:"12px",padding:"8px 12px",background:"rgba(248,113,113,0.08)",borderRadius:"8px",border:"1px solid rgba(248,113,113,0.2)"}}>{err}</div>}
-          <button style={Object.assign({},btn("primary"),{width:"100%",justifyContent:"center",padding:"10px",opacity:saving?0.6:1})} onClick={doSet} disabled={saving}>{saving?"Guardando...":"Crear contrasena y entrar"}</button>
+          <button style={Object.assign({},btn("primary"),{width:"100%",justifyContent:"center",padding:"10px",opacity:saving?0.6:1})} onClick={doSet} disabled={saving}>{saving?"Guardando...":"Acceder"}</button>
         </div>
       </div>
     </div>

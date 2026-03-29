@@ -163,9 +163,9 @@ serve(async (req) => {
 <li>Explorar destinos disponibles</li>
 <li>Gestionar tus fechas de viaje</li>
 <li>Recibir informacion importante para tu proxima experiencia</li></ul>
-<p style="color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;"><strong>Para acceder, primero crea tu contrasena:</strong></p>
+<p style="color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;"><strong>Haz clic para acceder a tu portal:</strong></p>
 <div style="text-align:center;margin:28px 0;">
-<a href="${actionLink}" style="display:inline-block;background:linear-gradient(135deg,#0ea5a0 0%,#0d8f8b 100%);color:#ffffff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;box-shadow:0 4px 12px rgba(14,165,160,0.35);">Crear mi contrasena y acceder</a></div>
+<a href="${actionLink}" style="display:inline-block;background:linear-gradient(135deg,#0ea5a0 0%,#0d8f8b 100%);color:#ffffff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;box-shadow:0 4px 12px rgba(14,165,160,0.35);">Acceder</a></div>
 <p style="color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;">Este es solo el comienzo. Muy pronto estaras disfrutando de hoteles unicos, destinos espectaculares y momentos que realmente valen la pena.</p>
 <p style="color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;">Nuestro equipo estara contigo en cada paso para asegurarnos de que tu experiencia sea perfecta.</p>
 <p style="color:#1a385a;font-size:15px;line-height:1.8;margin:0 0 4px;font-weight:700;font-style:italic;">Preparate... porque tus proximas vacaciones estan mas cerca de lo que imaginas.</p>
