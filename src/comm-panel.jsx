@@ -264,9 +264,10 @@ function fmtTime(iso){
   return hh+":"+mm+" "+ampm+" - "+d.toLocaleDateString("es-MX",{day:"2-digit",month:"short"});
 }
 
-// ?? Panel de Llamada ??
+// ?? Panel de Llamada (Twilio) ??
 function PanelLlamada(props){
   var c = props.cliente;
+  var tw = props.twilio || {};
   var [estado,    setEstado]    = useState("idle");
   var [duracion,  setDuracion]  = useState(0);
   var [resultado, setResultado] = useState("");
@@ -277,25 +278,36 @@ function PanelLlamada(props){
 
   var RESULTADOS = ["Contesto - resuelto","Contesto - pendiente","No contesto","Buzon de voz","Numero equivocado","Lllamar despues"];
 
+  // Sync with Twilio active call state
+  useEffect(function(){
+    if(tw.activeCall && estado==="llamando") {
+      setEstado("en_llamada");
+      var t0 = Date.now();
+      timerRef.current = setInterval(function(){
+        setDuracion(Math.floor((Date.now()-t0)/1000));
+      },1000);
+    }
+    if(!tw.activeCall && estado==="en_llamada") {
+      clearInterval(timerRef.current);
+      setEstado("registrar");
+    }
+  },[tw.activeCall]);
+
   function iniciarLlamada(){
     if(!numDest.trim()){ setError("Ingresa un numero"); return; }
+    if(!tw.makeCall){ setError("Twilio no conectado. Activa el telefono primero."); return; }
     setError("");
     setEstado("llamando");
-    iniciarLlamadaVonage(numDest, c.nombre).then(function(r){
-      if(r.ok){
-        setEstado("en_llamada");
-        var t0 = Date.now();
-        timerRef.current = setInterval(function(){
-          setDuracion(Math.floor((Date.now()-t0)/1000));
-        },1000);
-      } else {
-        setEstado("idle");
-        setError(r.error||"Error al conectar");
-      }
-    });
+    try {
+      tw.makeCall(numDest);
+    } catch(e){
+      setEstado("idle");
+      setError("Error: "+e.message);
+    }
   }
 
   function colgarLlamada(){
+    if(tw.hangUp) tw.hangUp();
     clearInterval(timerRef.current);
     setEstado("registrar");
   }
@@ -353,7 +365,7 @@ function PanelLlamada(props){
             <Icon name="phone" fill="#fff" size={18}/>
             {estado==="llamando"?"Conectando...":"Iniciar llamada"}
           </button>
-          <div style={{fontSize:"10px",color:"#9ca3af",textAlign:"center",marginTop:"6px"}}>Via Vonage Voice API</div>
+          <div style={{fontSize:"10px",color:"#9ca3af",textAlign:"center",marginTop:"6px"}}>Via Twilio Voice</div>
         </div>
       )}
 
@@ -444,7 +456,7 @@ function PanelSMS(props){
           <Icon name="check" fill={GREEN} size={24}/>
         </div>
         <div style={{fontSize:"13px",fontWeight:"600",color:GREEN,marginBottom:"4px"}}>SMS enviado</div>
-        <div style={{fontSize:"11px",color:"#9ca3af"}}>Mensaje entregado via Vonage</div>
+        <div style={{fontSize:"11px",color:"#9ca3af"}}>Mensaje entregado via Twilio</div>
         <button style={Object.assign({},SI.btn("#6b7280","#f6f7f9","#f0f1f4"),{marginTop:"16px"})} onClick={function(){setEstado("idle");setTexto("");setPlantillaId("");}}>Nuevo SMS</button>
       </div>
     );
@@ -473,7 +485,7 @@ function PanelSMS(props){
         <Icon name="sms" fill="#fff" size={14}/>
         {estado==="enviando"?"Enviando...":"Enviar SMS"}
       </button>
-      <div style={{fontSize:"10px",color:"#9ca3af",textAlign:"center",marginTop:"6px"}}>Via Vonage SMS API</div>
+      <div style={{fontSize:"10px",color:"#9ca3af",textAlign:"center",marginTop:"6px"}}>Via Twilio SMS</div>
     </div>
   );
 }
@@ -794,7 +806,7 @@ export default function CommPanel(props){
         </div>
 
         <div style={{flex:1,overflowY:"auto",padding:"16px 20px",background:"#f4f5f7"}}>
-          {canal==="llamada"  &&<PanelLlamada  cliente={cliente} currentUser={currentUser} onLog={handleLog}/>}
+          {canal==="llamada"  &&<PanelLlamada  cliente={cliente} currentUser={currentUser} onLog={handleLog} twilio={props.twilio}/>}
           {canal==="sms"      &&<PanelSMS      cliente={cliente} currentUser={currentUser} onLog={handleLog}/>}
           {canal==="whatsapp" &&<PanelWhatsApp cliente={cliente} currentUser={currentUser} onLog={handleLog}/>}
           {canal==="email"    &&<EmailPanel lead={cliente} currentUser={currentUser} />}
@@ -803,7 +815,7 @@ export default function CommPanel(props){
 
         <div style={{padding:"10px 20px",borderTop:"1px solid #e3e6ea",background:"#ffffff",flexShrink:0}}>
           <div style={{fontSize:"10px",color:"#9ca3af",textAlign:"center"}}>
-            Mini-Vac CRM - Vonage SMS/Voice + Resend Email + WhatsApp Business
+            Mini-Vac CRM - Twilio Voice + Resend Email + WhatsApp Business
           </div>
         </div>
       </div>

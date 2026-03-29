@@ -671,7 +671,7 @@ export default function MinivacShell() {
             {activo === "seller"       && <SellerCRM currentUser={user} initialLeadId={initialLeadIdRef.current} newCallPhone={newCallPhone} />}
             {activo === "verificacion" && <VerificationModule currentUser={user} initialLeadId={verifLeadId} />}
             {activo === "reservas"     && <Reservaciones currentUser={user} />}
-            {activo === "cs"           && <CSReservas currentUser={user} initialLeadId={csLeadIdRef.current} />}
+            {activo === "cs"           && <CSReservas currentUser={user} initialLeadId={csLeadIdRef.current} twilio={twilio} />}
             {activo === "welcome"     && <WelcomeCalls currentUser={user} onVerCliente={(leadId) => { csLeadIdRef.current = leadId; setActivo("cs"); }} />}
             {activo === "retencion"  && <RetencionQueue currentUser={user} />}
             {activo === "destinos"     && <DestinationsModule />}

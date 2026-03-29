@@ -2316,6 +2316,7 @@ export default function CsReservasV3(props) {
         openCount={comm.openCount}
         logs={comm.logs}
         currentUser={currentUser}
+        twilio={props.twilio}
         onClose={comm.close}
         onLog={function(entry){
           comm.addLog(entry);
