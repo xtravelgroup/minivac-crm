@@ -86,10 +86,10 @@ async function isOpen(queue: string): Promise<boolean> {
   return true;
 }
 
-function closedResponse(queueName: string): Response {
+function closedResponse(_queueName: string): Response {
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say language="es-MX">Gracias por llamar a ${queueName}. En este momento nos encontramos fuera de nuestro horario de atencion. Por favor intente nuevamente durante nuestro horario laboral. Gracias.</Say>
+  <Say language="es-MX">Gracias por llamar a X Travel Group. Nos ha contactado fuera de nuestro horario de atencion al cliente. Por favor llamenos de Lunes a Viernes de 9 a m a 8 p m y Sabados de 10 a m a 6 p m, hora del Este.</Say>
   <Hangup/>
 </Response>`;
   return new Response(twiml, { headers: { "Content-Type": "text/xml" } });
