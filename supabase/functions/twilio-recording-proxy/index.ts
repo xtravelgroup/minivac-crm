@@ -19,36 +19,49 @@ serve(async (req) => {
     const recordingUrl = url.searchParams.get("url");
 
     if (!recordingUrl || !recordingUrl.includes("api.twilio.com")) {
-      return new Response("Missing or invalid recording URL", { status: 400 });
+      return new Response("Missing or invalid recording URL", {
+        status: 400,
+        headers: { "Access-Control-Allow-Origin": "*" },
+      });
     }
 
-    // Fetch from Twilio with Basic Auth
+    // Fetch from Twilio with Basic Auth — download full buffer
     const authHeader = "Basic " + btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
     const mp3Url = recordingUrl.endsWith(".mp3") ? recordingUrl : recordingUrl + ".mp3";
 
+    console.log(`Fetching recording: ${mp3Url}`);
+
     const resp = await fetch(mp3Url, {
       headers: { Authorization: authHeader },
+      redirect: "follow",
     });
 
+    console.log(`Twilio response: ${resp.status} ${resp.statusText}, type=${resp.headers.get("Content-Type")}`);
+
     if (!resp.ok) {
-      console.error(`Twilio fetch failed: ${resp.status} ${resp.statusText}`);
-      return new Response("Recording not available", { status: resp.status });
+      return new Response("Recording not available: " + resp.status, {
+        status: resp.status,
+        headers: { "Access-Control-Allow-Origin": "*" },
+      });
     }
 
-    const body = resp.body;
-    const contentType = resp.headers.get("Content-Type") || "audio/mpeg";
-    const contentLength = resp.headers.get("Content-Length") || "";
+    // Read full body as ArrayBuffer then return it
+    const data = await resp.arrayBuffer();
+    console.log(`Recording size: ${data.byteLength} bytes`);
 
-    return new Response(body, {
+    return new Response(data, {
       headers: {
-        "Content-Type": contentType,
-        "Content-Length": contentLength,
+        "Content-Type": "audio/mpeg",
+        "Content-Length": String(data.byteLength),
         "Access-Control-Allow-Origin": "*",
         "Cache-Control": "public, max-age=86400",
       },
     });
   } catch (e) {
     console.error("Recording proxy error:", e);
-    return new Response("Error fetching recording", { status: 500 });
+    return new Response("Error: " + (e as Error).message, {
+      status: 500,
+      headers: { "Access-Control-Allow-Origin": "*" },
+    });
   }
 });
