@@ -385,6 +385,222 @@ function RecordingPlayer(props) {
   return <audio controls preload="auto" style={{ width: "100%" }} src={blobUrl} />;
 }
 
+// ─── SCORE BAR COMPONENT ────────────────────────────────────
+function ScoreBar(props) {
+  var label = props.label;
+  var score = props.score;
+  var max = props.max || 10;
+  var obs = props.observacion;
+  var pct = Math.round((score / max) * 100);
+  var color = pct >= 70 ? C.green : pct >= 40 ? C.amber : C.red;
+  var bg = pct >= 70 ? C.greenBg : pct >= 40 ? C.amberBg : C.redBg;
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: C.t2 }}>{label}</span>
+        <span style={{ fontSize: 12, fontWeight: 800, color: color }}>{score}/{max}</span>
+      </div>
+      <div style={{ height: 6, borderRadius: 3, background: "#e5e7eb", overflow: "hidden" }}>
+        <div style={{ height: "100%", width: pct + "%", borderRadius: 3, background: color, transition: "width 0.5s ease" }} />
+      </div>
+      {obs && <div style={{ fontSize: 11, color: C.t3, marginTop: 3, lineHeight: 1.4 }}>{obs}</div>}
+    </div>
+  );
+}
+
+// ─── AI ANALYSIS PANEL ──────────────────────────────────────
+function AnalysisPanel(props) {
+  var callId = props.callId;
+  var hasRecording = props.hasRecording;
+  var queue = props.queue;
+  var [analysis, setAnalysis] = useState(null);
+  var [loading, setLoading] = useState(false);
+  var [error, setError] = useState("");
+  var [showTranscript, setShowTranscript] = useState(false);
+  var [transcript, setTranscript] = useState("");
+
+  // Check for existing analysis on mount
+  useEffect(function () {
+    fetch(SB_URL + "/rest/v1/call_analysis?call_log_id=eq." + callId + "&select=*", { headers: HDR })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (Array.isArray(d) && d.length > 0) {
+          setAnalysis(d[0].analysis);
+          setTranscript(d[0].transcript || "");
+        }
+      })
+      .catch(function () {});
+  }, [callId]);
+
+  function runAnalysis() {
+    setLoading(true);
+    setError("");
+    fetch(SB_URL + "/functions/v1/call-analysis", {
+      method: "POST",
+      headers: HDR,
+      body: JSON.stringify({ call_id: callId }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) { setError(d.error); setLoading(false); return; }
+        setAnalysis(d.analysis);
+        setTranscript(d.transcript || "");
+        setLoading(false);
+      })
+      .catch(function (e) { setError("Error de conexion: " + e.message); setLoading(false); });
+  }
+
+  if (!hasRecording) return null;
+
+  // Only show for ventas queue
+  if (queue && queue !== "ventas") return null;
+
+  var ETAPA_LABELS = {
+    apertura: "01 - Apertura",
+    pivot: "02 - Pivot de Expectativa",
+    calificacion: "03 - Calificacion",
+    presentacion_paquete: "04 - Presentacion del Paquete",
+    presentacion_precio: "05 - Presentacion del Precio",
+    manejo_objeciones: "06 - Manejo de Objeciones",
+    cierre: "07 - Cierre y Confirmacion",
+  };
+
+  var TONO_LABELS = {
+    ideal: { label: "Ideal", color: C.green },
+    profesional: { label: "Profesional", color: C.green },
+    demasiado_emocionado: { label: "Demasiado emocionado", color: C.amber },
+    frio: { label: "Frio", color: C.amber },
+    agresivo: { label: "Agresivo", color: C.red },
+    inseguro: { label: "Inseguro", color: C.red },
+  };
+
+  var RESULTADO_LABELS = {
+    venta: { label: "Venta", color: C.green, bg: C.greenBg },
+    no_venta: { label: "No venta", color: C.red, bg: C.redBg },
+    callback: { label: "Callback", color: C.amber, bg: C.amberBg },
+    no_califica: { label: "No califica", color: C.t3, bg: C.grayBg },
+    "colgó": { label: "Colgo", color: C.red, bg: C.redBg },
+  };
+
+  // No analysis yet — show button
+  if (!analysis) {
+    return (
+      <div style={{ marginTop: 16, padding: "16px", background: "#f8f4ff", borderRadius: C.r, border: "1px solid #c4b5fd" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#6d28d9", marginBottom: 8 }}>Analisis AI de Venta</div>
+        {error && <div style={{ fontSize: 12, color: C.red, marginBottom: 8 }}>{error}</div>}
+        <button onClick={runAnalysis} disabled={loading}
+          style={{
+            padding: "8px 20px", fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
+            background: loading ? "#ddd6fe" : "#7c3aed", color: "#fff", border: "none", borderRadius: 6,
+            fontFamily: C.font, opacity: loading ? 0.7 : 1,
+          }}>
+          {loading ? "Analizando... (30-60 seg)" : "Analizar Llamada con AI"}
+        </button>
+        <div style={{ fontSize: 11, color: "#8b5cf6", marginTop: 6 }}>Transcribe y evalua la llamada segun el Guion Maestro de 7 Etapas</div>
+      </div>
+    );
+  }
+
+  // Has analysis — display it
+  var a = analysis;
+  var totalScore = a.puntaje_total || 0;
+  var scoreColor = totalScore >= 70 ? C.green : totalScore >= 40 ? C.amber : C.red;
+  var scoreBg = totalScore >= 70 ? C.greenBg : totalScore >= 40 ? C.amberBg : C.redBg;
+  var tonoInfo = TONO_LABELS[a.tono_general] || { label: a.tono_general || "--", color: C.t3 };
+  var resultInfo = RESULTADO_LABELS[a.resultado_llamada] || { label: a.resultado_llamada || "--", color: C.t3, bg: C.grayBg };
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      {/* Score header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16, padding: "16px 20px", background: scoreBg, borderRadius: C.r, border: "1px solid " + scoreColor + "33" }}>
+        <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#fff", border: "3px solid " + scoreColor, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <span style={{ fontSize: 22, fontWeight: 900, color: scoreColor }}>{totalScore}</span>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.t1, marginBottom: 4 }}>Puntaje de Venta</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 4, background: resultInfo.bg, color: resultInfo.color }}>{resultInfo.label}</span>
+            <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 4, background: "#f3f4f6", color: tonoInfo.color }}>Tono: {tonoInfo.label}</span>
+            {a.duracion_efectiva && (
+              <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 4, background: "#f3f4f6", color: a.duracion_efectiva === "buena" ? C.green : C.amber }}>
+                Duracion: {a.duracion_efectiva === "buena" ? "Buena" : a.duracion_efectiva === "muy_corta" ? "Muy corta" : "Muy larga"}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Summary */}
+      {a.resumen && (
+        <div style={{ fontSize: 13, color: C.t2, marginBottom: 16, lineHeight: 1.5, padding: "0 4px" }}>{a.resumen}</div>
+      )}
+
+      {/* Etapas breakdown */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.t1, marginBottom: 10 }}>Desglose por Etapa</div>
+        {a.etapas && Object.keys(ETAPA_LABELS).map(function (key) {
+          var etapa = a.etapas[key];
+          if (!etapa) return null;
+          return <ScoreBar key={key} label={ETAPA_LABELS[key]} score={etapa.puntaje || 0} observacion={etapa.observacion} />;
+        })}
+      </div>
+
+      {/* Strengths & improvements */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+        {a.fortalezas && a.fortalezas.length > 0 && (
+          <div style={{ padding: 12, background: C.greenBg, borderRadius: C.r, border: "1px solid " + C.green + "22" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.green, marginBottom: 6, textTransform: "uppercase" }}>Fortalezas</div>
+            {a.fortalezas.map(function (f, i) {
+              return <div key={i} style={{ fontSize: 12, color: C.t2, marginBottom: 4, lineHeight: 1.4 }}>+ {f}</div>;
+            })}
+          </div>
+        )}
+        {a.areas_mejora && a.areas_mejora.length > 0 && (
+          <div style={{ padding: 12, background: C.amberBg, borderRadius: C.r, border: "1px solid " + C.amber + "22" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.amber, marginBottom: 6, textTransform: "uppercase" }}>Areas de Mejora</div>
+            {a.areas_mejora.map(function (f, i) {
+              return <div key={i} style={{ fontSize: 12, color: C.t2, marginBottom: 4, lineHeight: 1.4 }}>- {f}</div>;
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Recommendations */}
+      {a.recomendaciones && a.recomendaciones.length > 0 && (
+        <div style={{ padding: 12, background: "#f8f4ff", borderRadius: C.r, border: "1px solid #c4b5fd", marginBottom: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#6d28d9", marginBottom: 6, textTransform: "uppercase" }}>Recomendaciones</div>
+          {a.recomendaciones.map(function (r, i) {
+            return <div key={i} style={{ fontSize: 12, color: C.t2, marginBottom: 4, lineHeight: 1.4 }}>{i + 1}. {r}</div>;
+          })}
+        </div>
+      )}
+
+      {/* Supervisor analysis */}
+      {a.analisis_supervisor && (
+        <div style={{ padding: 12, background: C.blueBg, borderRadius: C.r, border: "1px solid " + C.blue + "33", marginBottom: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.blue, marginBottom: 6, textTransform: "uppercase" }}>Analisis para Supervisor</div>
+          <div style={{ fontSize: 12, color: C.t2, lineHeight: 1.5 }}>{a.analisis_supervisor}</div>
+        </div>
+      )}
+
+      {/* Transcript toggle */}
+      {transcript && (
+        <div>
+          <button onClick={function () { setShowTranscript(!showTranscript); }}
+            style={{ padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", background: "none", border: "1px solid " + C.border, borderRadius: 6, color: C.t3, fontFamily: C.font }}>
+            {showTranscript ? "Ocultar Transcripcion" : "Ver Transcripcion"}
+          </button>
+          {showTranscript && (
+            <pre style={{ marginTop: 8, padding: 12, background: "#f9fafb", borderRadius: C.r, border: "1px solid " + C.border, fontSize: 11, color: C.t2, lineHeight: 1.6, whiteSpace: "pre-wrap", maxHeight: 300, overflowY: "auto" }}>
+              {transcript}
+            </pre>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── CALL DETAIL MODAL ──────────────────────────────────────
 function CallDetailModal(props) {
   var call = props.call;
@@ -433,7 +649,7 @@ function CallDetailModal(props) {
     display: "flex", alignItems: "center", justifyContent: "center",
   };
   var modal = {
-    background: "#fff", borderRadius: 12, padding: 28, width: "90%", maxWidth: 520, maxHeight: "80vh", overflowY: "auto",
+    background: "#fff", borderRadius: 12, padding: 28, width: "90%", maxWidth: 600, maxHeight: "85vh", overflowY: "auto",
     boxShadow: "0 20px 60px rgba(0,0,0,0.2)", fontFamily: C.font,
   };
 
@@ -481,9 +697,12 @@ function CallDetailModal(props) {
           </div>
         )}
 
+        {/* AI Analysis */}
+        <AnalysisPanel callId={call.id} hasRecording={!!call.recording_url} queue={call.queue} />
+
         {/* Routing history timeline */}
         {history.length > 0 && (
-          <div>
+          <div style={{ marginTop: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.t1, marginBottom: 12 }}>Historial de Enrutamiento ({history.length} intento{history.length > 1 ? "s" : ""})</div>
             <div style={{ position: "relative", paddingLeft: 24 }}>
               {/* Vertical line */}
@@ -509,7 +728,7 @@ function CallDetailModal(props) {
         )}
 
         {history.length === 0 && (
-          <div style={{ fontSize: 13, color: C.t4, fontStyle: "italic" }}>Sin historial de enrutamiento disponible</div>
+          <div style={{ fontSize: 13, color: C.t4, fontStyle: "italic", marginTop: 16 }}>Sin historial de enrutamiento disponible</div>
         )}
       </div>
     </div>
@@ -896,6 +1115,191 @@ function PerdidasTab(props) {
   );
 }
 
+// ─── RENDIMIENTO AI TAB ─────────────────────────────────────
+function RendimientoTab(props) {
+  var usuarios = props.usuarios;
+  var activeQueue = props.activeQueue;
+  var [fecha, setFecha] = useState(today());
+  var [analyses, setAnalyses] = useState([]);
+  var [callLogs, setCallLogs] = useState([]);
+  var [loading, setLoading] = useState(false);
+  var [selectedCall, setSelectedCall] = useState(null);
+
+  useEffect(function () {
+    setLoading(true);
+    // Load call logs for the date with recordings
+    var dayStart = fecha + "T00:00:00";
+    var dayEnd = fecha + "T23:59:59";
+    var logUrl = SB_URL + "/rest/v1/call_log?queue=eq." + activeQueue + "&started_at=gte." + dayStart + "&started_at=lte." + dayEnd + "&status=eq.completed&order=started_at.desc&limit=200";
+
+    Promise.all([
+      fetch(logUrl, { headers: HDR }).then(function (r) { return r.json(); }),
+      fetch(SB_URL + "/rest/v1/call_analysis?select=*&order=created_at.desc&limit=500", { headers: HDR }).then(function (r) { return r.json(); }),
+    ]).then(function (results) {
+      var logs = Array.isArray(results[0]) ? results[0] : [];
+      var allAnalyses = Array.isArray(results[1]) ? results[1] : [];
+      setCallLogs(logs);
+      // Filter analyses to match the day's call IDs
+      var logIds = {};
+      logs.forEach(function (l) { logIds[l.id] = true; });
+      setAnalyses(allAnalyses.filter(function (a) { return logIds[a.call_log_id]; }));
+      setLoading(false);
+    }).catch(function () { setLoading(false); });
+  }, [fecha, activeQueue]);
+
+  function getAgentName(id) {
+    var u = usuarios.find(function (x) { return x.id === id; });
+    return u ? u.nombre : id ? id.slice(0, 8) + "..." : "--";
+  }
+
+  // Build per-agent stats from analyses
+  var agentMap = {};
+  analyses.forEach(function (a) {
+    var call = callLogs.find(function (c) { return c.id === a.call_log_id; });
+    if (!call || !call.agent_id) return;
+    var aid = call.agent_id;
+    if (!agentMap[aid]) agentMap[aid] = { calls: 0, totalScore: 0, scores: [], ventas: 0, analyses: [] };
+    var score = a.analysis && a.analysis.puntaje_total ? a.analysis.puntaje_total : 0;
+    agentMap[aid].calls++;
+    agentMap[aid].totalScore += score;
+    agentMap[aid].scores.push(score);
+    if (a.analysis && a.analysis.resultado_llamada === "venta") agentMap[aid].ventas++;
+    agentMap[aid].analyses.push({ analysis: a, call: call });
+  });
+
+  var agentStats = Object.keys(agentMap).map(function (aid) {
+    var d = agentMap[aid];
+    return {
+      id: aid,
+      name: getAgentName(aid),
+      calls: d.calls,
+      avg: Math.round(d.totalScore / d.calls),
+      best: Math.max.apply(null, d.scores),
+      worst: Math.min.apply(null, d.scores),
+      ventas: d.ventas,
+      analyses: d.analyses,
+    };
+  }).sort(function (a, b) { return b.avg - a.avg; });
+
+  var totalAnalyzed = analyses.length;
+  var totalCalls = callLogs.filter(function (c) { return c.recording_url; }).length;
+  var avgScore = totalAnalyzed > 0 ? Math.round(analyses.reduce(function (s, a) { return s + (a.analysis && a.analysis.puntaje_total ? a.analysis.puntaje_total : 0); }, 0) / totalAnalyzed) : 0;
+  var totalVentas = analyses.filter(function (a) { return a.analysis && a.analysis.resultado_llamada === "venta"; }).length;
+
+  return (
+    <div>
+      {/* Date picker */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: C.t2 }}>Fecha:</label>
+        <input type="date" value={fecha} onChange={function (e) { setFecha(e.target.value); }}
+          style={{ padding: "6px 12px", border: "1px solid " + C.border, borderRadius: 6, fontSize: 13, fontFamily: C.font }} />
+      </div>
+
+      {loading && <div style={{ fontSize: 13, color: C.t3, padding: 20 }}>Cargando...</div>}
+
+      {!loading && (
+        <>
+          {/* Summary KPIs */}
+          <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
+            <StatCard label="Llamadas con grabacion" value={totalCalls} />
+            <StatCard label="Analizadas por AI" value={totalAnalyzed} color={totalAnalyzed > 0 ? "#7c3aed" : C.t3} />
+            <StatCard label="Puntaje promedio" value={avgScore > 0 ? avgScore + "/100" : "--"} color={avgScore >= 70 ? C.green : avgScore >= 40 ? C.amber : avgScore > 0 ? C.red : C.t3} />
+            <StatCard label="Ventas detectadas" value={totalVentas} color={C.green} />
+          </div>
+
+          {/* Per-agent performance table */}
+          {agentStats.length > 0 && (
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: C.t1, marginBottom: 12 }}>Rendimiento por Vendedor</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: "2px solid " + C.border }}>
+                    <th style={{ textAlign: "left", padding: "8px 12px", color: C.t4, fontWeight: 600, fontSize: 11 }}>VENDEDOR</th>
+                    <th style={{ textAlign: "center", padding: "8px 12px", color: C.t4, fontWeight: 600, fontSize: 11 }}>LLAMADAS</th>
+                    <th style={{ textAlign: "center", padding: "8px 12px", color: C.t4, fontWeight: 600, fontSize: 11 }}>PROMEDIO</th>
+                    <th style={{ textAlign: "center", padding: "8px 12px", color: C.t4, fontWeight: 600, fontSize: 11 }}>MEJOR</th>
+                    <th style={{ textAlign: "center", padding: "8px 12px", color: C.t4, fontWeight: 600, fontSize: 11 }}>PEOR</th>
+                    <th style={{ textAlign: "center", padding: "8px 12px", color: C.t4, fontWeight: 600, fontSize: 11 }}>VENTAS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {agentStats.map(function (ag) {
+                    var avgColor = ag.avg >= 70 ? C.green : ag.avg >= 40 ? C.amber : C.red;
+                    return (
+                      <tr key={ag.id} style={{ borderBottom: "1px solid " + C.borderL }}>
+                        <td style={{ padding: "10px 12px", fontWeight: 600, color: C.t1 }}>{ag.name}</td>
+                        <td style={{ padding: "10px 12px", textAlign: "center", color: C.t2 }}>{ag.calls}</td>
+                        <td style={{ padding: "10px 12px", textAlign: "center" }}>
+                          <span style={{ fontWeight: 800, color: avgColor, fontSize: 15 }}>{ag.avg}</span>
+                          <span style={{ color: C.t4, fontSize: 11 }}>/100</span>
+                        </td>
+                        <td style={{ padding: "10px 12px", textAlign: "center", color: C.green, fontWeight: 600 }}>{ag.best}</td>
+                        <td style={{ padding: "10px 12px", textAlign: "center", color: C.red, fontWeight: 600 }}>{ag.worst}</td>
+                        <td style={{ padding: "10px 12px", textAlign: "center", color: C.green, fontWeight: 700 }}>{ag.ventas}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Individual analyzed calls */}
+          {analyses.length > 0 && (
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: C.t1, marginBottom: 12 }}>Llamadas Analizadas</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {analyses.map(function (a) {
+                  var call = callLogs.find(function (c) { return c.id === a.call_log_id; });
+                  if (!call) return null;
+                  var score = a.analysis ? a.analysis.puntaje_total || 0 : 0;
+                  var scoreColor = score >= 70 ? C.green : score >= 40 ? C.amber : C.red;
+                  var scoreBg = score >= 70 ? C.greenBg : score >= 40 ? C.amberBg : C.redBg;
+                  var resultado = a.analysis ? a.analysis.resultado_llamada || "--" : "--";
+                  var resultLabels = { venta: "Venta", no_venta: "No venta", callback: "Callback", no_califica: "No califica", "colgó": "Colgo" };
+                  return (
+                    <div key={a.id} onClick={function () { setSelectedCall(call); }}
+                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: C.surface, border: "1px solid " + C.border, borderRadius: C.r, cursor: "pointer", transition: "box-shadow 0.15s" }}>
+                      <div style={{ width: 44, height: 44, borderRadius: "50%", background: scoreBg, border: "2px solid " + scoreColor, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <span style={{ fontSize: 15, fontWeight: 900, color: scoreColor }}>{score}</span>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.t1 }}>{getAgentName(call.agent_id)}</div>
+                        <div style={{ fontSize: 11, color: C.t3 }}>
+                          {call.from_number || "--"} · {fmtDur(call.duration_secs)} · {fmtTime(call.started_at)}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 4, background: scoreBg, color: scoreColor }}>
+                        {resultLabels[resultado] || resultado}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* No data state */}
+          {totalCalls === 0 && !loading && (
+            <div style={{ textAlign: "center", padding: 40, color: C.t4 }}>
+              <div style={{ fontSize: 14 }}>No hay llamadas con grabacion para esta fecha</div>
+            </div>
+          )}
+
+          {totalCalls > 0 && totalAnalyzed === 0 && !loading && (
+            <div style={{ textAlign: "center", padding: 40, color: C.t4 }}>
+              <div style={{ fontSize: 14, marginBottom: 8 }}>Hay {totalCalls} llamadas con grabacion pero ninguna ha sido analizada</div>
+              <div style={{ fontSize: 12 }}>Abre una llamada en Reportes y haz click en "Analizar Llamada con AI"</div>
+            </div>
+          )}
+        </>
+      )}
+
+      {selectedCall && <CallDetailModal call={selectedCall} usuarios={usuarios} onClose={function () { setSelectedCall(null); }} />}
+    </div>
+  );
+}
+
 // ─── MAIN MODULE ─────────────────────────────────────────────
 export default function TelephonyManagement(props) {
   var currentUser = props.currentUser;
@@ -1028,6 +1432,7 @@ export default function TelephonyManagement(props) {
         { id: "cola", label: "Cola en Vivo" },
         { id: "reportes", label: "Reportes" },
         { id: "perdidas", label: "Perdidas" },
+        { id: "rendimiento", label: "Rendimiento AI" },
       ]
     : [
         { id: "reportes", label: "Mis Llamadas" },
@@ -1118,6 +1523,13 @@ export default function TelephonyManagement(props) {
 
       {tab === "perdidas" && isAdmin && (
         <PerdidasTab
+          usuarios={usuarios}
+          activeQueue={activeQueue}
+        />
+      )}
+
+      {tab === "rendimiento" && isAdmin && (
+        <RendimientoTab
           usuarios={usuarios}
           activeQueue={activeQueue}
         />
