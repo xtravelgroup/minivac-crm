@@ -840,7 +840,7 @@ export function CommPanelTrigger(props){
   }, []);
 
   var opciones = [
-    { canal:"phone", color:BLUE,      icon:"phone",  label:"Llamar",   href:function(){ return "tel:"+c.tel; } },
+    { canal:"phone", color:BLUE,      icon:"phone",  label:"Llamar",   href:null, onClick:function(){ setOpen(false); onOpen(c, "llamada"); } },
     { canal:"sms",   color:GREEN,     icon:"sms",    label:"SMS",      href:function(){ return "sms:"+c.tel; } },
     { canal:"wa",    color:"#25D366", icon:"wa",     label:"WhatsApp", href:null, onClick:function(){ setOpen(false); onOpen(c, "whatsapp"); } },
     { canal:"email", color:VIOLET,    icon:"email",  label:"Email",    href:null, onClick:function(){ setOpen(false); onOpen(c, "email"); } },
