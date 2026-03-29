@@ -20,7 +20,10 @@ const QUEUE_MAP: Record<string, string> = {
   "+17867834775": "reservas",
 };
 
-const QUEUE_CONFIG: Record<string, { name: string; welcome: string; hold: string; disclaimer?: string; callerIdOverride?: string }> = {
+// Disclaimer is rendered as multi-Say TwiML to switch language for "X Travel Group"
+const DISCLAIMER_TWIML = `<Say language="es-MX">Gracias por llamar a</Say><Say language="en-US">X Travel Group.</Say><Say language="es-MX">Esta llamada puede ser grabada o monitoreada por motivos de calidad.</Say>`;
+
+const QUEUE_CONFIG: Record<string, { name: string; welcome: string; hold: string; hasDisclaimer?: boolean; callerIdOverride?: string }> = {
   ventas: {
     name: "Sala A - Ventas",
     welcome: "Ya estas participando. Por favor permanecer en linea para ser atendido por un promotor.",
@@ -28,13 +31,13 @@ const QUEUE_CONFIG: Record<string, { name: string; welcome: string; hold: string
   },
   cs: {
     name: "Customer Service",
-    disclaimer: 'Gracias por llamar a <lang xml:lang="en-US">X Travel Group</lang>. Esta llamada puede ser grabada o monitoreada por motivos de calidad.',
+    hasDisclaimer: true,
     welcome: "Un agente de servicio al cliente le atendera en breve.",
     hold: "Por favor permanezca en linea. Un agente le atendera pronto.",
   },
   reservas: {
     name: "Reservaciones",
-    disclaimer: 'Gracias por llamar a <lang xml:lang="en-US">X Travel Group</lang>. Esta llamada puede ser grabada o monitoreada por motivos de calidad.',
+    hasDisclaimer: true,
     welcome: "Un agente del departamento de reservaciones le atendera en breve.",
     hold: "Por favor permanezca en linea. Un agente de reservaciones le atendera pronto.",
   },
@@ -89,16 +92,17 @@ async function checkSchedule(queue: string): Promise<{ open: boolean; reason?: s
 const SCHEDULE_MSG = "de Lunes a Viernes de 9 a m a 8 p m y Sabados de 10 a m a 6 p m, hora del Este";
 
 function closedResponse(reason: string, holidayLabel?: string): Response {
-  let msg: string;
-  const xtg = '<lang xml:lang="en-US">X Travel Group</lang>';
+  let afterXtg: string;
   if (reason === "holiday") {
-    msg = `Gracias por llamar a ${xtg}. Estamos cerrados por ${holidayLabel || "dia festivo"}. Contactanos en el proximo dia laboral en nuestro horario de atencion al cliente ${SCHEDULE_MSG}.`;
+    afterXtg = `Estamos cerrados por ${holidayLabel || "dia festivo"}. Contactanos en el proximo dia laboral en nuestro horario de atencion al cliente ${SCHEDULE_MSG}.`;
   } else {
-    msg = `Gracias por llamar a ${xtg}. Nos ha contactado fuera de nuestro horario de atencion al cliente. Por favor llamenos ${SCHEDULE_MSG}.`;
+    afterXtg = `Nos ha contactado fuera de nuestro horario de atencion al cliente. Por favor llamenos ${SCHEDULE_MSG}.`;
   }
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Lupe" language="es-MX"><speak>${msg}</speak></Say>
+  <Say language="es-MX">Gracias por llamar a</Say>
+  <Say language="en-US">X Travel Group.</Say>
+  <Say language="es-MX">${afterXtg}</Say>
   <Hangup/>
 </Response>`;
   return new Response(twiml, { headers: { "Content-Type": "text/xml" } });
@@ -417,7 +421,7 @@ serve(async (req) => {
 
       if (!isRetry) {
         // First time: disclaimer (if configured) + welcome message then ring
-        const disclaimerSay = qCfg.disclaimer ? `\n  <Say voice="Polly.Lupe" language="es-MX"><speak>${qCfg.disclaimer}</speak></Say>` : "";
+        const disclaimerSay = qCfg.hasDisclaimer ? "\n  " + DISCLAIMER_TWIML : "";
         twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>${disclaimerSay}
   <Say language="es-MX">${qCfg.welcome}</Say>
@@ -479,7 +483,7 @@ serve(async (req) => {
 
     // Agent available — connect immediately, record the call (dual channel)
     // Play disclaimer before connecting (only on first call, not retries)
-    const disclaimerDial = (!isRetry && qCfg.disclaimer) ? `\n  <Say voice="Polly.Lupe" language="es-MX"><speak>${qCfg.disclaimer}</speak></Say>` : "";
+    const disclaimerDial = (!isRetry && qCfg.hasDisclaimer) ? "\n  " + DISCLAIMER_TWIML : "";
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>${disclaimerDial}
   <Dial timeout="10" action="${statusCallback}" method="POST" record="record-from-answer-dual" recordingStatusCallback="${EVENTS_URL}" recordingStatusCallbackMethod="POST">
