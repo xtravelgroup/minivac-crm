@@ -138,7 +138,7 @@ export default function WelcomeCalls({ currentUser, onVerCliente }) {
         lead_id: lead.id,
       }),
     }).then(function(r){ return r.json(); }).then(function(r){
-      if(r.success){ notify("Invitacion al portal enviada por email"); registrarEvento(lead.id, "welcome", "Invitacion al portal enviada — crear contrasena", null, {nombre:currentUser?.nombre||"CS"}); }
+      if(r.success){ notify("Invitacion al portal enviada por email"); registrarEvento(lead.id, "welcome", "Invitacion al portal enviada", null, {nombre:currentUser?.nombre||"CS"}); }
       else notify("Error: "+(r.error||r.message||"fallo envio"), false);
     }).catch(function(e){ notify("Error de red: "+e.message, false); });
   }
