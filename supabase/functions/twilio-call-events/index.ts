@@ -38,13 +38,27 @@ serve(async (req) => {
     const recordingStatus = formData.get("RecordingStatus") as string || "";
     const recordingSid = formData.get("RecordingSid") as string || "";
     if (recordingStatus === "completed" && recordingUrl) {
+      // Try parent SID first, then child SID
       const recSid = parentSid || callSid;
-      console.log(`Recording completed: SID=${recordingSid}, URL=${recordingUrl}, CallSid=${recSid}`);
+      console.log(`Recording completed: SID=${recordingSid}, URL=${recordingUrl}, CallSid=${callSid}, ParentSid=${parentSid}, using=${recSid}`);
       if (recSid) {
-        await fetch(`${SB_URL}/rest/v1/call_log?twilio_call_sid=eq.${recSid}`, {
-          method: "PATCH", headers: HDR,
-          body: JSON.stringify({ recording_url: recordingUrl }),
-        });
+        // Try matching by parent SID (most common for inbound)
+        const res1 = await fetch(`${SB_URL}/rest/v1/call_log?twilio_call_sid=eq.${recSid}&select=id`, { headers: HDR });
+        const data1 = await res1.json();
+        if (Array.isArray(data1) && data1.length > 0) {
+          await fetch(`${SB_URL}/rest/v1/call_log?twilio_call_sid=eq.${recSid}`, {
+            method: "PATCH", headers: HDR,
+            body: JSON.stringify({ recording_url: recordingUrl }),
+          });
+          console.log(`Recording saved for SID ${recSid}`);
+        } else if (parentSid && callSid) {
+          // Fallback: try child SID
+          await fetch(`${SB_URL}/rest/v1/call_log?twilio_call_sid=eq.${callSid}`, {
+            method: "PATCH", headers: HDR,
+            body: JSON.stringify({ recording_url: recordingUrl }),
+          });
+          console.log(`Recording saved (fallback child SID) for ${callSid}`);
+        }
       }
       return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*" } });
     }
