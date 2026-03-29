@@ -1900,18 +1900,72 @@ export default function CsReservasV3(props) {
   function handleOp(c){ setModal({tipo:"op",cliente:c}); }
 
   function handleRetencion(c,motivo){
-    setMiembros(function(prev){return prev.map(function(m){return m.folio===c.folio?Object.assign({},m,{statusCliente:"retencion"}):m;});});
-    if(selected&&selected.folio===c.folio) setSelected(function(p){return Object.assign({},p,{statusCliente:"retencion"});});
-    addEvento(c.folio,"retencion","sistema","Retención iniciada — Motivo: "+(motivo||"Sin motivo"),currentUser.nombre);
-    // Persistir en DB con service key (RLS bypass)
-    if(c.id){
-      fetch(SB_BASE+"/rest/v1/leads?id=eq."+c.id, {
-        method:"PATCH",
-        headers:{"apikey":SRV_KEY,"Authorization":"Bearer "+SRV_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},
-        body:JSON.stringify({retencion_status:"pendiente",retencion_motivo:motivo||null,retencion_created_at:new Date().toISOString()})
-      }).then(function(r){ if(!r.ok) r.text().then(function(t){console.error("Retencion error:",t);}); });
+    var isChargeback = motivo === "Chargeback";
+
+    if (isChargeback) {
+      // ── CHARGEBACK: auto-refund 100%, cancel membership, then send to retention queue ──
+      var refundAmt = c.totalPagado || 0;
+
+      // 1. Update local state to cancelado immediately
+      setMiembros(function(prev){return prev.map(function(m){
+        if(m.folio!==c.folio) return m;
+        var newAbonos = (m.pagosHistorial||[]).concat([{monto:-refundAmt,fecha:TODAY,concepto:"Reembolso Chargeback 100%",metodo:"chargeback",referencia:"CB-AUTO"}]);
+        return Object.assign({},m,{statusCliente:"cancelado",pagosHistorial:newAbonos,totalPagado:0,saldoPendiente:0});
+      });});
+      if(selected&&selected.folio===c.folio) setSelected(function(p){
+        var newAbonos = (p.pagosHistorial||[]).concat([{monto:-refundAmt,fecha:TODAY,concepto:"Reembolso Chargeback 100%",metodo:"chargeback",referencia:"CB-AUTO"}]);
+        return Object.assign({},p,{statusCliente:"cancelado",pagosHistorial:newAbonos,totalPagado:0,saldoPendiente:0});
+      });
+
+      // 2. Cancel all active reservations for this lead
+      setReservas(function(prev){return prev.map(function(r){
+        if(r.clienteFolio!==c.folio||r.status==="cancelada"||r.status==="completada") return r;
+        return Object.assign({},r,{status:"cancelada",historial:[...(r.historial||[]),{fecha:TODAY,texto:"Cancelada automáticamente por Chargeback.",autor:currentUser.nombre}]});
+      });});
+
+      // 3. Register events
+      addEvento(c.folio,"retencion","sistema","CHARGEBACK — Reembolso automático 100% ("+fmtUSD(refundAmt)+"). Membresía cancelada.",currentUser.nombre);
+
+      // 4. Persist to DB
+      if(c.id){
+        var srvHdr = {"apikey":SRV_KEY,"Authorization":"Bearer "+SRV_KEY,"Content-Type":"application/json","Prefer":"return=minimal"};
+        // Update lead: add refund to pagos_historial, set retention + cancel
+        var newHist = (c.pagosHistorial||[]).concat([{monto:-refundAmt,fecha:TODAY,concepto:"Reembolso Chargeback 100%",metodo:"chargeback",referencia:"CB-AUTO"}]);
+        fetch(SB_BASE+"/rest/v1/leads?id=eq."+c.id, {
+          method:"PATCH", headers:srvHdr,
+          body:JSON.stringify({
+            pagos_historial: newHist,
+            retencion_status:"pendiente",
+            retencion_motivo:"Chargeback",
+            retencion_created_at:new Date().toISOString()
+          })
+        }).then(function(r){ if(!r.ok) r.text().then(function(t){console.error("Chargeback lead update error:",t);}); });
+
+        // Cancel all active reservations in DB
+        fetch(SB_BASE+"/rest/v1/reservaciones?lead_id=eq."+c.id+"&status=not.in.(cancelada,completada)", {
+          method:"PATCH", headers:srvHdr,
+          body:JSON.stringify({status:"cancelada"})
+        }).then(function(r){ if(!r.ok) r.text().then(function(t){console.error("Chargeback reserva cancel error:",t);}); });
+
+        // Register in lead_historial
+        registrarEvento(c.id, "retencion", "CHARGEBACK — Reembolso automático 100% ("+fmtUSD(refundAmt)+"). Membresía cancelada. Reservas canceladas.", null, {nombre:currentUser.nombre});
+      }
+
+      showToast("⚠️ CHARGEBACK procesado — Reembolso "+fmtUSD(refundAmt)+" + Membresía cancelada");
+    } else {
+      // ── Normal retention flow (non-chargeback) ──
+      setMiembros(function(prev){return prev.map(function(m){return m.folio===c.folio?Object.assign({},m,{statusCliente:"retencion"}):m;});});
+      if(selected&&selected.folio===c.folio) setSelected(function(p){return Object.assign({},p,{statusCliente:"retencion"});});
+      addEvento(c.folio,"retencion","sistema","Retención iniciada — Motivo: "+(motivo||"Sin motivo"),currentUser.nombre);
+      if(c.id){
+        fetch(SB_BASE+"/rest/v1/leads?id=eq."+c.id, {
+          method:"PATCH",
+          headers:{"apikey":SRV_KEY,"Authorization":"Bearer "+SRV_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},
+          body:JSON.stringify({retencion_status:"pendiente",retencion_motivo:motivo||null,retencion_created_at:new Date().toISOString()})
+        }).then(function(r){ if(!r.ok) r.text().then(function(t){console.error("Retencion error:",t);}); });
+      }
+      showToast("Retención iniciada para "+c.nombre+" — "+(motivo||""));
     }
-    showToast("Retención iniciada para "+c.nombre+" — "+(motivo||""));
   }
 
   function saveReserva(clienteFolio, datos, esEdit, resId) {
