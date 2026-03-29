@@ -69,11 +69,18 @@ function ytdPeriods(p) {
   return periods;
 }
 
+// ─── Auto-computed category codes (read-only, pulled from source tables) ──
+var AUTO_CODES = ["rev_package_sales", "opex_radio"];
+
 // ─── P&L Tab ─────────────────────────────────────────────────
-function PnlTab({ categories, entries, ytdEntries, period, setPeriod, onSave, onSync, syncing, currentUser }) {
+function PnlTab({ categories, entries, ytdEntries, autoAmounts, autoYtd, period, setPeriod, onSave, currentUser }) {
   var [editingId, setEditingId] = useState(null);
   var [editVal, setEditVal] = useState("");
   var [editNotes, setEditNotes] = useState("");
+
+  // Build code→id map for auto categories
+  var codeToId = {};
+  categories.forEach(function(c) { codeToId[c.code] = c.id; });
 
   var byCat = {};
   entries.forEach(function(e) { byCat[e.category_id] = e; });
@@ -82,8 +89,15 @@ function PnlTab({ categories, entries, ytdEntries, period, setPeriod, onSave, on
     ytdByCat[e.category_id] = (ytdByCat[e.category_id] || 0) + Number(e.amount || 0);
   });
 
-  function getAmt(catId) { return Number((byCat[catId] || {}).amount || 0); }
-  function getYtd(catId) { return ytdByCat[catId] || 0; }
+  function isAuto(cat) { return AUTO_CODES.includes(cat.code); }
+  function getAmt(catId) {
+    if (autoAmounts[catId] !== undefined) return autoAmounts[catId];
+    return Number((byCat[catId] || {}).amount || 0);
+  }
+  function getYtd(catId) {
+    if (autoYtd[catId] !== undefined) return autoYtd[catId];
+    return ytdByCat[catId] || 0;
+  }
 
   var revCats = categories.filter(function(c) { return c.section === "revenue" && c.is_active; });
   var cosCats = categories.filter(function(c) { return c.section === "cost_of_sales" && c.is_active; });
@@ -111,6 +125,7 @@ function PnlTab({ categories, entries, ytdEntries, period, setPeriod, onSave, on
   }
 
   function startEdit(cat) {
+    if (isAuto(cat)) return;
     var entry = byCat[cat.id];
     setEditingId(cat.id);
     setEditVal(entry ? String(entry.amount) : "0");
@@ -171,12 +186,14 @@ function PnlTab({ categories, entries, ytdEntries, period, setPeriod, onSave, on
           var ytd = getYtd(cat.id);
           var entry = byCat[cat.id];
           var isEditing = editingId === cat.id;
+          var auto = isAuto(cat);
           return (
             <tr key={cat.id} style={{ background: isEditing ? C.blueBg : "transparent" }}
               onMouseEnter={function(e) { if (!isEditing) e.currentTarget.style.background = "#fafbfc"; }}
               onMouseLeave={function(e) { if (!isEditing) e.currentTarget.style.background = "transparent"; }}>
               <td style={tdNameStyle}>
                 <span style={{ paddingLeft: "16px" }}>{cat.name}</span>
+                {auto && <span style={{ fontSize: "9px", fontWeight: "600", color: C.blue, background: C.blueBg, padding: "1px 5px", borderRadius: "3px", marginLeft: "6px", verticalAlign: "middle" }}>AUTO</span>}
               </td>
               <td style={tdStyle}>
                 {isEditing ? (
@@ -190,6 +207,8 @@ function PnlTab({ categories, entries, ytdEntries, period, setPeriod, onSave, on
                     onBlur={function() { saveEdit(cat); }}
                     style={{ width: "120px", padding: "4px 8px", fontSize: "13px", textAlign: "right", border: "1px solid " + C.blue, borderRadius: C.r, outline: "none" }}
                   />
+                ) : auto ? (
+                  <span style={{ padding: "2px 6px" }}>{USD.format(amt)}</span>
                 ) : (
                   <span onClick={function() { startEdit(cat); }} style={{ cursor: "pointer", padding: "2px 6px", borderRadius: "4px" }}
                     onMouseEnter={function(e) { e.currentTarget.style.background = C.blueBg; }}
@@ -211,6 +230,8 @@ function PnlTab({ categories, entries, ytdEntries, period, setPeriod, onSave, on
                     placeholder="Notas..."
                     style={{ width: "140px", padding: "4px 8px", fontSize: "12px", border: "1px solid " + C.border, borderRadius: C.r, outline: "none" }}
                   />
+                ) : auto ? (
+                  <span style={{ fontSize: "10px", color: C.blue }}>datos en vivo</span>
                 ) : (
                   (entry && entry.notes) || ""
                 )}
@@ -257,10 +278,6 @@ function PnlTab({ categories, entries, ytdEntries, period, setPeriod, onSave, on
           </button>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
-          <button onClick={onSync} disabled={syncing}
-            style={{ padding: "7px 14px", fontSize: "12px", fontWeight: "600", borderRadius: C.r, border: "1px solid " + C.blue, background: C.blueBg, color: C.blue, cursor: syncing ? "wait" : "pointer", opacity: syncing ? 0.6 : 1 }}>
-            {syncing ? "Sincronizando..." : "Sync Datos"}
-          </button>
           <button onClick={exportCSV}
             style={{ padding: "7px 14px", fontSize: "12px", fontWeight: "600", borderRadius: C.r, border: "1px solid " + C.border, background: C.surface, color: C.t2, cursor: "pointer" }}>
             Exportar CSV
@@ -457,13 +474,15 @@ export default function FinanceModule({ currentUser }) {
   var [entries, setEntries] = useState([]);
   var [ytdEntries, setYtdEntries] = useState([]);
   var [loading, setLoading] = useState(true);
-  var [syncing, setSyncing] = useState(false);
+  var [autoAmounts, setAutoAmounts] = useState({});
+  var [autoYtd, setAutoYtd] = useState({});
 
   var isAdmin = currentUser && ["admin", "director"].includes(currentUser.rol);
 
   var loadCategories = useCallback(async function() {
     var res = await SB.from("pnl_categories").select("*").order("sort_order");
     if (res.data) setCategories(res.data);
+    return res.data || [];
   }, []);
 
   var loadEntries = useCallback(async function() {
@@ -477,10 +496,77 @@ export default function FinanceModule({ currentUser }) {
     if (res.data) setYtdEntries(res.data);
   }, [period]);
 
+  // Auto-compute values from source tables for current period
+  var loadAutoAmounts = useCallback(async function(cats) {
+    var parts = period.split("-");
+    var y = parseInt(parts[0], 10);
+    var m = parseInt(parts[1], 10);
+    var startDate = period + "-01";
+    var endM = m + 1; var endY = y;
+    if (endM > 12) { endM = 1; endY++; }
+    var endDate = endY + "-" + ("0" + endM).slice(-2) + "-01";
+
+    var amounts = {};
+
+    // Package Sales from leads
+    var pkgCat = cats.find(function(c) { return c.code === "rev_package_sales"; });
+    if (pkgCat) {
+      var res = await SB.from("leads").select("sale_price").eq("status", "venta").gte("fecha_contacto", startDate).lt("fecha_contacto", endDate);
+      var total = 0;
+      if (res.data) res.data.forEach(function(l) { total += Number(l.sale_price || 0); });
+      amounts[pkgCat.id] = total;
+    }
+
+    // Radio Advertising from radio_spots
+    var radioCat = cats.find(function(c) { return c.code === "opex_radio"; });
+    if (radioCat) {
+      var radioRes = await SB.from("radio_spots").select("costo").gte("fecha", startDate).lt("fecha", endDate);
+      var totalRadio = 0;
+      if (radioRes.data) radioRes.data.forEach(function(s) { totalRadio += Number(s.costo || 0); });
+      amounts[radioCat.id] = totalRadio;
+    }
+
+    setAutoAmounts(amounts);
+  }, [period]);
+
+  // Auto-compute YTD values from source tables
+  var loadAutoYtd = useCallback(async function(cats) {
+    var periods = ytdPeriods(period);
+    var startDate = periods[0].split("-")[0] + "-01-01";
+    var parts = period.split("-");
+    var y = parseInt(parts[0], 10);
+    var m = parseInt(parts[1], 10);
+    var endM = m + 1; var endY = y;
+    if (endM > 12) { endM = 1; endY++; }
+    var endDate = endY + "-" + ("0" + endM).slice(-2) + "-01";
+
+    var ytdAmounts = {};
+
+    var pkgCat = cats.find(function(c) { return c.code === "rev_package_sales"; });
+    if (pkgCat) {
+      var res = await SB.from("leads").select("sale_price").eq("status", "venta").gte("fecha_contacto", startDate).lt("fecha_contacto", endDate);
+      var total = 0;
+      if (res.data) res.data.forEach(function(l) { total += Number(l.sale_price || 0); });
+      ytdAmounts[pkgCat.id] = total;
+    }
+
+    var radioCat = cats.find(function(c) { return c.code === "opex_radio"; });
+    if (radioCat) {
+      var radioRes = await SB.from("radio_spots").select("costo").gte("fecha", startDate).lt("fecha", endDate);
+      var totalRadio = 0;
+      if (radioRes.data) radioRes.data.forEach(function(s) { totalRadio += Number(s.costo || 0); });
+      ytdAmounts[radioCat.id] = totalRadio;
+    }
+
+    setAutoYtd(ytdAmounts);
+  }, [period]);
+
   useEffect(function() {
     setLoading(true);
-    Promise.all([loadCategories(), loadEntries(), loadYtd()]).then(function() { setLoading(false); });
-  }, [loadCategories, loadEntries, loadYtd]);
+    loadCategories().then(function(cats) {
+      return Promise.all([loadEntries(), loadYtd(), loadAutoAmounts(cats), loadAutoYtd(cats)]);
+    }).then(function() { setLoading(false); });
+  }, [loadCategories, loadEntries, loadYtd, loadAutoAmounts, loadAutoYtd]);
 
   async function handleSave(categoryId, amount, notes, existingId) {
     if (existingId) {
@@ -496,51 +582,6 @@ export default function FinanceModule({ currentUser }) {
     }
     loadEntries();
     loadYtd();
-  }
-
-  async function handleSync() {
-    setSyncing(true);
-    try {
-      var parts = period.split("-");
-      var y = parseInt(parts[0], 10);
-      var m = parseInt(parts[1], 10);
-      var startDate = period + "-01";
-      var endM = m + 1;
-      var endY = y;
-      if (endM > 12) { endM = 1; endY++; }
-      var endDate = endY + "-" + ("0" + endM).slice(-2) + "-01";
-
-      // Sync Package Sales from leads
-      var res = await SB.from("leads").select("sale_price").eq("status", "venta").gte("fecha_contacto", startDate).lt("fecha_contacto", endDate);
-      var totalVentas = 0;
-      if (res.data) {
-        res.data.forEach(function(l) { totalVentas += Number(l.sale_price || 0); });
-      }
-      var pkgCat = categories.find(function(c) { return c.code === "rev_package_sales"; });
-      if (pkgCat) {
-        var existingPkg = entries.find(function(e) { return e.category_id === pkgCat.id; });
-        await handleSave(pkgCat.id, totalVentas, "Auto-sync ventas " + period, existingPkg ? existingPkg.id : null);
-      }
-
-      // Sync Radio Advertising from radio_spots
-      var radioRes = await SB.from("radio_spots").select("costo").gte("fecha", startDate).lt("fecha", endDate);
-      var totalRadio = 0;
-      if (radioRes.data) {
-        radioRes.data.forEach(function(s) { totalRadio += Number(s.costo || 0); });
-      }
-      var radioCat = categories.find(function(c) { return c.code === "opex_radio"; });
-      if (radioCat) {
-        var existingRadio = entries.find(function(e) { return e.category_id === radioCat.id; });
-        await handleSave(radioCat.id, totalRadio, "Auto-sync radio " + period, existingRadio ? existingRadio.id : null);
-      }
-
-      // Reload entries after all syncs
-      await loadEntries();
-      await loadYtd();
-    } catch (e) {
-      console.error("Sync error:", e);
-    }
-    setSyncing(false);
   }
 
   var tabs = [{ id: "pnl", label: "P&L Mensual" }];
@@ -579,11 +620,11 @@ export default function FinanceModule({ currentUser }) {
               categories={categories}
               entries={entries}
               ytdEntries={ytdEntries}
+              autoAmounts={autoAmounts}
+              autoYtd={autoYtd}
               period={period}
               setPeriod={setPeriod}
               onSave={handleSave}
-              onSync={handleSync}
-              syncing={syncing}
               currentUser={currentUser}
             />
           )}
