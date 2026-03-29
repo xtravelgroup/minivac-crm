@@ -20,7 +20,7 @@ const QUEUE_MAP: Record<string, string> = {
   "+17867834775": "reservas",
 };
 
-const QUEUE_CONFIG: Record<string, { name: string; welcome: string; hold: string; callerIdOverride?: string }> = {
+const QUEUE_CONFIG: Record<string, { name: string; welcome: string; hold: string; disclaimer?: string; callerIdOverride?: string }> = {
   ventas: {
     name: "Sala A - Ventas",
     welcome: "Ya estas participando. Por favor permanecer en linea para ser atendido por un promotor.",
@@ -28,12 +28,14 @@ const QUEUE_CONFIG: Record<string, { name: string; welcome: string; hold: string
   },
   cs: {
     name: "Customer Service",
-    welcome: "Gracias por llamar. Un agente de servicio al cliente le atendera en breve.",
+    disclaimer: "Gracias por llamar a X Travel Group. Esta llamada puede ser grabada o monitoreada por motivos de calidad.",
+    welcome: "Un agente de servicio al cliente le atendera en breve.",
     hold: "Por favor permanezca en linea. Un agente le atendera pronto.",
   },
   reservas: {
     name: "Reservaciones",
-    welcome: "Gracias por llamar al departamento de reservaciones. Un agente le atendera en breve.",
+    disclaimer: "Gracias por llamar a X Travel Group. Esta llamada puede ser grabada o monitoreada por motivos de calidad.",
+    welcome: "Un agente del departamento de reservaciones le atendera en breve.",
     hold: "Por favor permanezca en linea. Un agente de reservaciones le atendera pronto.",
   },
 };
@@ -405,9 +407,10 @@ serve(async (req) => {
       let twiml: string;
 
       if (!isRetry) {
-        // First time: welcome message then ring, then redirect to check again
+        // First time: disclaimer (if configured) + welcome message then ring
+        const disclaimerSay = qCfg.disclaimer ? `\n  <Say language="es-MX">${qCfg.disclaimer}</Say>` : "";
         twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
+<Response>${disclaimerSay}
   <Say language="es-MX">${qCfg.welcome}</Say>
   <Play loop="1">${RING_TONE}</Play>
   <Redirect method="POST">${retryUrl}</Redirect>
@@ -466,8 +469,10 @@ serve(async (req) => {
     const statusCallback = `${STATUS_URL}?callLogId=${callLogId}&amp;agentId=${agent.usuario_id}`;
 
     // Agent available — connect immediately, record the call (dual channel)
+    // Play disclaimer before connecting (only on first call, not retries)
+    const disclaimerDial = (!isRetry && qCfg.disclaimer) ? `\n  <Say language="es-MX">${qCfg.disclaimer}</Say>` : "";
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
+<Response>${disclaimerDial}
   <Dial timeout="10" action="${statusCallback}" method="POST" record="record-from-answer-dual" recordingStatusCallback="${EVENTS_URL}" recordingStatusCallbackMethod="POST">
     <Client statusCallbackEvent="initiated ringing answered completed" statusCallback="${EVENTS_URL}" statusCallbackMethod="POST">${agentIdentity}</Client>
   </Dial>
