@@ -139,8 +139,8 @@ export default function WelcomeCalls({ currentUser, onVerCliente }) {
         subject: "Tu acceso al Portal de Miembro - Mini-Vac Vacation Club",
         body_html: "<div style='font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:auto;background:#ffffff;'>"
           + "<div style='background:linear-gradient(135deg,#1a385a 0%,#0ea5a0 100%);padding:32px 24px;text-align:center;border-radius:8px 8px 0 0;'>"
-          + "<h1 style='color:#ffffff;margin:0;font-size:24px;font-weight:800;letter-spacing:0.5px;'>X TRAVEL GROUP</h1>"
-          + "<p style='color:rgba(255,255,255,0.85);margin:8px 0 0;font-size:13px;letter-spacing:1px;text-transform:uppercase;'>Tu aventura comienza ahora</p></div>"
+          + "<img src='https://minivac-crm.vercel.app/logo.png' alt='X Travel Group' style='height:50px;object-fit:contain;margin-bottom:12px;' />"
+          + "<p style='color:rgba(255,255,255,0.85);margin:0;font-size:13px;letter-spacing:1px;text-transform:uppercase;'>Tu aventura comienza ahora</p></div>"
           + "<div style='padding:32px 28px;background:#ffffff;'>"
           + "<h2 style='color:#1a385a;font-size:20px;margin:0 0 16px;'>Bienvenido a la familia de X Travel Group!</h2>"
           + "<p style='color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;'>Hola <strong>"+lead.nombre+"</strong>,</p>"
