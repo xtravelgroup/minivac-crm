@@ -1304,7 +1304,7 @@ function PrioridadesAI({ leads, currentUser }) {
   const [loading, setLoading] = useState(false);
   const [result,  setResult]  = useState(null);
   const [error,   setError]   = useState(null);
-  const misLeads = leads.filter(l => l.vendedorId===currentUser.id && !l.bloqueado && !["venta","no_interesado"].includes(l.status));
+  const misLeads = leads.filter(l => matchVendedor(l, currentUser) && !l.bloqueado && !["venta","no_interesado"].includes(l.status));
 
   const run = async () => {
     setLoading(true); setError(null); setResult(null);
@@ -1545,7 +1545,7 @@ function VendedorView({ leads, users, currentUser, destCatalog, onUpdateLead, in
   const [fStatus, setFStatus] = useState("all");
   const [tab,     setTab]    = useState("kanban");
 
-  const misLeads = leads.filter(l => l.vendedorId===currentUser.id && !l.bloqueado);
+  const misLeads = leads.filter(l => matchVendedor(l, currentUser) && !l.bloqueado);
   const alertas  = misLeads.filter(l => daysSince(l.ultimoContacto)>=ALERT_DAYS && !["venta","no_interesado"].includes(l.status));
   const filtered = misLeads.filter(l =>
     (fStatus==="all" || l.status===fStatus) &&
@@ -2290,11 +2290,9 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId, new
             var myIds = [];
             if (me) { if (me.dbId) myIds.push(me.dbId); if (me.authId) myIds.push(me.authId); }
             if (myIds.length === 0) myIds.push(myAuthId);
-            console.log("[SellerCRM] isSup:", isSup, "myAuthId:", myAuthId, "me:", me, "myIds:", myIds);
             query = query.in("vendedor_id", myIds);
           }
           query.then(function(res2) {
-            console.log("[SellerCRM] leads loaded:", res2.data ? res2.data.length : 0, "error:", res2.error);
             setLoading(false);
             if (res2.data) setLeads(res2.data.map(dbToLead));
           });
