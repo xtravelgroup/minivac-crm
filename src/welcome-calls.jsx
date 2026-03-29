@@ -108,6 +108,8 @@ export default function WelcomeCalls({ currentUser, onVerCliente }) {
       if(res.error){ notify("Error: "+res.error.message, false); return; }
       notify("No contesta — reintentar en "+hoursDelay+"h (intento "+attempts+")");
       registrarEvento(lead.id, "welcome", "Welcome call: No contesta — reintentar en "+hoursDelay+"h (intento "+attempts+")", null, {nombre:currentUser?.nombre||"CS"});
+      // Send no-answer email automatically
+      if(lead.email) enviarEmailNoContesto(lead);
       cargar();
       setActionLead(null);
     });
@@ -243,8 +245,6 @@ export default function WelcomeCalls({ currentUser, onVerCliente }) {
                             React.createElement("button",{key:"comp",style:S.btn("#fff",C.green),onClick:function(){marcarCompletado(l);}},"Completado"),
                             React.createElement("button",{key:"nc",style:S.btn("#fff",C.amber),onClick:function(){marcarNoContesta(l);}},"No Contesta"),
                             React.createElement("button",{key:"portal",style:S.btn("#fff",C.indigo),onClick:function(){enviarAccesoPortal(l);}},"Portal"),
-                            React.createElement("button",{key:"noanswer",style:S.btn("#fff",C.amber),onClick:function(){enviarEmailNoContesto(l);}},"No Contestó"),
-                            React.createElement("button",{key:"email",style:S.btn("#fff",C.teal),onClick:function(){enviarEmailWelcome(l);}},"Email"),
                             React.createElement("button",{key:"wa",style:S.btn("#fff","#25d366"),onClick:function(){enviarWhatsAppWelcome(l);}},"WhatsApp"),
                             React.createElement("button",{key:"x",style:S.btn(C.muted,"transparent"),onClick:function(){setActionLead(null);}},"x"),
                           ])
