@@ -1546,6 +1546,7 @@ function VendedorView({ leads, users, currentUser, destCatalog, onUpdateLead, in
   const [tab,     setTab]    = useState("kanban");
 
   const misLeads = leads.filter(l => matchVendedor(l, currentUser) && !l.bloqueado);
+  console.log("[VendedorView] leads:", leads.length, "currentUser:", JSON.stringify({id:currentUser.id,dbId:currentUser.dbId,authId:currentUser.authId}), "misLeads:", misLeads.length, "sample vendedorIds:", leads.slice(0,3).map(l=>l.vendedorId));
   const alertas  = misLeads.filter(l => daysSince(l.ultimoContacto)>=ALERT_DAYS && !["venta","no_interesado"].includes(l.status));
   const filtered = misLeads.filter(l =>
     (fStatus==="all" || l.status===fStatus) &&
