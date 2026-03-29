@@ -863,16 +863,25 @@ function PerdidasTab(props) {
 // ─── MAIN MODULE ─────────────────────────────────────────────
 export default function TelephonyManagement(props) {
   var currentUser = props.currentUser;
-  var ADMIN_ROLES = ["admin", "director", "supervisor"];
+  var ADMIN_ROLES = ["admin", "director", "supervisor", "cs_gerente"];
   var isAdmin = currentUser && ADMIN_ROLES.includes(currentUser.rol);
 
-  var QUEUES = [
+  var ALL_QUEUES = [
     { id: "ventas", label: "Sala A - Ventas" },
     { id: "cs", label: "Customer Service" },
     { id: "reservas", label: "Reservaciones" },
   ];
 
-  var [activeQueue, setActiveQueue] = useState("ventas");
+  // Queue access by role
+  var rol = currentUser ? currentUser.rol : "";
+  var QUEUES = ALL_QUEUES.filter(function (q) {
+    if (rol === "admin" || rol === "director") return true;
+    if (rol === "cs_gerente") return q.id === "ventas" || q.id === "cs";
+    if (rol === "supervisor") return q.id === "ventas";
+    return false;
+  });
+
+  var [activeQueue, setActiveQueue] = useState(QUEUES.length > 0 ? QUEUES[0].id : "ventas");
   var [tab, setTab] = useState("agentes");
   var [queueAgents, setQueueAgents] = useState([]);
   var [agentStatuses, setAgentStatuses] = useState([]);
