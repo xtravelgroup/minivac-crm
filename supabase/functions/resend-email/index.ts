@@ -110,5 +110,96 @@ serve(async (req) => {
       return new Response(JSON.stringify({error:"modo invalido"}),{status:400,headers:{...CORS,"Content-Type":"application/json"}});
     } catch(err){console.error("chat-ai:",err);return new Response(JSON.stringify({error:String(err)}),{status:500,headers:{...CORS,"Content-Type":"application/json"}});}
   }
+  if (req.method === "POST" && path === "/portal-invite") {
+    try {
+      const body = await req.json();
+      const { email, nombre, lead_id } = body;
+      if (!email || !lead_id) return new Response(JSON.stringify({error:"email y lead_id requeridos"}),{status:400,headers:{...CORS,"Content-Type":"application/json"}});
+
+      // 1. Check if user already exists in auth
+      const { data: existingUsers } = await SB.auth.admin.listUsers({ filter: `email.eq.${email}` });
+      let userId: string;
+      const userExists = existingUsers?.users?.find((u: any) => u.email === email);
+
+      if (userExists) {
+        userId = userExists.id;
+      } else {
+        // Create new auth user with a temp password (they'll set their own)
+        const tempPass = crypto.randomUUID();
+        const { data: newUser, error: createErr } = await SB.auth.admin.createUser({
+          email,
+          password: tempPass,
+          email_confirm: true,
+          user_metadata: { nombre, lead_id, role: "cliente" }
+        });
+        if (createErr) throw new Error(createErr.message);
+        userId = newUser.user.id;
+      }
+
+      // 2. Generate invite/recovery link so client can set password
+      const { data: linkData, error: linkErr } = await SB.auth.admin.generateLink({
+        type: "recovery",
+        email,
+        options: { redirectTo: `https://minivac-crm.vercel.app/portal?setup=1` }
+      });
+      if (linkErr) throw new Error(linkErr.message);
+
+      // Extract the token from the generated link
+      const actionLink = linkData?.properties?.action_link || "";
+
+      // 3. Send styled email with the link
+      const portalHtml = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:auto;background:#ffffff;">
+<div style="background:linear-gradient(135deg,#1a385a 0%,#0ea5a0 100%);padding:32px 24px;text-align:center;border-radius:8px 8px 0 0;">
+<img src="https://minivac-crm.vercel.app/logo.png" alt="X Travel Group" style="height:50px;object-fit:contain;margin-bottom:12px;" />
+<p style="color:rgba(255,255,255,0.85);margin:0;font-size:13px;letter-spacing:1px;text-transform:uppercase;">Tu aventura comienza ahora</p></div>
+<div style="padding:32px 28px;background:#ffffff;">
+<h2 style="color:#1a385a;font-size:20px;margin:0 0 16px;">Bienvenido a la familia de X Travel Group!</h2>
+<p style="color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;">Hola <strong>${nombre || "estimado cliente"}</strong>,</p>
+<p style="color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;">Estamos muy emocionados de acompanarte en este primer paso hacia unas vacaciones increibles. Tu paquete ya esta confirmado y estas mucho mas cerca de disfrutar una experiencia unica en uno de nuestros destinos premium.</p>
+<p style="color:#374151;font-size:15px;line-height:1.8;margin:0 0 8px;">A partir de este momento, tienes acceso a tu portal de cliente, donde podras:</p>
+<ul style="color:#374151;font-size:15px;line-height:2;margin:0 0 20px;padding-left:20px;">
+<li>Consultar los detalles de tu paquete</li>
+<li>Explorar destinos disponibles</li>
+<li>Gestionar tus fechas de viaje</li>
+<li>Recibir informacion importante para tu proxima experiencia</li></ul>
+<p style="color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;"><strong>Para acceder, primero crea tu contrasena:</strong></p>
+<div style="text-align:center;margin:28px 0;">
+<a href="${actionLink}" style="display:inline-block;background:linear-gradient(135deg,#0ea5a0 0%,#0d8f8b 100%);color:#ffffff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;box-shadow:0 4px 12px rgba(14,165,160,0.35);">Crear mi contrasena y acceder</a></div>
+<p style="color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;">Este es solo el comienzo. Muy pronto estaras disfrutando de hoteles unicos, destinos espectaculares y momentos que realmente valen la pena.</p>
+<p style="color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;">Nuestro equipo estara contigo en cada paso para asegurarnos de que tu experiencia sea perfecta.</p>
+<p style="color:#1a385a;font-size:15px;line-height:1.8;margin:0 0 4px;font-weight:700;font-style:italic;">Preparate... porque tus proximas vacaciones estan mas cerca de lo que imaginas.</p>
+<p style="color:#374151;font-size:15px;line-height:1.8;margin:20px 0 0;">Bienvenido nuevamente,<br/><strong style="color:#1a385a;">X Travel Group</strong></p></div>
+<div style="background:#f8fafc;padding:20px 28px;border-top:1px solid #e5e7eb;border-radius:0 0 8px 8px;text-align:center;">
+<p style="color:#9ca3af;font-size:12px;margin:0;">X Travel Group &bull; Miami, FL &bull; 1-800-927-1490</p>
+<p style="color:#9ca3af;font-size:11px;margin:6px 0 0;">Si tienes alguna pregunta, no dudes en contactarnos.</p>
+</div></div>`;
+
+      const r = await fetch("https://api.resend.com/emails", {
+        method:"POST",
+        headers:{"Authorization":`Bearer ${RESEND_API_KEY}`,"Content-Type":"application/json"},
+        body:JSON.stringify({
+          from:`${FROM_NAME} <${FROM_EMAIL}>`,
+          to:[nombre?`${nombre} <${email}>`:email],
+          subject:"Bienvenido a X Travel Group - Crea tu acceso al Portal",
+          html:portalHtml
+        })
+      });
+      const rd = await r.json();
+      if (!r.ok) throw new Error(rd.message||"Error enviando email");
+
+      // Save in emails table
+      await SB.from("emails").insert({
+        direction:"outbound",status:"sent",from_email:FROM_EMAIL,from_name:FROM_NAME,
+        to_email:email,to_name:nombre||null,
+        subject:"Bienvenido a X Travel Group - Crea tu acceso al Portal",
+        body_html:portalHtml,resend_id:rd.id,lead_id:lead_id||null
+      });
+
+      return new Response(JSON.stringify({success:true,resend_id:rd.id,user_id:userId}),{status:200,headers:{...CORS,"Content-Type":"application/json"}});
+    } catch(err) {
+      console.error("portal-invite:",err);
+      return new Response(JSON.stringify({error:String(err)}),{status:500,headers:{...CORS,"Content-Type":"application/json"}});
+    }
+  }
   return new Response("Not found",{status:404,headers:CORS});
 });

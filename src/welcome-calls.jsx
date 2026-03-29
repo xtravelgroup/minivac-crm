@@ -128,43 +128,17 @@ export default function WelcomeCalls({ currentUser, onVerCliente }) {
 
   function enviarAccesoPortal(lead) {
     if(!lead.email){ notify("Sin email", false); return; }
-    var portalUrl = "https://minivac-crm.vercel.app/portal?id="+lead.id;
 
-    fetch(SB_URL+"/functions/v1/resend-email/send", {
+    fetch(SB_URL+"/functions/v1/resend-email/portal-invite", {
       method:"POST",
       headers: HDR,
       body: JSON.stringify({
-        to_email: lead.email,
-        to_name: lead.nombre||"",
-        subject: "Tu acceso al Portal de Miembro - Mini-Vac Vacation Club",
-        body_html: "<div style='font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:auto;background:#ffffff;'>"
-          + "<div style='background:linear-gradient(135deg,#1a385a 0%,#0ea5a0 100%);padding:32px 24px;text-align:center;border-radius:8px 8px 0 0;'>"
-          + "<img src='https://minivac-crm.vercel.app/logo.png' alt='X Travel Group' style='height:50px;object-fit:contain;margin-bottom:12px;' />"
-          + "<p style='color:rgba(255,255,255,0.85);margin:0;font-size:13px;letter-spacing:1px;text-transform:uppercase;'>Tu aventura comienza ahora</p></div>"
-          + "<div style='padding:32px 28px;background:#ffffff;'>"
-          + "<h2 style='color:#1a385a;font-size:20px;margin:0 0 16px;'>Bienvenido a la familia de X Travel Group!</h2>"
-          + "<p style='color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;'>Hola <strong>"+lead.nombre+"</strong>,</p>"
-          + "<p style='color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;'>Estamos muy emocionados de acompanarte en este primer paso hacia unas vacaciones increibles. Tu paquete ya esta confirmado y estas mucho mas cerca de disfrutar una experiencia unica en uno de nuestros destinos premium.</p>"
-          + "<p style='color:#374151;font-size:15px;line-height:1.8;margin:0 0 8px;'>A partir de este momento, tienes acceso a tu portal de cliente, donde podras:</p>"
-          + "<ul style='color:#374151;font-size:15px;line-height:2;margin:0 0 20px;padding-left:20px;'>"
-          + "<li>Consultar los detalles de tu paquete</li>"
-          + "<li>Explorar destinos disponibles</li>"
-          + "<li>Gestionar tus fechas de viaje</li>"
-          + "<li>Recibir informacion importante para tu proxima experiencia</li></ul>"
-          + "<div style='text-align:center;margin:28px 0;'>"
-          + "<a href='"+portalUrl+"' style='display:inline-block;background:linear-gradient(135deg,#0ea5a0 0%,#0d8f8b 100%);color:#ffffff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;box-shadow:0 4px 12px rgba(14,165,160,0.35);'>Acceder a mi Portal</a></div>"
-          + "<p style='color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;'>Este es solo el comienzo. Muy pronto estaras disfrutando de hoteles unicos, destinos espectaculares y momentos que realmente valen la pena.</p>"
-          + "<p style='color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;'>Nuestro equipo estara contigo en cada paso para asegurarnos de que tu experiencia sea perfecta.</p>"
-          + "<p style='color:#1a385a;font-size:15px;line-height:1.8;margin:0 0 4px;font-weight:700;font-style:italic;'>Preparate... porque tus proximas vacaciones estan mas cerca de lo que imaginas.</p>"
-          + "<p style='color:#374151;font-size:15px;line-height:1.8;margin:20px 0 0;'>Bienvenido nuevamente,<br/><strong style='color:#1a385a;'>X Travel Group</strong></p></div>"
-          + "<div style='background:#f8fafc;padding:20px 28px;border-top:1px solid #e5e7eb;border-radius:0 0 8px 8px;text-align:center;'>"
-          + "<p style='color:#9ca3af;font-size:12px;margin:0;'>X Travel Group &bull; Miami, FL &bull; 1-800-927-1490</p>"
-          + "<p style='color:#9ca3af;font-size:11px;margin:6px 0 0;'>Si tienes alguna pregunta, no dudes en contactarnos.</p>"
-          + "</div></div>",
+        email: lead.email,
+        nombre: lead.nombre||"",
         lead_id: lead.id,
       }),
     }).then(function(r){ return r.json(); }).then(function(r){
-      if(r.success || r.resend_id){ notify("Acceso al portal enviado por email"); registrarEvento(lead.id, "welcome", "Acceso al portal enviado por email", null, {nombre:currentUser?.nombre||"CS"}); }
+      if(r.success){ notify("Invitacion al portal enviada por email"); registrarEvento(lead.id, "welcome", "Invitacion al portal enviada — crear contrasena", null, {nombre:currentUser?.nombre||"CS"}); }
       else notify("Error: "+(r.error||r.message||"fallo envio"), false);
     }).catch(function(e){ notify("Error de red: "+e.message, false); });
   }

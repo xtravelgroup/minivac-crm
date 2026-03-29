@@ -1,4 +1,11 @@
 import { useState, useEffect, useRef } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+var SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
+var ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTUwNDIsImV4cCI6MjA4ODU5MTA0Mn0.1JsfnUo3MaqSFr0g_Bv3CfG7BhMLZCzNE5e_E1DEJgM";
+var SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAxNTA0MiwiZXhwIjoyMDg4NTkxMDQyfQ.-P8KH6yhs6AJ1lUwBrwUpcoZV3KGvM7fDlFM3RsYKxw";
+var portalSB = createClient(SB_URL, ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: "portal-auth" } });
+var serviceSB = createClient(SB_URL, SERVICE_KEY);
 
 var CHAT_KEY="minivac_chats";
 function storageGet(){ return window.storage.get(CHAT_KEY,true).then(function(r){ return r?JSON.parse(r.value):{chats:{}}; }).catch(function(){return {chats:{}};}); }
@@ -102,20 +109,105 @@ var RES_STATUS={
   completada: {label:"Completada",  c:"#9ca3af",bg:"rgba(100,116,139,0.1)",br:"rgba(100,116,139,0.25)"},
 };
 
-function LoginScreen(props){
-  var [email,setEmail]=useState("miguel@email.com");
-  var [pass,setPass]=useState("demo1234");
+async function loadClientData(email){
+  var { data: lead } = await serviceSB.from("leads").select("*").eq("email",email).eq("status","venta").single();
+  if(!lead) return null;
+  var exp = lead.expediente||{}; var ver = lead.verificacion||{};
+  var combined = Object.assign({},exp,ver);
+  var nombre = ((combined.tFirstName||"")+" "+(combined.tLastName||"")).trim() || lead.nombre || "Cliente";
+  var coProp = combined.hasPartner ? (((combined.pFirstName||"")+" "+(combined.pLastName||"")).trim()||null) : null;
+  var destinos = (lead.destinos||[]).map(function(d,i){
+    return { id:"D"+(i+1), nombre:d.destId||"Destino", noches:d.noches||5, tipo:d.tipo||"qc",
+      img:"https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80&auto=format&fit=crop",
+      desc:"Destino premium incluido en tu paquete." };
+  });
+  var pagos = (lead.pagos_historial||[]).filter(function(p){return p.monto>0;}).map(function(p){
+    return { fecha:p.fecha||"", monto:p.monto||0, tipo:p.concepto||"Pago", status:"aprobado", ref:p.referencia||"" };
+  });
+  var { data: reservas } = await serviceSB.from("reservaciones").select("*").eq("lead_id",lead.id).order("created_at",{ascending:false});
+  var reservaciones = (reservas||[]).map(function(r){
+    return { id:r.id, destino:r.destino_nombre||r.destino_id||"", fechaViaje:r.checkin||"", personas:r.adultos||2,
+      status:r.status||"solicitud", notas:r.notas_agente||"",
+      hotel:r.hotel?{nombre:r.hotel,conf:r.num_confirmacion||"",hab:r.habitacion||"",reg:r.regimen||"",img:null}:null };
+  });
+  var fechaVenta = lead.created_at ? lead.created_at.split("T")[0] : TODAY;
+  var vencDate = new Date(fechaVenta); vencDate.setMonth(vencDate.getMonth()+18);
+  return {
+    folio: lead.folio||("XT-"+lead.id.slice(0,6).toUpperCase()),
+    titular: nombre, coProp: coProp,
+    tel: combined.tPhone||lead.tel||"", email: email,
+    fechaVenta: fechaVenta, fechaVencimiento: vencDate.toLocaleDateString("en-CA"),
+    precioTotal: lead.sale_price||0, pagado: lead.totalPagado||(pagos.reduce(function(s,p){return s+p.monto;},0)),
+    destinos: destinos, pagos: pagos, reservaciones: reservaciones,
+    status: lead.statusCliente==="cancelado"?"cancelado":"activo",
+    lead_id: lead.id,
+  };
+}
+
+function SetPasswordScreen(props){
+  var [pass,setPass]=useState("");
+  var [pass2,setPass2]=useState("");
   var [err,setErr]=useState("");
-  function doLogin(){
-    var acc=DEMO_ACCOUNTS[email.trim().toLowerCase()];
-    if(!acc||acc.password!==pass){ setErr("Email o contrasena incorrectos"); return; }
-    props.onLogin(acc);
+  var [saving,setSaving]=useState(false);
+  function doSet(){
+    if(pass.length<6){ setErr("La contrasena debe tener al menos 6 caracteres"); return; }
+    if(pass!==pass2){ setErr("Las contrasenas no coinciden"); return; }
+    setSaving(true);
+    portalSB.auth.updateUser({password:pass}).then(function(res){
+      if(res.error){ setErr(res.error.message); setSaving(false); return; }
+      var email = res.data.user.email;
+      loadClientData(email).then(function(clientData){
+        if(clientData){ props.onLogin(clientData); }
+        else { setErr("No encontramos tu perfil. Contacta a soporte."); setSaving(false); }
+      });
+    });
   }
   return (
     <div style={{minHeight:"100vh",background:"#f0f2f5",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
       <div style={{width:"100%",maxWidth:"380px"}}>
         <div style={{textAlign:"center",marginBottom:"28px"}}>
-          <div style={{fontSize:"18px",fontWeight:"700",color:"#1a385a",letterSpacing:"-0.3px"}}>TRAVEL<span style={{color:"#47718a"}}>X</span><span style={{fontWeight:"300",fontSize:"14px"}}> GROUP</span></div>
+          <img src="https://minivac-crm.vercel.app/logo.png" alt="X Travel Group" style={{height:"50px",objectFit:"contain",marginBottom:"8px"}} />
+          <div style={{fontSize:"12px",color:"#9ca3af",marginTop:"4px"}}>Portal del Socio</div>
+        </div>
+        <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"16px",padding:"24px 22px",boxShadow:"0 4px 16px rgba(26,56,90,0.1)"}}>
+          <div style={{fontSize:"16px",fontWeight:"700",color:"#1a385a",marginBottom:"4px"}}>Crea tu contrasena</div>
+          <div style={{fontSize:"13px",color:"#6b7280",marginBottom:"18px"}}>Para acceder a tu portal de miembro</div>
+          <div style={{marginBottom:"14px"}}>
+            <label style={S.lbl}>Nueva contrasena</label>
+            <input style={S.inp} type="password" value={pass} onChange={function(e){setPass(e.target.value);setErr("");}} placeholder="Minimo 6 caracteres"/>
+          </div>
+          <div style={{marginBottom:"18px"}}>
+            <label style={S.lbl}>Confirmar contrasena</label>
+            <input style={S.inp} type="password" value={pass2} onChange={function(e){setPass2(e.target.value);setErr("");}} placeholder="Repite tu contrasena"/>
+          </div>
+          {err&&<div style={{fontSize:"12px",color:RED,marginBottom:"12px",padding:"8px 12px",background:"rgba(248,113,113,0.08)",borderRadius:"8px",border:"1px solid rgba(248,113,113,0.2)"}}>{err}</div>}
+          <button style={Object.assign({},btn("primary"),{width:"100%",justifyContent:"center",padding:"10px",opacity:saving?0.6:1})} onClick={doSet} disabled={saving}>{saving?"Guardando...":"Crear contrasena y entrar"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoginScreen(props){
+  var [email,setEmail]=useState("");
+  var [pass,setPass]=useState("");
+  var [err,setErr]=useState("");
+  var [loading,setLoading]=useState(false);
+  function doLogin(){
+    setLoading(true); setErr("");
+    portalSB.auth.signInWithPassword({email:email.trim().toLowerCase(),password:pass}).then(function(res){
+      if(res.error){ setErr("Email o contrasena incorrectos"); setLoading(false); return; }
+      loadClientData(res.data.user.email).then(function(clientData){
+        if(clientData){ props.onLogin(clientData); }
+        else { setErr("No encontramos tu perfil de miembro."); setLoading(false); }
+      });
+    });
+  }
+  return (
+    <div style={{minHeight:"100vh",background:"#f0f2f5",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
+      <div style={{width:"100%",maxWidth:"380px"}}>
+        <div style={{textAlign:"center",marginBottom:"28px"}}>
+          <img src="https://minivac-crm.vercel.app/logo.png" alt="X Travel Group" style={{height:"50px",objectFit:"contain",marginBottom:"8px"}} />
           <div style={{fontSize:"12px",color:"#9ca3af",marginTop:"4px"}}>Portal del Socio</div>
         </div>
         <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"16px",padding:"24px 22px",boxShadow:"0 4px 16px rgba(26,56,90,0.1)"}}>
@@ -128,12 +220,7 @@ function LoginScreen(props){
             <input style={S.inp} type="password" value={pass} onChange={function(e){setPass(e.target.value);setErr("");}} placeholder="********"/>
           </div>
           {err&&<div style={{fontSize:"12px",color:RED,marginBottom:"12px",padding:"8px 12px",background:"rgba(248,113,113,0.08)",borderRadius:"8px",border:"1px solid rgba(248,113,113,0.2)"}}>{err}</div>}
-          <button style={Object.assign({},btn("primary"),{width:"100%",justifyContent:"center",padding:"10px"})} onClick={doLogin}>Entrar</button>
-          <div style={{marginTop:"14px",padding:"10px 12px",background:"rgba(14,165,160,0.06)",borderRadius:"8px",border:"1px solid rgba(14,165,160,0.15)"}}>
-            <div style={{fontSize:"10px",color:"#9ca3af",fontWeight:"700",marginBottom:"4px"}}>Cuentas demo:</div>
-            <div style={{fontSize:"11px",color:"#9ca3af"}}>miguel@email.com / demo1234</div>
-            <div style={{fontSize:"11px",color:"#9ca3af"}}>patricia@email.com / demo1234</div>
-          </div>
+          <button style={Object.assign({},btn("primary"),{width:"100%",justifyContent:"center",padding:"10px",opacity:loading?0.6:1})} onClick={doLogin} disabled={loading}>{loading?"Entrando...":"Entrar"}</button>
         </div>
       </div>
     </div>
@@ -1045,6 +1132,49 @@ function TabContacto(props){
 export default function ClientPortal(){
   var [user,setUser]=useState(null);
   var [tab,setTab]=useState("inicio");
+  var [authMode,setAuthMode]=useState(null); // null, "set-password", "loading"
+  var [authChecked,setAuthChecked]=useState(false);
+
+  // Check for Supabase auth tokens in URL hash (recovery/invite flow)
+  useEffect(function(){
+    var hash = window.location.hash;
+    if(hash && hash.includes("access_token")){
+      setAuthMode("loading");
+      // Supabase client auto-parses the hash on init
+      portalSB.auth.getSession().then(function(res){
+        if(res.data.session){
+          var type = new URLSearchParams(hash.replace("#","?")).get("type");
+          if(type==="recovery" || type==="invite"){
+            setAuthMode("set-password");
+          } else {
+            // Already has password, load data
+            loadClientData(res.data.session.user.email).then(function(clientData){
+              if(clientData){ setUser(clientData); }
+              setAuthMode(null);
+              setAuthChecked(true);
+            });
+          }
+        } else {
+          setAuthMode(null);
+          setAuthChecked(true);
+        }
+      });
+      // Clean URL
+      window.history.replaceState(null,"",window.location.pathname+window.location.search);
+    } else {
+      // Check existing session
+      portalSB.auth.getSession().then(function(res){
+        if(res.data.session){
+          loadClientData(res.data.session.user.email).then(function(clientData){
+            if(clientData) setUser(clientData);
+            setAuthChecked(true);
+          });
+        } else {
+          setAuthChecked(true);
+        }
+      });
+    }
+  },[]);
 
   var TABS=[
     {k:"inicio",   l:"Inicio"},
@@ -1056,6 +1186,8 @@ export default function ClientPortal(){
     {k:"contacto", l:"Contacto"},
   ];
 
+  if(authMode==="loading" || !authChecked) return <div style={{minHeight:"100vh",background:"#f0f2f5",display:"flex",alignItems:"center",justifyContent:"center",color:"#6b7280",fontSize:"14px"}}>Cargando...</div>;
+  if(authMode==="set-password") return <SetPasswordScreen onLogin={function(u){setUser(u);setAuthMode(null);setTab("inicio");}}/>;
   if(!user) return <LoginScreen onLogin={function(u){setUser(u);setTab("inicio");}}/>;
 
   return (
