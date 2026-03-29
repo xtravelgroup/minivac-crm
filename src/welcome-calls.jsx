@@ -59,7 +59,7 @@ export default function WelcomeCalls({ currentUser, onVerCliente }) {
 
   function cargar() {
     Promise.all([
-      SB.from("leads").select("id, nombre, apellido, tel, whatsapp, email, emisora, status, created_at, sale_price, pago_inicial, vendedor_id, verificador_id, welcome_call_status, welcome_call_attempts, welcome_call_next_at, welcome_call_completed_at")
+      SB.from("leads").select("id, nombre, apellido, tel, whatsapp, email, emisora, status, created_at, sale_price, pago_inicial, vendedor_id, verificador_id, welcome_call_status, welcome_call_attempts, welcome_call_next_at, welcome_call_completed_at, destinos")
         .eq("status", "venta")
         .order("created_at", { ascending: false }),
       SB.from("usuarios").select("id, nombre, rol"),
@@ -139,6 +139,23 @@ export default function WelcomeCalls({ currentUser, onVerCliente }) {
       }),
     }).then(function(r){ return r.json(); }).then(function(r){
       if(r.success){ notify("Invitacion al portal enviada por email"); registrarEvento(lead.id, "welcome", "Invitacion al portal enviada", null, {nombre:currentUser?.nombre||"CS"}); }
+      else notify("Error: "+(r.error||r.message||"fallo envio"), false);
+    }).catch(function(e){ notify("Error de red: "+e.message, false); });
+  }
+
+  function enviarEmailNoContesto(lead) {
+    if(!lead.email){ notify("Sin email", false); return; }
+    fetch(SB_URL+"/functions/v1/resend-email/welcome-noanswer", {
+      method:"POST",
+      headers: HDR,
+      body: JSON.stringify({
+        email: lead.email,
+        nombre: lead.nombre||"",
+        lead_id: lead.id,
+        destinos: lead.destinos||[],
+      }),
+    }).then(function(r){ return r.json(); }).then(function(r){
+      if(r.success){ notify("Email de no contesto enviado"); registrarEvento(lead.id, "welcome", "Email de no contesto enviado", null, {nombre:currentUser?.nombre||"CS"}); }
       else notify("Error: "+(r.error||r.message||"fallo envio"), false);
     }).catch(function(e){ notify("Error de red: "+e.message, false); });
   }
@@ -226,6 +243,7 @@ export default function WelcomeCalls({ currentUser, onVerCliente }) {
                             React.createElement("button",{key:"comp",style:S.btn("#fff",C.green),onClick:function(){marcarCompletado(l);}},"Completado"),
                             React.createElement("button",{key:"nc",style:S.btn("#fff",C.amber),onClick:function(){marcarNoContesta(l);}},"No Contesta"),
                             React.createElement("button",{key:"portal",style:S.btn("#fff",C.indigo),onClick:function(){enviarAccesoPortal(l);}},"Portal"),
+                            React.createElement("button",{key:"noanswer",style:S.btn("#fff",C.amber),onClick:function(){enviarEmailNoContesto(l);}},"No Contestó"),
                             React.createElement("button",{key:"email",style:S.btn("#fff",C.teal),onClick:function(){enviarEmailWelcome(l);}},"Email"),
                             React.createElement("button",{key:"wa",style:S.btn("#fff","#25d366"),onClick:function(){enviarWhatsAppWelcome(l);}},"WhatsApp"),
                             React.createElement("button",{key:"x",style:S.btn(C.muted,"transparent"),onClick:function(){setActionLead(null);}},"x"),

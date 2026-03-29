@@ -202,5 +202,112 @@ serve(async (req) => {
       return new Response(JSON.stringify({error:String(err)}),{status:500,headers:{...CORS,"Content-Type":"application/json"}});
     }
   }
+  // ── WELCOME NO-ANSWER EMAIL ──────────────────────────────────
+  if (path === "/welcome-noanswer") {
+    try {
+      const body = await req.json();
+      const { email, nombre, lead_id, destinos } = body;
+      if (!email || !lead_id) return new Response(JSON.stringify({error:"email y lead_id requeridos"}),{status:400,headers:{...CORS,"Content-Type":"application/json"}});
+
+      // Build destinos list HTML
+      const destinosList = (destinos || []).map((d: any) => d.nombre || d.destId || d).filter(Boolean);
+      const destinosHtml = destinosList.length > 0
+        ? destinosList.map((d: string) => `<li style="color:#374151;font-size:15px;line-height:2;">${d}</li>`).join("")
+        : `<li style="color:#374151;font-size:15px;line-height:2;">Tus destinos premium incluidos</li>`;
+
+      // Generate portal access link (same as portal-invite)
+      let portalLink = `https://minivac-crm.vercel.app/portal`;
+      try {
+        const { data: existingUsers } = await SB.auth.admin.listUsers({ filter: `email.eq.${email}` });
+        const userExists = existingUsers?.users?.find((u: any) => u.email === email);
+        let userId: string;
+        if (userExists) {
+          userId = userExists.id;
+        } else {
+          const tempPass = crypto.randomUUID();
+          const { data: newUser, error: createErr } = await SB.auth.admin.createUser({
+            email, password: tempPass, email_confirm: true,
+            user_metadata: { nombre, lead_id, role: "cliente" }
+          });
+          if (createErr) throw createErr;
+          userId = newUser.user.id;
+        }
+        const { data: linkData } = await SB.auth.admin.generateLink({
+          type: "recovery", email,
+          options: { redirectTo: `https://minivac-crm.vercel.app/portal?setup=1` }
+        });
+        const emailOtp = linkData?.properties?.email_otp || "";
+        if (emailOtp) portalLink = `https://minivac-crm.vercel.app/portal?setup=1&token=${emailOtp}&email=${encodeURIComponent(email)}`;
+      } catch(e) { console.error("Portal link generation failed, using fallback:", e); }
+
+      const subject = "Intentamos comunicarnos contigo - X Travel Group";
+      const html = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:auto;background:#ffffff;">
+<div style="background:linear-gradient(135deg,#1a385a 0%,#0ea5a0 100%);padding:32px 24px;text-align:center;border-radius:8px 8px 0 0;">
+<img src="https://minivac-crm.vercel.app/logo.png" alt="X Travel Group" style="height:50px;object-fit:contain;margin-bottom:12px;" />
+<p style="color:rgba(255,255,255,0.85);margin:0;font-size:13px;letter-spacing:1px;text-transform:uppercase;">Tu aventura comienza ahora</p></div>
+<div style="padding:32px 28px;background:#ffffff;">
+<p style="color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;">Hola <strong>${nombre || "estimado cliente"}</strong>,</p>
+<p style="color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;">Intentamos comunicarnos contigo para darte la bienvenida oficial a <strong style="color:#1a385a;">X Travel Group</strong>, pero no logramos contactarte. No te preocupes! Queremos asegurarnos de que tengas toda la informacion para comenzar a planear tu viaje.</p>
+<p style="color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;">Primero que todo... <strong style="color:#0ea5a0;font-size:16px;">felicidades!</strong><br/>Tus proximas vacaciones estan cada vez mas cerca.</p>
+
+<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:20px 24px;margin:20px 0;">
+<p style="color:#1a385a;font-size:15px;font-weight:700;margin:0 0 8px;">Que sigue ahora?</p>
+<p style="color:#374151;font-size:14px;line-height:1.6;margin:0 0 8px;">Tienes acceso a una seleccion de destinos increibles, incluyendo:</p>
+<ul style="margin:0 0 0 8px;padding-left:16px;">${destinosHtml}</ul>
+</div>
+
+<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:20px 24px;margin:20px 0;">
+<p style="color:#1a385a;font-size:15px;font-weight:700;margin:0 0 8px;">Como puedes reservar?</p>
+<p style="color:#374151;font-size:14px;line-height:1.6;margin:0 0 8px;">Es muy facil. Solo debes comunicarte con nuestro equipo de reservas al:</p>
+<p style="color:#1a385a;font-size:18px;font-weight:700;margin:0 0 10px;">📞 1-800-430-4640</p>
+<p style="color:#6b7280;font-size:13px;line-height:1.6;margin:0;"><strong>Horario de atencion:</strong><br/>Lunes a Viernes: 9:00 AM - 8:00 PM (EST)<br/>Sabados: 10:00 AM - 6:00 PM (EST)</p>
+<p style="color:#374151;font-size:14px;line-height:1.6;margin:10px 0 0;">Uno de nuestros especialistas te ayudara a elegir las fechas y hotel ideal para ti.</p>
+</div>
+
+<p style="color:#1a385a;font-size:15px;font-weight:700;margin:0 0 12px;">Accede a tu portal de cliente</p>
+<p style="color:#374151;font-size:14px;line-height:1.6;margin:0 0 16px;">Tambien puedes ingresar a tu portal para ver detalles de tu paquete, reservar y mas:</p>
+<div style="text-align:center;margin:24px 0;">
+<a href="${portalLink}" style="display:inline-block;background:linear-gradient(135deg,#0ea5a0 0%,#0d8f8b 100%);color:#ffffff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;box-shadow:0 4px 12px rgba(14,165,160,0.35);">Acceder a mi portal</a></div>
+
+<div style="background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:20px 24px;margin:20px 0;">
+<p style="color:#1a385a;font-size:15px;font-weight:700;margin:0 0 8px;">Tienes preguntas? Estamos aqui para ayudarte</p>
+<p style="color:#374151;font-size:14px;line-height:1.6;margin:0;">Si tienes cualquier duda o necesitas asistencia, nuestro equipo de atencion al cliente esta disponible en el mismo numero:<br/><strong style="color:#1a385a;">📞 1-800-430-4640</strong></p>
+</div>
+
+<p style="color:#374151;font-size:15px;line-height:1.8;margin:0 0 16px;">En <strong style="color:#1a385a;">X Travel Group</strong>, estamos comprometidos en brindarte una experiencia transparente, segura y de alta calidad desde el primer momento.</p>
+<p style="color:#1a385a;font-size:15px;line-height:1.8;margin:0 0 4px;font-weight:700;font-style:italic;">Este es solo el inicio de algo increible. Preparate para disfrutar, relajarte y vivir unas vacaciones que realmente vas a recordar.</p>
+<p style="color:#374151;font-size:15px;line-height:1.8;margin:20px 0 0;">Nos vemos muy pronto,<br/><strong style="color:#1a385a;">X Travel Group</strong></p>
+<p style="color:#0ea5a0;font-size:13px;font-style:italic;margin:8px 0 0;">Viaja mas. Paga menos. Vive mejor.</p></div>
+<div style="background:#f8fafc;padding:20px 28px;border-top:1px solid #e5e7eb;border-radius:0 0 8px 8px;text-align:center;">
+<p style="color:#9ca3af;font-size:12px;margin:0;">X Travel Group &bull; Miami, FL &bull; 1-800-430-4640</p>
+<p style="color:#9ca3af;font-size:11px;margin:6px 0 0;">Si tienes alguna pregunta, no dudes en contactarnos.</p>
+</div></div>`;
+
+      const r = await fetch("https://api.resend.com/emails", {
+        method:"POST",
+        headers:{"Authorization":`Bearer ${RESEND_API_KEY}`,"Content-Type":"application/json"},
+        body:JSON.stringify({
+          from:`${FROM_NAME} <${FROM_EMAIL}>`,
+          to:[nombre?`${nombre} <${email}>`:email],
+          subject,
+          html
+        })
+      });
+      const rd = await r.json();
+      if (!r.ok) throw new Error(rd.message||"Error enviando email");
+
+      await SB.from("emails").insert({
+        direction:"outbound",status:"sent",from_email:FROM_EMAIL,from_name:FROM_NAME,
+        to_email:email,to_name:nombre||null,
+        subject,body_html:html,resend_id:rd.id,lead_id:lead_id||null
+      });
+
+      return new Response(JSON.stringify({success:true,resend_id:rd.id}),{status:200,headers:{...CORS,"Content-Type":"application/json"}});
+    } catch(err) {
+      console.error("welcome-noanswer:",err);
+      return new Response(JSON.stringify({error:String(err)}),{status:500,headers:{...CORS,"Content-Type":"application/json"}});
+    }
+  }
+
   return new Response("Not found",{status:404,headers:CORS});
 });
