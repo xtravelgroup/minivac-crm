@@ -70,7 +70,7 @@ function ytdPeriods(p) {
 }
 
 // ─── P&L Tab ─────────────────────────────────────────────────
-function PnlTab({ categories, entries, ytdEntries, period, setPeriod, onSave, onSyncVentas, syncing, currentUser }) {
+function PnlTab({ categories, entries, ytdEntries, period, setPeriod, onSave, onSync, syncing, currentUser }) {
   var [editingId, setEditingId] = useState(null);
   var [editVal, setEditVal] = useState("");
   var [editNotes, setEditNotes] = useState("");
@@ -257,9 +257,9 @@ function PnlTab({ categories, entries, ytdEntries, period, setPeriod, onSave, on
           </button>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
-          <button onClick={onSyncVentas} disabled={syncing}
+          <button onClick={onSync} disabled={syncing}
             style={{ padding: "7px 14px", fontSize: "12px", fontWeight: "600", borderRadius: C.r, border: "1px solid " + C.blue, background: C.blueBg, color: C.blue, cursor: syncing ? "wait" : "pointer", opacity: syncing ? 0.6 : 1 }}>
-            {syncing ? "Sincronizando..." : "Sync Ventas"}
+            {syncing ? "Sincronizando..." : "Sync Datos"}
           </button>
           <button onClick={exportCSV}
             style={{ padding: "7px 14px", fontSize: "12px", fontWeight: "600", borderRadius: C.r, border: "1px solid " + C.border, background: C.surface, color: C.t2, cursor: "pointer" }}>
@@ -498,7 +498,7 @@ export default function FinanceModule({ currentUser }) {
     loadYtd();
   }
 
-  async function handleSyncVentas() {
+  async function handleSync() {
     setSyncing(true);
     try {
       var parts = period.split("-");
@@ -510,17 +510,33 @@ export default function FinanceModule({ currentUser }) {
       if (endM > 12) { endM = 1; endY++; }
       var endDate = endY + "-" + ("0" + endM).slice(-2) + "-01";
 
+      // Sync Package Sales from leads
       var res = await SB.from("leads").select("sale_price").eq("status", "venta").gte("fecha_contacto", startDate).lt("fecha_contacto", endDate);
-      var total = 0;
+      var totalVentas = 0;
       if (res.data) {
-        res.data.forEach(function(l) { total += Number(l.sale_price || 0); });
+        res.data.forEach(function(l) { totalVentas += Number(l.sale_price || 0); });
       }
-
       var pkgCat = categories.find(function(c) { return c.code === "rev_package_sales"; });
       if (pkgCat) {
-        var existing = entries.find(function(e) { return e.category_id === pkgCat.id; });
-        await handleSave(pkgCat.id, total, "Auto-sync from ventas " + period, existing ? existing.id : null);
+        var existingPkg = entries.find(function(e) { return e.category_id === pkgCat.id; });
+        await handleSave(pkgCat.id, totalVentas, "Auto-sync ventas " + period, existingPkg ? existingPkg.id : null);
       }
+
+      // Sync Radio Advertising from radio_spots
+      var radioRes = await SB.from("radio_spots").select("costo").gte("fecha", startDate).lt("fecha", endDate);
+      var totalRadio = 0;
+      if (radioRes.data) {
+        radioRes.data.forEach(function(s) { totalRadio += Number(s.costo || 0); });
+      }
+      var radioCat = categories.find(function(c) { return c.code === "opex_radio"; });
+      if (radioCat) {
+        var existingRadio = entries.find(function(e) { return e.category_id === radioCat.id; });
+        await handleSave(radioCat.id, totalRadio, "Auto-sync radio " + period, existingRadio ? existingRadio.id : null);
+      }
+
+      // Reload entries after all syncs
+      await loadEntries();
+      await loadYtd();
     } catch (e) {
       console.error("Sync error:", e);
     }
@@ -566,7 +582,7 @@ export default function FinanceModule({ currentUser }) {
               period={period}
               setPeriod={setPeriod}
               onSave={handleSave}
-              onSyncVentas={handleSyncVentas}
+              onSync={handleSync}
               syncing={syncing}
               currentUser={currentUser}
             />
