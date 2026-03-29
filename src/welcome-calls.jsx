@@ -154,7 +154,7 @@ export default function WelcomeCalls({ currentUser, onVerCliente }) {
     }).then(function(r){ return r.json(); }).then(function(r){
       if(r.success || r.resend_id){ notify("Acceso al portal enviado por email"); registrarEvento(lead.id, "welcome", "Acceso al portal enviado por email", null, {nombre:currentUser?.nombre||"CS"}); }
       else notify("Error: "+(r.error||r.message||"fallo envio"), false);
-    });
+    }).catch(function(e){ notify("Error de red: "+e.message, false); });
   }
 
   function enviarEmailWelcome(lead) {
@@ -182,7 +182,7 @@ export default function WelcomeCalls({ currentUser, onVerCliente }) {
     }).then(function(r){ return r.json(); }).then(function(r){
       if(r.success || r.resend_id){ notify("Email de bienvenida enviado"); registrarEvento(lead.id, "welcome", "Email de bienvenida enviado", null, {nombre:currentUser?.nombre||"CS"}); }
       else notify("Error: "+(r.error||r.message||"fallo envio"), false);
-    });
+    }).catch(function(e){ notify("Error de red: "+e.message, false); });
   }
 
   function enviarWhatsAppWelcome(lead) {
