@@ -2290,9 +2290,11 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId, new
             var myIds = [];
             if (me) { if (me.dbId) myIds.push(me.dbId); if (me.authId) myIds.push(me.authId); }
             if (myIds.length === 0) myIds.push(myAuthId);
+            console.log("[SellerCRM] isSup:", isSup, "myAuthId:", myAuthId, "me:", me, "myIds:", myIds);
             query = query.in("vendedor_id", myIds);
           }
           query.then(function(res2) {
+            console.log("[SellerCRM] leads loaded:", res2.data ? res2.data.length : 0, "error:", res2.error);
             setLoading(false);
             if (res2.data) setLeads(res2.data.map(dbToLead));
           });
