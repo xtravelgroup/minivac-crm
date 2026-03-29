@@ -148,13 +148,13 @@ export default function RetencionQueue({ currentUser }) {
     patchLead(lead.id, {
       retencion_status: "completado",
       retencion_result: "retenido",
-      retencion_motivo: motivo || lead.retencion_motivo || null,
+      retencion_motivo: lead.retencion_motivo || null,
       retencion_nota: notas,
       retencion_completed_at: new Date().toISOString(),
     }).then(function(){
       notify("Cliente retenido exitosamente");
-      registrarEvento(lead.id, "retencion", "Cliente retenido exitosamente — Motivo: "+(motivo||lead.retencion_motivo||"--"), null, {nombre:currentUser?.nombre||"CS"});
-      setMotivo(""); setNotaNueva(""); cargar(); setActionLead(null);
+      registrarEvento(lead.id, "retencion", "Cliente retenido exitosamente — Motivo: "+(lead.retencion_motivo||"--"), null, {nombre:currentUser?.nombre||"CS"});
+      setNotaNueva(""); cargar(); setActionLead(null);
     }).catch(function(e){ notify("Error: "+e.message, false); });
   }
 
@@ -163,13 +163,13 @@ export default function RetencionQueue({ currentUser }) {
     patchLead(lead.id, {
       retencion_status: "completado",
       retencion_result: "cancelado",
-      retencion_motivo: motivo || lead.retencion_motivo || null,
+      retencion_motivo: lead.retencion_motivo || null,
       retencion_nota: notas,
       retencion_completed_at: new Date().toISOString(),
     }).then(function(){
       notify("Cliente marcado como cancelado");
-      registrarEvento(lead.id, "cancelacion", "Cliente cancelado — Motivo: "+(motivo||lead.retencion_motivo||"--"), null, {nombre:currentUser?.nombre||"CS"});
-      setMotivo(""); setNotaNueva(""); cargar(); setActionLead(null);
+      registrarEvento(lead.id, "cancelacion", "Cliente cancelado — Motivo: "+(lead.retencion_motivo||"--"), null, {nombre:currentUser?.nombre||"CS"});
+      setNotaNueva(""); cargar(); setActionLead(null);
     }).catch(function(e){ notify("Error: "+e.message, false); });
   }
 
@@ -199,9 +199,9 @@ export default function RetencionQueue({ currentUser }) {
       showActions ? React.createElement("td",{key:"act",style:Object.assign({},S.tdc,{whiteSpace:"nowrap"})},
         isOpen
           ? React.createElement("div", {style:{display:"flex",flexDirection:"column",gap:6,alignItems:"stretch",padding:"4px 0",minWidth:220}}, [
-              // Motivo (pre-loaded)
-              React.createElement("select",{key:"mot",value:motivo,onChange:function(e){setMotivo(e.target.value);},style:{fontSize:11,padding:"4px 8px",borderRadius:6,border:"1px solid "+C.border,width:"100%"}},
-                [React.createElement("option",{key:"",value:""},"-- Motivo --")].concat(MOTIVOS.map(function(m){ return React.createElement("option",{key:m,value:m},m); }))
+              // Motivo (read-only, set when retention was initiated)
+              React.createElement("div",{key:"mot",style:{fontSize:12,padding:"6px 10px",borderRadius:6,background:l.retencion_motivo==="Chargeback"?"rgba(185,28,28,0.08)":"#f0f1f4",border:"1px solid "+(l.retencion_motivo==="Chargeback"?C.red:C.border),color:l.retencion_motivo==="Chargeback"?C.red:C.text,fontWeight:600}},
+                "Motivo: "+(l.retencion_motivo||"Sin motivo")
               ),
               // Notas existentes
               (function(){
@@ -232,7 +232,7 @@ export default function RetencionQueue({ currentUser }) {
                 React.createElement("button",{key:"x",style:S.btn(C.muted,"transparent"),onClick:function(){setActionLead(null);setMotivo("");setNotaNueva("");}}, "x"),
               ]),
             ].filter(Boolean))
-          : React.createElement("button",{style:S.btn(C.red,"rgba(185,28,28,0.08)"),onClick:function(){setActionLead(l.id);setMotivo(l.retencion_motivo||"");setNotaNueva("");}}, "Gestionar")
+          : React.createElement("button",{style:S.btn(C.red,"rgba(185,28,28,0.08)"),onClick:function(){setActionLead(l.id);setNotaNueva("");}}, "Gestionar")
       ) : null,
     ].filter(Boolean));
   }
