@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import EmailPanel from "./email-panel.jsx";
 
 // ===============================================================
 // COMM PANEL - Componente compartido de comunicaciones
@@ -793,7 +794,7 @@ export default function CommPanel(props){
           {canal==="llamada"  &&<PanelLlamada  cliente={cliente} currentUser={currentUser} onLog={handleLog}/>}
           {canal==="sms"      &&<PanelSMS      cliente={cliente} currentUser={currentUser} onLog={handleLog}/>}
           {canal==="whatsapp" &&<PanelWhatsApp cliente={cliente} currentUser={currentUser} onLog={handleLog}/>}
-          {canal==="email"    &&<PanelEmail    cliente={cliente} currentUser={currentUser} onLog={handleLog}/>}
+          {canal==="email"    &&<EmailPanel lead={cliente} currentUser={currentUser} />}
           {canal==="historial"&&<PanelHistorial cliente={cliente} logs={logs}/>}
         </div>
 
@@ -827,7 +828,7 @@ export function CommPanelTrigger(props){
     { canal:"phone", color:BLUE,      icon:"phone",  label:"Llamar",   href:function(){ return "tel:"+c.tel; } },
     { canal:"sms",   color:GREEN,     icon:"sms",    label:"SMS",      href:function(){ return "sms:"+c.tel; } },
     { canal:"wa",    color:"#25D366", icon:"wa",     label:"WhatsApp", href:null, onClick:function(){ setOpen(false); onOpen(c, "whatsapp"); } },
-    { canal:"email", color:VIOLET,    icon:"email",  label:"Email",    href:function(){ return "mailto:"+(c.email||""); } },
+    { canal:"email", color:VIOLET,    icon:"email",  label:"Email",    href:null, onClick:function(){ setOpen(false); onOpen(c, "email"); } },
   ];
 
   return (
