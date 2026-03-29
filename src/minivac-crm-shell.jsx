@@ -516,6 +516,7 @@ export default function MinivacShell() {
   const [showCambiarClave, setShowCambiarClave] = useState(false);
   const [notifPanel, setNotifPanel] = useState(false);
   const initialLeadIdRef = useRef(null);
+  const csLeadIdRef = useRef(null);
   const [verifLeadId, setVerifLeadId] = useState(null);
   const [chatAlertas, limpiarAlertas] = useChatAlertas(user);
   const [agentStatus, setAgentStatus] = useState("offline");
@@ -670,8 +671,8 @@ export default function MinivacShell() {
             {activo === "seller"       && <SellerCRM currentUser={user} initialLeadId={initialLeadIdRef.current} newCallPhone={newCallPhone} />}
             {activo === "verificacion" && <VerificationModule currentUser={user} initialLeadId={verifLeadId} />}
             {activo === "reservas"     && <Reservaciones currentUser={user} />}
-            {activo === "cs"           && <CSReservas currentUser={user} />}
-            {activo === "welcome"     && <WelcomeCalls currentUser={user} />}
+            {activo === "cs"           && <CSReservas currentUser={user} initialLeadId={csLeadIdRef.current} />}
+            {activo === "welcome"     && <WelcomeCalls currentUser={user} onVerCliente={(leadId) => { csLeadIdRef.current = leadId; setActivo("cs"); }} />}
             {activo === "retencion"  && <RetencionQueue currentUser={user} />}
             {activo === "destinos"     && <DestinationsModule />}
             {activo === "hoteles"      && <HotelsModule />}

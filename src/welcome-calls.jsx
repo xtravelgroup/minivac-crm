@@ -45,7 +45,7 @@ function timeAgo(dateStr){
   return Math.floor(hrs/24)+"d";
 }
 
-export default function WelcomeCalls({ currentUser }) {
+export default function WelcomeCalls({ currentUser, onVerCliente }) {
   var [leads, setLeads] = useState([]);
   var [usuarios, setUsuarios] = useState([]);
   var [loading, setLoading] = useState(true);
@@ -224,7 +224,7 @@ export default function WelcomeCalls({ currentUser }) {
                   var isOpen = actionLead === l.id;
                   return React.createElement("tr", {key:l.id, style:{background:isOpen?"rgba(21,101,192,0.04)":"transparent"}}, [
                     React.createElement("td",{key:"f",style:S.td}, React.createElement("span",{style:{fontSize:11,color:C.sub}},toEST(l.created_at))),
-                    React.createElement("td",{key:"n",style:S.td}, React.createElement("span",{style:{fontWeight:600,color:C.text}},l.nombre||"--")),
+                    React.createElement("td",{key:"n",style:S.td}, React.createElement("span",{style:{fontWeight:600,color:C.indigo,cursor:onVerCliente?"pointer":"default",textDecoration:onVerCliente?"underline":"none"},onClick:function(){if(onVerCliente) onVerCliente(l.id);}},l.nombre||"--")),
                     React.createElement("td",{key:"t",style:S.td}, React.createElement("span",{style:{fontSize:11,color:C.indigo}},l.whatsapp||l.tel||"--")),
                     React.createElement("td",{key:"a",style:S.td}, React.createElement("span",{style:{fontSize:12}},usrMap[l.vendedor_id]||"--")),
                     React.createElement("td",{key:"v",style:S.td}, React.createElement("span",{style:{fontSize:12}},usrMap[l.verificador_id]||"--")),
@@ -263,7 +263,7 @@ export default function WelcomeCalls({ currentUser }) {
               var diffH = Math.max(0, Math.floor(diffMs/3600000));
               var diffM = Math.max(0, Math.floor((diffMs%3600000)/60000));
               return React.createElement("tr", {key:l.id}, [
-                React.createElement("td",{key:"n",style:S.td}, React.createElement("span",{style:{fontWeight:600}},l.nombre||"--")),
+                React.createElement("td",{key:"n",style:S.td}, React.createElement("span",{style:{fontWeight:600,color:C.indigo,cursor:onVerCliente?"pointer":"default",textDecoration:onVerCliente?"underline":"none"},onClick:function(){if(onVerCliente) onVerCliente(l.id);}},l.nombre||"--")),
                 React.createElement("td",{key:"t",style:S.td}, React.createElement("span",{style:{fontSize:11,color:C.indigo}},l.whatsapp||l.tel||"--")),
                 React.createElement("td",{key:"a",style:S.tdc}, React.createElement("span",{style:S.bdg(C.amber,"rgba(245,158,11,0.1)")},String(l.welcome_call_attempts||0))),
                 React.createElement("td",{key:"next",style:S.td}, React.createElement("span",{style:{fontSize:11,color:C.sub}},toEST(l.welcome_call_next_at)+" "+nextAt.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",timeZone:"America/New_York"}))),
@@ -287,7 +287,7 @@ export default function WelcomeCalls({ currentUser }) {
                 completados.slice(0,20).map(function(l){
                   return React.createElement("tr", {key:l.id}, [
                     React.createElement("td",{key:"f",style:S.td}, React.createElement("span",{style:{fontSize:11,color:C.sub}},toEST(l.created_at))),
-                    React.createElement("td",{key:"n",style:S.td}, React.createElement("span",{style:{fontWeight:600}},l.nombre||"--")),
+                    React.createElement("td",{key:"n",style:S.td}, React.createElement("span",{style:{fontWeight:600,color:C.indigo,cursor:onVerCliente?"pointer":"default",textDecoration:onVerCliente?"underline":"none"},onClick:function(){if(onVerCliente) onVerCliente(l.id);}},l.nombre||"--")),
                     React.createElement("td",{key:"a",style:S.td}, React.createElement("span",{style:{fontSize:12}},usrMap[l.vendedor_id]||"--")),
                     React.createElement("td",{key:"v",style:S.td}, React.createElement("span",{style:{fontSize:12}},usrMap[l.verificador_id]||"--")),
                     React.createElement("td",{key:"e",style:S.tdc}, React.createElement("span",{style:{fontWeight:700,color:C.green}},fmtUSD(l.pago_inicial||0))),

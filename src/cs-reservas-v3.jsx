@@ -1855,6 +1855,7 @@ export default function CsReservasV3(props) {
               return m;
             });
             setSelected(function(prev){
+              if(props.initialLeadId && !prev) { var target=m.find(function(x){return x.id===props.initialLeadId;}); if(target) return target; }
               if(!prev&&m.length>0) return m[0];
               if(prev){ var upd=m.find(function(x){return x.id===prev.id;}); return upd||prev; }
               return prev;
@@ -2080,7 +2081,7 @@ export default function CsReservasV3(props) {
   // ── Selección actualizada después de cambios de estado
   var selectedActualizado = selected && miembrosEnriquecidos.find(function(m){return m.id===selected.id;}) || selected;
 
-  var [modoDetalle, setModoDetalle] = useState(false);
+  var [modoDetalle, setModoDetalle] = useState(!!props.initialLeadId);
   function handleSelect(c){ setSelected(c); setModoDetalle(true); }
   function handleRegresar(){ setModoDetalle(false); }
 
