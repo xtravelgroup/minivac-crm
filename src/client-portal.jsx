@@ -1135,19 +1135,36 @@ export default function ClientPortal(){
   var [authMode,setAuthMode]=useState(null); // null, "set-password", "loading"
   var [authChecked,setAuthChecked]=useState(false);
 
-  // Check for Supabase auth tokens in URL hash (recovery/invite flow)
+  // Check for OTP token in URL params (from portal invite email)
   useEffect(function(){
+    var params = new URLSearchParams(window.location.search);
+    var token = params.get("token");
+    var emailParam = params.get("email");
     var hash = window.location.hash;
-    if(hash && hash.includes("access_token")){
+
+    if(token && emailParam){
+      // Verify OTP token from invite email
       setAuthMode("loading");
-      // Supabase client auto-parses the hash on init
+      portalSB.auth.verifyOtp({ email:emailParam, token:token, type:"recovery" }).then(function(res){
+        if(res.error){
+          console.error("OTP verify error:", res.error.message);
+          setAuthMode(null);
+          setAuthChecked(true);
+        } else {
+          setAuthMode("set-password");
+        }
+        // Clean URL
+        window.history.replaceState(null,"",window.location.pathname);
+      });
+    } else if(hash && hash.includes("access_token")){
+      // Fallback: Supabase hash-based redirect
+      setAuthMode("loading");
       portalSB.auth.getSession().then(function(res){
         if(res.data.session){
           var type = new URLSearchParams(hash.replace("#","?")).get("type");
           if(type==="recovery" || type==="invite"){
             setAuthMode("set-password");
           } else {
-            // Already has password, load data
             loadClientData(res.data.session.user.email).then(function(clientData){
               if(clientData){ setUser(clientData); }
               setAuthMode(null);
@@ -1159,8 +1176,7 @@ export default function ClientPortal(){
           setAuthChecked(true);
         }
       });
-      // Clean URL
-      window.history.replaceState(null,"",window.location.pathname+window.location.search);
+      window.history.replaceState(null,"",window.location.pathname);
     } else {
       // Check existing session
       portalSB.auth.getSession().then(function(res){

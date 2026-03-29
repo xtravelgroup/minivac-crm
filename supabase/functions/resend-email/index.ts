@@ -136,7 +136,7 @@ serve(async (req) => {
         userId = newUser.user.id;
       }
 
-      // 2. Generate invite/recovery link so client can set password
+      // 2. Generate recovery token (we'll verify it client-side with verifyOtp)
       const { data: linkData, error: linkErr } = await SB.auth.admin.generateLink({
         type: "recovery",
         email,
@@ -144,8 +144,9 @@ serve(async (req) => {
       });
       if (linkErr) throw new Error(linkErr.message);
 
-      // Extract the token from the generated link
-      const actionLink = linkData?.properties?.action_link || "";
+      // Use the OTP token directly in our URL (bypass Supabase redirect which uses wrong Site URL)
+      const emailOtp = linkData?.properties?.email_otp || "";
+      const actionLink = `https://minivac-crm.vercel.app/portal?setup=1&token=${emailOtp}&email=${encodeURIComponent(email)}`;
 
       // 3. Send styled email with the link
       const portalHtml = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:auto;background:#ffffff;">
