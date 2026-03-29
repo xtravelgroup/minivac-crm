@@ -130,13 +130,14 @@ export default function WelcomeCalls({ currentUser, onVerCliente }) {
     if(!lead.email){ notify("Sin email", false); return; }
     var portalUrl = "https://minivac-crm.vercel.app/portal?id="+lead.id;
 
-    fetch(SB_URL+"/functions/v1/resend-email", {
+    fetch(SB_URL+"/functions/v1/resend-email/send", {
       method:"POST",
       headers: HDR,
       body: JSON.stringify({
-        to: lead.email,
+        to_email: lead.email,
+        to_name: lead.nombre||"",
         subject: "Tu acceso al Portal de Miembro - Mini-Vac Vacation Club",
-        html: "<div style='font-family:sans-serif;max-width:600px;margin:auto;padding:32px;'>"
+        body_html: "<div style='font-family:sans-serif;max-width:600px;margin:auto;padding:32px;'>"
           + "<div style='background:#0ea5a0;padding:16px 24px;border-radius:8px 8px 0 0;'>"
           + "<h2 style='color:#fff;margin:0;font-size:18px;'>Mini-Vac Vacation Club</h2></div>"
           + "<div style='background:#f8fafc;padding:24px;border-radius:0 0 8px 8px;border:1px solid #e2e8f0;'>"
@@ -151,7 +152,7 @@ export default function WelcomeCalls({ currentUser, onVerCliente }) {
         lead_id: lead.id,
       }),
     }).then(function(r){ return r.json(); }).then(function(r){
-      if(r.id || r.ok){ notify("Acceso al portal enviado por email"); registrarEvento(lead.id, "welcome", "Acceso al portal enviado por email", null, {nombre:currentUser?.nombre||"CS"}); }
+      if(r.success || r.resend_id){ notify("Acceso al portal enviado por email"); registrarEvento(lead.id, "welcome", "Acceso al portal enviado por email", null, {nombre:currentUser?.nombre||"CS"}); }
       else notify("Error: "+(r.error||r.message||"fallo envio"), false);
     });
   }
@@ -160,13 +161,14 @@ export default function WelcomeCalls({ currentUser, onVerCliente }) {
     if(!lead.email){ notify("Sin email", false); return; }
     var cuerpo = "Hola "+lead.nombre+",\n\nBienvenido a Mini-Vac Vacation Club! Estamos muy contentos de tenerte como miembro.\n\nTu paquete tiene un valor de "+fmtUSD(lead.sale_price)+". Pronto un asesor se pondra en contacto contigo para coordinar tu primer viaje.\n\nPuedes acceder a tu portal de miembro en: https://minivac-crm.vercel.app/portal?id="+lead.id+"\n\nGracias por confiar en nosotros.\n\nMini-Vac Vacation Club\n1-800-927-1490";
 
-    fetch(SB_URL+"/functions/v1/resend-email", {
+    fetch(SB_URL+"/functions/v1/resend-email/send", {
       method:"POST",
       headers: HDR,
       body: JSON.stringify({
-        to: lead.email,
+        to_email: lead.email,
+        to_name: lead.nombre||"",
         subject: "Bienvenido a Mini-Vac Vacation Club",
-        html: "<div style='font-family:sans-serif;max-width:600px;margin:auto;padding:32px;'>"
+        body_html: "<div style='font-family:sans-serif;max-width:600px;margin:auto;padding:32px;'>"
           + "<div style='background:#0ea5a0;padding:16px 24px;border-radius:8px 8px 0 0;'>"
           + "<h2 style='color:#fff;margin:0;font-size:18px;'>Mini-Vac Vacation Club</h2></div>"
           + "<div style='background:#f8fafc;padding:24px;border-radius:0 0 8px 8px;border:1px solid #e2e8f0;'>"
@@ -174,10 +176,11 @@ export default function WelcomeCalls({ currentUser, onVerCliente }) {
           + "<hr style='border:none;border-top:1px solid #e2e8f0;margin:20px 0;'/>"
           + "<p style='color:#94a3b8;font-size:12px;margin:0;'>Mini-Vac Vacation Club &bull; Miami, FL</p>"
           + "</div></div>",
+        body_text: cuerpo,
         lead_id: lead.id,
       }),
     }).then(function(r){ return r.json(); }).then(function(r){
-      if(r.id || r.ok){ notify("Email de bienvenida enviado"); registrarEvento(lead.id, "welcome", "Email de bienvenida enviado", null, {nombre:currentUser?.nombre||"CS"}); }
+      if(r.success || r.resend_id){ notify("Email de bienvenida enviado"); registrarEvento(lead.id, "welcome", "Email de bienvenida enviado", null, {nombre:currentUser?.nombre||"CS"}); }
       else notify("Error: "+(r.error||r.message||"fallo envio"), false);
     });
   }
