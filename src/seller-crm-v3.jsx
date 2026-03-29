@@ -2209,11 +2209,13 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId, new
   // ---- Cargar leads desde Supabase ----
   function cargarLeads() {
     var query = SB.from("leads").select("*").order("created_at", {ascending:false});
-    // Para vendedor, buscar su dbId correcto
+    // Para vendedor, buscar por dbId y authId (leads pueden tener cualquiera de los dos)
     if (!isSup && myAuthId) {
       var meEnSb = sbUsers.find(function(u){ return u.authId === myAuthId || u.id === myAuthId || u.dbId === myAuthId; });
-      var miDbId = meEnSb ? meEnSb.dbId : myAuthId;
-      query = query.eq("vendedor_id", miDbId);
+      var myIds = [];
+      if (meEnSb) { if (meEnSb.dbId) myIds.push(meEnSb.dbId); if (meEnSb.authId) myIds.push(meEnSb.authId); }
+      if (myIds.length === 0) myIds.push(myAuthId);
+      query = query.in("vendedor_id", myIds);
     }
     query.then(function(res) {
       setLoading(false);
@@ -2284,7 +2286,11 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId, new
           var query = SB.from("leads").select("*").order("created_at", {ascending:false});
           if (!isSup && myAuthId) {
             var me = mapped.find(function(u){ return u.authId === myAuthId || u.id === myAuthId || u.dbId === myAuthId; });
-            if (me && me.dbId) query = query.eq("vendedor_id", me.dbId);
+            // vendedor_id can be either dbId or authId depending on how it was assigned
+            var myIds = [];
+            if (me) { if (me.dbId) myIds.push(me.dbId); if (me.authId) myIds.push(me.authId); }
+            if (myIds.length === 0) myIds.push(myAuthId);
+            query = query.in("vendedor_id", myIds);
           }
           query.then(function(res2) {
             setLoading(false);
