@@ -66,6 +66,7 @@ const ESTADO_CIVIL_OPTIONS = ["Soltero Hombre","Soltera Mujer","Casado(a)","Unio
 // DESTINOS_CATALOG ahora viene de Supabase — ver SellerCRMv3 donde se carga
 // Esta variable se rellena dinamicamente; se define aqui como fallback vacio
 var DESTINOS_CATALOG = [];
+var PRODUCTOS_CATALOG = [];
 
 // Convierte fila DB → formato interno seller
 function dbToDestinoSeller(r) {
@@ -75,8 +76,13 @@ function dbToDestinoSeller(r) {
     id:      r.id,
     nombre:  r.nombre,
     icon:    r.icon || "",
+    img_url: r.img_url || "",
     region:  r.region || "internacional",
     activo:  r.activo !== false,
+    tipo_producto: r.tipo_producto || "destino",
+    producto_categoria: r.producto_categoria || null,
+    ofrecido_por: r.ofrecido_por || ["vendedor","verificador"],
+    personas: r.personas || 2,
     qc: {
       noches:  qc.nights  || qc.noches || 4,
       ageMin:  qc.ageMin  || 18,
@@ -97,6 +103,11 @@ function dbToDestinoSeller(r) {
 
 
 // Funcion de calificacion - igual que destinations-v5
+function normEC(v){ return (v||"").toLowerCase().replace("(a)","").trim(); }
+function matchMarital(maritalArr, ec){
+  var ecN = normEC(ec);
+  return (maritalArr||[]).some(function(m){ return normEC(m)===ecN; });
+}
 function calificarDestinos(edad, estadoCivil, edadCoProp) {
   if (!edad || !estadoCivil) return { qc: [], nq: [] };
   const age = Number(edad);
@@ -105,7 +116,7 @@ function calificarDestinos(edad, estadoCivil, edadCoProp) {
   for (const dest of DESTINOS_CATALOG) {
     const { ageMin, ageMax, marital } = dest.qc;
     const edadOk = (age >= ageMin && age <= ageMax) || (ageCo > 0 && ageCo >= ageMin && ageCo <= ageMax);
-    const califica = edadOk && marital.includes(estadoCivil);
+    const califica = edadOk && matchMarital(marital, estadoCivil);
     if (califica) {
       qc.push(dest);
     } else if (dest.nq.enabled) {
@@ -193,8 +204,15 @@ const S = {
 // ─────────────────────────────────────────────────────────────
 // TAB DESTINOS — calificación y selección de destinos
 // ─────────────────────────────────────────────────────────────
-function DestinosTab({ draft, set, destCatalog }) {
+function DestinosTab({ draft, set, destCatalog, prodCatalog, userRol }) {
   var catalog = (destCatalog && destCatalog.length > 0) ? destCatalog : DESTINOS_CATALOG;
+  var allProds = (prodCatalog && prodCatalog.length > 0) ? prodCatalog : PRODUCTOS_CATALOG;
+  // Filtrar productos segun rol del usuario
+  var rolFiltro = (userRol === "verificador") ? "verificador" : "vendedor";
+  var productos = allProds.filter(function(p) {
+    var ofrec = p.ofrecido_por || ["vendedor","verificador"];
+    return ofrec.indexOf(rolFiltro) >= 0 || userRol === "admin" || userRol === "director" || userRol === "supervisor";
+  });
   var edad = Number(draft.edad) || 0;
   var edadCoProp = Number(draft.coPropEdad) || 0;
   var ec   = draft.estadoCivil || "";
@@ -207,7 +225,7 @@ function DestinosTab({ draft, set, destCatalog }) {
       var qc = dest.qc || {};
       var edadOk = (edad >= (qc.ageMin||18) && edad <= (qc.ageMax||99)) ||
                    (edadCoProp > 0 && edadCoProp >= (qc.ageMin||18) && edadCoProp <= (qc.ageMax||99));
-      var califica = edadOk && (qc.marital||[]).includes(ec);
+      var califica = edadOk && matchMarital(qc.marital, ec);
       if (califica) { destQC.push(dest); }
       else if (dest.nq && dest.nq.enabled) { destNQ.push(dest); }
     });
@@ -234,7 +252,16 @@ function DestinosTab({ draft, set, destCatalog }) {
   }
 
   function getCatalog(destId) {
-    return catalog.find(function(d){ return d.id === destId; });
+    return catalog.find(function(d){ return d.id === destId; }) || productos.find(function(d){ return d.id === destId; });
+  }
+
+  function addProducto(prod) {
+    set("destinos", (draft.destinos||[]).concat([{
+      destId: prod.id,
+      tipo:   "producto",
+      noches: (prod.qc && prod.qc.noches) || (prod.qc && prod.qc.nights) || 0,
+      regalo: null,
+    }]));
   }
 
   return (
@@ -248,15 +275,17 @@ function DestinosTab({ draft, set, destCatalog }) {
             if (!cat) return null;
             var regalos = cat.regalosDisponibles || [];
             return (
-              <div key={i} style={{padding:"12px 14px",borderRadius:10,background:d.tipo==="qc"?"rgba(165,214,167,0.06)":"rgba(206,147,216,0.06)",border:"2px solid "+(d.tipo==="qc"?"rgba(165,214,167,0.3)":"rgba(206,147,216,0.3)"),marginBottom:8}}>
+              <div key={i} style={{padding:"12px 14px",borderRadius:10,background:d.tipo==="producto"?"rgba(79,195,247,0.06)":d.tipo==="qc"?"rgba(165,214,167,0.06)":"rgba(206,147,216,0.06)",border:"2px solid "+(d.tipo==="producto"?"rgba(79,195,247,0.3)":d.tipo==="qc"?"rgba(165,214,167,0.3)":"rgba(206,147,216,0.3)"),marginBottom:8}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <span style={{fontSize:20}}>{cat.icon}</span>
                     <div>
                       <div style={{fontSize:13,fontWeight:700,color:"#1a1f2e"}}>{cat.nombre}</div>
-                      <div style={{fontSize:11,color:d.tipo==="qc"?"#1a7f3c":"#7c3aed"}}>
-                        {d.tipo==="qc"?"⭐ QC":"🔹 NQ"} · {d.noches} noches
+                      <div style={{fontSize:11,color:d.tipo==="producto"?"#0288d1":d.tipo==="qc"?"#1a7f3c":"#7c3aed"}}>
+                        {d.tipo==="producto"?"📦 Producto":d.tipo==="qc"?"⭐ QC":"🔹 NQ"}{d.noches>0?" · "+d.noches+" noches":""}
                         {d.tipo==="nq"&&cat.nq&&cat.nq.label?" · "+cat.nq.label:""}
+                        {d.tipo==="producto"&&cat.producto_categoria?" · "+cat.producto_categoria:""}
+                        {d.tipo==="producto"&&cat.personas?" · "+cat.personas+"pax":""}
                       </div>
                     </div>
                   </div>
@@ -365,6 +394,33 @@ function DestinosTab({ draft, set, destCatalog }) {
               Sin destinos disponibles para este perfil.
             </div>
           )}
+        </div>
+      )}
+
+      {/* Productos adicionales — sin calificacion */}
+      {productos.length > 0 && (
+        <div style={{marginTop:14}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#0288d1",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>
+            📦 Productos adicionales — {productos.length} disponible{productos.length>1?"s":""}
+          </div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+            {productos.map(function(prod){
+              var yaSel = selIds.includes(prod.id);
+              return (
+                <button key={prod.id} disabled={yaSel} onClick={function(){ if(!yaSel) addProducto(prod); }}
+                  style={{padding:"8px 14px",borderRadius:10,cursor:yaSel?"default":"pointer",display:"flex",alignItems:"center",gap:7,
+                    background:yaSel?"rgba(79,195,247,0.15)":"rgba(79,195,247,0.07)",
+                    border:"2px solid "+(yaSel?"rgba(79,195,247,0.5)":"rgba(79,195,247,0.2)"),opacity:yaSel?0.6:1}}>
+                  <span style={{fontSize:18}}>{prod.icon}</span>
+                  <div style={{textAlign:"left"}}>
+                    <div style={{fontSize:12,fontWeight:700,color:yaSel?"#0288d1":"#3d4554"}}>{prod.nombre}</div>
+                    <div style={{fontSize:10,color:"#0288d1"}}>{prod.producto_categoria||"Producto"}{prod.qc&&prod.qc.noches>0?" · "+prod.qc.noches+"n":""}{prod.personas?" · "+prod.personas+"pax":""}</div>
+                  </div>
+                  {yaSel?<span style={{fontSize:12,color:"#0288d1"}}>✓</span>:<span style={{fontSize:11,color:"#4fc3f7"}}>+</span>}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -708,7 +764,7 @@ function VentaResumen({ draft, destCatalog }) {
   );
 }
 
-function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClose, onSave, onBlock, onUnblock }) {
+function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, prodCatalog, onClose, onSave, onBlock, onUnblock }) {
   const [draft, setDraft]           = useState({ ...lead, notas: (lead.notas||[]).map(n => typeof n === "string" ? {ts:TODAY,autor:currentUser.name,tipo:"nota",nota:n} : n) });
   const [tab, setTab]               = useState("datos");
   const [newNota, setNewNota]       = useState("");
@@ -938,7 +994,7 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
 
         {/* TAB: DESTINOS */}
         {tab === "destinos" && canSeePaquete && (
-          <DestinosTab draft={draft} set={set} destCatalog={destCatalog} />
+          <DestinosTab draft={draft} set={set} destCatalog={destCatalog} prodCatalog={prodCatalog} userRol={currentUser.rol||currentUser.role||"vendedor"} />
         )}
 
         {/* TAB: PAGO */}
@@ -954,7 +1010,7 @@ function LeadModal({ lead, users, currentUser, isSupervisor, destCatalog, onClos
         )}
 
         {tab === "emails" && (
-          <EmailPanel lead={draft} currentUser={currentUser} destCatalog={destCatalog} />
+          <EmailPanel lead={draft} currentUser={currentUser} destCatalog={destCatalog} context="seller" />
         )}
 
         {/* TAB: HISTORIAL */}
@@ -1537,7 +1593,7 @@ function CobranzaVendedor({ leads, currentUser, onUpdateLead }) {
 // 
 // VENDEDOR VIEW
 // 
-function VendedorView({ leads, users, currentUser, destCatalog, onUpdateLead, initialLeadId }) {
+function VendedorView({ leads, users, currentUser, destCatalog, prodCatalog, onUpdateLead, initialLeadId }) {
   const [sel,     setSel]    = useState(null);
   useEffect(() => { if (initialLeadId && leads.length) { const f = leads.find(l => l.id === initialLeadId); if (f) setSel(f); } }, [initialLeadId, leads]);
   const [aiLead,  setAiLead] = useState(null);
@@ -1603,7 +1659,7 @@ function VendedorView({ leads, users, currentUser, destCatalog, onUpdateLead, in
           </div>
         </>
       )}
-      {sel && <LeadModal lead={sel} users={users} currentUser={currentUser} isSupervisor={false} destCatalog={destCatalog}
+      {sel && <LeadModal lead={sel} users={users} currentUser={currentUser} isSupervisor={false} destCatalog={destCatalog} prodCatalog={prodCatalog}
         onClose={()=>setSel(null)} onSave={u=>{onUpdateLead(u);}} onBlock={()=>{}} onUnblock={()=>{}} />}
       {aiLead && <LeadAIPanel lead={aiLead} onClose={()=>setAiLead(null)} />}
     </div>
@@ -1619,7 +1675,7 @@ function matchVendedor(lead, user) {
   return vid===user.id || vid===user.dbId || vid===user.authId;
 }
 
-function SupervisorView({ leads, users, currentUser, vistaUserId, destCatalog, onUpdateLead, onBulkReassign, initialLeadId }) {
+function SupervisorView({ leads, users, currentUser, vistaUserId, destCatalog, prodCatalog, onUpdateLead, onBulkReassign, initialLeadId }) {
   const [tab,           setTab]           = useState("pipeline");
   const [selLead,       setSelLead]       = useState(null);
   useEffect(() => { if (initialLeadId && leads.length) { const f = leads.find(l => l.id === initialLeadId); if (f) setSelLead(f); } }, [initialLeadId, leads]);
@@ -1890,7 +1946,7 @@ function SupervisorView({ leads, users, currentUser, vistaUserId, destCatalog, o
       {tab==="briefing" && <BriefingAI leads={leads} users={users} currentUser={currentUser} />}
 
       {selLead && (
-        <LeadModal lead={selLead} users={users} currentUser={currentUser} isSupervisor={true} destCatalog={destCatalog}
+        <LeadModal lead={selLead} users={users} currentUser={currentUser} isSupervisor={true} destCatalog={destCatalog} prodCatalog={prodCatalog}
           onClose={()=>setSelLead(null)} onSave={u=>{onUpdateLead(u);}}
           onBlock={handleBlock} onUnblock={handleUnblock} />
       )}
@@ -2158,6 +2214,7 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId, new
   const [prefillTel,   setPrefillTel] = useState("");
   const [vistaUserId,  setVistaUserId]= useState(null);
   const [destCatalog,  setDestCatalog]= useState([]);
+  const [prodCatalog,  setProdCatalog]= useState([]);
 
   var rolShell  = (shellUser && shellUser.rol) ? shellUser.rol : "vendedor";
   var SUP_ROLES = ["admin", "director", "supervisor"];
@@ -2255,7 +2312,7 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId, new
       });
   }
 
-  // Cargar catalogo de destinos desde Supabase
+  // Cargar catalogo de destinos y productos desde Supabase
   function cargarDestinos() {
     SB.from("destinos_catalog")
       .select("*")
@@ -2264,9 +2321,12 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId, new
       .then(function(res) {
         if (res.data) {
           var mapped = res.data.map(dbToDestinoSeller);
-          setDestCatalog(mapped);
-          // Actualizar la variable global para compatibilidad con funciones que la usan directamente
-          DESTINOS_CATALOG = mapped;
+          var dests = mapped.filter(function(d){ return d.tipo_producto !== "producto"; });
+          var prods = mapped.filter(function(d){ return d.tipo_producto === "producto"; });
+          setDestCatalog(dests);
+          setProdCatalog(prods);
+          DESTINOS_CATALOG = dests;
+          PRODUCTOS_CATALOG = prods;
         }
       });
   }
@@ -2445,8 +2505,8 @@ export default function SellerCRMv3({ currentUser: shellUser, initialLeadId, new
       </div>
 
       {isSup
-        ? <SupervisorView leads={leads} users={usersParaVista} currentUser={mappedUser} vistaUserId={vistaUserId} destCatalog={destCatalog} onUpdateLead={handleUpdateLead} onBulkReassign={handleBulkReassign} initialLeadId={initialLeadId} />
-        : <VendedorView   leads={leads} users={usersParaVista} currentUser={mappedUser}  destCatalog={destCatalog} onUpdateLead={handleUpdateLead} initialLeadId={initialLeadId} />
+        ? <SupervisorView leads={leads} users={usersParaVista} currentUser={mappedUser} vistaUserId={vistaUserId} destCatalog={destCatalog} prodCatalog={prodCatalog} onUpdateLead={handleUpdateLead} onBulkReassign={handleBulkReassign} initialLeadId={initialLeadId} />
+        : <VendedorView   leads={leads} users={usersParaVista} currentUser={mappedUser}  destCatalog={destCatalog} prodCatalog={prodCatalog} onUpdateLead={handleUpdateLead} initialLeadId={initialLeadId} />
       }
 
       {showNuevo && (
