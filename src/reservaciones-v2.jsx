@@ -1437,11 +1437,15 @@ export default function ReservacionesModule(props){
         if (r.error) { setLoading(false); notify("Error al cargar: " + r.error.message); return; }
         var rows = r.data || [];
         var leadIds = Array.from(new Set(rows.map(function(x){return x.lead_id;}).filter(Boolean)));
-        // Fetch leads in one batch
-        SB.from("leads").select("id, nombre, apellido, co_prop, verificacion, estado_civil, edad").in("id", leadIds).limit(50000).then(function(rl){
+        // Batch en chunks de 200 (URL limit)
+        var chunks = [];
+        for (var i=0; i<leadIds.length; i+=200) chunks.push(leadIds.slice(i, i+200));
+        Promise.all(chunks.map(function(ch){
+          return SB.from("leads").select("id, nombre, apellido, co_prop, verificacion, estado_civil, edad").in("id", ch);
+        })).then(function(results){
           setLoading(false);
           var leadMap = {};
-          (rl.data||[]).forEach(function(l){ leadMap[l.id] = l; });
+          results.forEach(function(rl){ (rl.data||[]).forEach(function(l){ leadMap[l.id] = l; }); });
           var mapped = rows.map(function(rv) {
             var local = rvToLocal(rv);
             var ld = rv.lead_id ? leadMap[rv.lead_id] : null;
