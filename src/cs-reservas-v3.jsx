@@ -167,7 +167,7 @@ function leadToMiembro(r) {
   var verif  = r.verificacion || {};
   var exp = Object.assign({}, expRaw, verif);
   // Armar nombre completo
-  var nombre = ((exp.tFirstName||"")+" "+(exp.tLastName||"")).trim() || r.nombre || "Sin nombre";
+  var nombre = ((exp.tFirstName||"")+" "+(exp.tLastName||"")).trim() || ((r.nombre||"")+" "+(r.apellido||"")).trim() || "Sin nombre";
   var coProp = exp.hasPartner ? (((exp.pFirstName||"")+" "+(exp.pLastName||"")).trim()||null) : null;
   // Calcular edad desde fecha de nacimiento
   var edad = 0;

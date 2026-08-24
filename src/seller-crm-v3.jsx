@@ -597,7 +597,7 @@ Responde con EXACTAMENTE este JSON:
       <div style={{ ...S.modalBox, maxWidth:"520px" }} onClick={e => e.stopPropagation()}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"16px" }}>
           <div>
-            <div style={{ fontSize:"17px", fontWeight:"700", color:"#1a1f2e" }}> Analisis AI - {lead.nombre}</div>
+            <div style={{ fontSize:"17px", fontWeight:"700", color:"#1a1f2e" }}> Analisis AI - {lead.nombre}{lead.apellido?" "+lead.apellido:""}</div>
             <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"2px" }}>{lead.emisora} . {STATUS_CFG[lead.status]?.label}</div>
           </div>
           <button style={{ ...S.btn("ghost"), padding:"5px 10px" }} onClick={onClose}></button>
@@ -1275,7 +1275,7 @@ function LeadCard({ lead, isSupervisor, isSelected, onSelect, onClick, onDragSta
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"4px" }}>
         <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
           {isSupervisor && <input type="checkbox" checked={isSelected} onClick={e=>{e.stopPropagation();onSelect(lead.id);}} style={{ cursor:"pointer", accentColor:"#1565c0" }} />}
-          <div style={{ fontSize:"13px", fontWeight:"600", color:lead.bloqueado?"#b91c1c":"#1a1f2e" }}>{lead.nombre}{lead.bloqueado&&" "}</div>
+          <div style={{ fontSize:"13px", fontWeight:"600", color:lead.bloqueado?"#b91c1c":"#1a1f2e" }}>{lead.nombre}{lead.apellido?" "+lead.apellido:""}{lead.bloqueado&&" "}</div>
         </div>
         <div style={{ display:"flex", gap:"4px" }}>
           {isAlert    && <span style={{ fontSize:"9px", padding:"1px 5px", borderRadius:"5px", background:"rgba(251,146,60,0.15)", color:"#925c0a", fontWeight:"700" }}>{dias}d</span>}
@@ -1724,7 +1724,7 @@ function SupervisorView({ leads, users, currentUser, vistaUserId, destCatalog, p
           <div style={{ flex:1 }}>
             <div style={{ fontSize:"13px", fontWeight:"600", color:"#925c0a" }}>{alertas.length} lead{alertas.length>1?"s":""} del equipo sin contacto {ALERT_DAYS}+ dias</div>
             <div style={{ fontSize:"11px", color:"#92400e" }}>
-              {alertas.slice(0,3).map(l=>{const v=users.find(u=>u.id===l.vendedorId);return `${l.nombre} (${v?.name.split(" ")[0]})`;}).join(" . ")}{alertas.length>3?` +${alertas.length-3} mas`:""}
+              {alertas.slice(0,3).map(l=>{const v=users.find(u=>u.id===l.vendedorId);return `${l.nombre}${l.apellido?" "+l.apellido:""} (${v?.name.split(" ")[0]})`;}).join(" . ")}{alertas.length>3?` +${alertas.length-3} mas`:""}
             </div>
           </div>
           <button style={{ ...S.btn("alert"), padding:"5px 10px", fontSize:"11px" }} onClick={()=>setTab("alertas")}>Ver </button>
@@ -1782,7 +1782,7 @@ function SupervisorView({ leads, users, currentUser, vistaUserId, destCatalog, p
                     return (
                       <div key={l.id} onClick={()=>setSelLead(l)} style={{ display:"grid", gridTemplateColumns:"90px 1fr 1fr 90px 90px 1fr", padding:"10px 16px", gap:"8px", borderBottom:"1px solid rgba(74,222,128,0.07)", background:i%2===0?"rgba(74,222,128,0.03)":"transparent", alignItems:"center", cursor:"pointer" }}>
                         <div style={{ fontSize:"11px", color:"#9ca3af" }}>{(l.fecha||l.createdAt||"").split("T")[0]}</div>
-                        <div><div style={{ fontSize:"13px", fontWeight:"600", color:"#1a1f2e" }}>{l.nombre}</div><div style={{ fontSize:"11px", color:"#9ca3af" }}>{l.emisora}</div></div>
+                        <div><div style={{ fontSize:"13px", fontWeight:"600", color:"#1a1f2e" }}>{l.nombre}{l.apellido?" "+l.apellido:""}</div><div style={{ fontSize:"11px", color:"#9ca3af" }}>{l.emisora}</div></div>
                         <div style={{ fontSize:"12px", color:"#6b7280" }}>{v?.name||"--"}</div>
                         <div style={{ fontSize:"13px", fontWeight:"700", color:"#925c0a" }}>{fmtUSD(l.salePrice||0)}</div>
                         <div style={{ fontSize:"12px", fontWeight:"700", color:"#1a7f3c" }}>{fmtUSD(cobrado)}</div>
@@ -1804,7 +1804,7 @@ function SupervisorView({ leads, users, currentUser, vistaUserId, destCatalog, p
                   const v=users.find(u=>u.id===l.vendedorId);
                   return (
                     <div key={l.id} onClick={()=>setSelLead(l)} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 16px", borderRadius:"10px", border:"1px solid rgba(129,140,248,0.2)", background:i%2===0?"rgba(129,140,248,0.04)":"transparent", cursor:"pointer", marginBottom:"6px" }}>
-                      <div><div style={{ fontSize:"13px", fontWeight:"600", color:"#1a1f2e" }}>{l.nombre}</div><div style={{ fontSize:"11px", color:"#9ca3af" }}>{l.folio} . {v?.name}</div></div>
+                      <div><div style={{ fontSize:"13px", fontWeight:"600", color:"#1a1f2e" }}>{l.nombre}{l.apellido?" "+l.apellido:""}</div><div style={{ fontSize:"11px", color:"#9ca3af" }}>{l.folio} . {v?.name}</div></div>
                       <div style={{ textAlign:"right" }}>
                         <div style={{ fontSize:"13px", fontWeight:"700", color:"#1565c0" }}>{fmtUSD(l.salePrice||0)}</div>
                         <div style={{ fontSize:"10px", color:"#9ca3af" }}>{(l.destinos||[]).map(d=>DESTINOS_CATALOG.find(x=>x.id===d.destId)?.nombre).filter(Boolean).join(" + ")}</div>
@@ -1928,7 +1928,7 @@ function SupervisorView({ leads, users, currentUser, vistaUserId, destCatalog, p
               return (
                 <div key={l.id} onClick={()=>setSelLead(l)} style={{ ...S.card, cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center", border:"1px solid rgba(251,146,60,0.25)" }}>
                   <div>
-                    <div style={{ fontSize:"14px", fontWeight:"600", color:"#1a1f2e" }}>{l.nombre}</div>
+                    <div style={{ fontSize:"14px", fontWeight:"600", color:"#1a1f2e" }}>{l.nombre}{l.apellido?" "+l.apellido:""}</div>
                     <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"2px" }}>{v?.name} . {l.emisora} . {STATUS_CFG[l.status].label}</div>
                   </div>
                   <div style={{ textAlign:"right" }}>

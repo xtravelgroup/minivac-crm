@@ -36,8 +36,8 @@ export default function CommunicationsHub({ currentUser, destCatalog, onVerLead 
       // Traer leads del vendedor o todos si admin
       const isAdmin = ["admin","director","supervisor"].includes(currentUser?.role || currentUser?.rol);
       const query = isAdmin
-        ? `leads?select=id,nombre,email,tel,whatsapp,status,destinos,vendedor_id&order=updated_at.desc&limit=100`
-        : `leads?select=id,nombre,email,tel,whatsapp,status,destinos,vendedor_id&vendedor_id=eq.${currentUser?.id}&order=updated_at.desc&limit=100`;
+        ? `leads?select=id,nombre,apellido,email,tel,whatsapp,status,destinos,vendedor_id&order=updated_at.desc&limit=100`
+        : `leads?select=id,nombre,apellido,email,tel,whatsapp,status,destinos,vendedor_id&vendedor_id=eq.${currentUser?.id}&order=updated_at.desc&limit=100`;
       const data = await sbGet(query);
       const leadsArr = Array.isArray(data) ? data.filter(Boolean) : [];
       // Fetch vendedores
@@ -120,7 +120,7 @@ export default function CommunicationsHub({ currentUser, destCatalog, onVerLead 
                 style={{padding:"12px 16px",borderBottom:"1px solid #f1f5f9",cursor:"pointer",background:isSelected?"#eff6ff":"#fff",borderLeft:isSelected?"3px solid #1a3a5c":"3px solid transparent",transition:"all 0.15s"}}
               >
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"4px"}}>
-                  <div style={{fontWeight:"700",fontSize:"14px",color:"#1a3a5c",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{lead.nombre||"Sin nombre"}</div>
+                  <div style={{fontWeight:"700",fontSize:"14px",color:"#1a3a5c",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{(lead.nombre||"")+(lead.apellido?" "+lead.apellido:"")||"Sin nombre"}</div>
                   {total > 0 && <span style={{background:"#1a3a5c",color:"#fff",borderRadius:"20px",padding:"1px 7px",fontSize:"10px",fontWeight:"700",flexShrink:0,marginLeft:"6px"}}>{total}</span>}
                 </div>
                 <div style={{fontSize:"12px",color:"#64748b",marginBottom:"6px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lead.email||lead.tel||"Sin contacto"}</div>
@@ -153,7 +153,7 @@ export default function CommunicationsHub({ currentUser, destCatalog, onVerLead 
                   {(selLead.nombre||"?").charAt(0)}
                 </div>
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:"800",fontSize:"16px",color:"#1a3a5c"}}>{selLead.nombre}</div>
+                  <div style={{fontWeight:"800",fontSize:"16px",color:"#1a3a5c"}}>{selLead.nombre}{selLead.apellido?" "+selLead.apellido:""}</div>
                   <div style={{fontSize:"12px",color:"#64748b",display:"flex",gap:"12px",marginTop:"2px"}}>
                     {selLead.email && <span>✉️ {selLead.email}</span>}
                     {selLead.tel   && <span>📞 {selLead.tel}</span>}

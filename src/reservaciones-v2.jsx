@@ -282,7 +282,7 @@ function FormModal(props){
 
   useEffect(function(){
     SB.from("leads")
-      .select("id, folio, nombre, co_prop, tel, email, membresia, vigencia, saldo_pendiente, estado_civil, verificacion, destinos")
+      .select("id, folio, nombre, apellido, co_prop, tel, email, membresia, vigencia, saldo_pendiente, estado_civil, verificacion, destinos")
       .order("nombre", {ascending: true})
       .then(function(res){
         if(!res.error){
@@ -294,7 +294,7 @@ function FormModal(props){
             return {
               id:          l.id,
               folio:       l.folio || "",
-              nombre:      l.nombre || "",
+              nombre:      ((l.nombre||"")+(l.apellido?" "+l.apellido:"")).trim() || "",
               coProp:      l.co_prop || "",
               tel:         l.tel || "",
               email:       l.email || "",
@@ -1292,6 +1292,8 @@ function CalView(props){
   for(var ri=0;ri<reservas.length;ri++){
     if(selDia>=reservas[ri].checkin&&selDia<reservas[ri].checkout) selRes.push(reservas[ri]);
   }
+  var CAL_STATUS_ORDER={confirmada:1,vlo_proceso:2,en_proceso:2,en_reserva:3,solicitud:4,solicitada:4,rechazado_hotel:5,rechazada:5,cancelada:6,completada:7};
+  selRes.sort(function(a,b){ return (CAL_STATUS_ORDER[a.status]||9)-(CAL_STATUS_ORDER[b.status]||9); });
 
   return (
     <div style={{display:"flex",gap:"16px",padding:"16px 24px",flexWrap:"wrap"}}>
@@ -1428,36 +1430,42 @@ export default function ReservacionesModule(props){
   // ── Cargar desde Supabase
   function cargarReservas() {
     SB.from("reservaciones")
-      .select("*, leads(nombre, co_prop, verificacion, estado_civil, edad)")
+      .select("*")
       .order("created_at", { ascending: false })
+      .limit(50000)
       .then(function(r) {
-        setLoading(false);
-        if (r.error) { notify("Error al cargar: " + r.error.message); return; }
-        var mapped = (r.data || []).map(function(rv) {
-          var local = rvToLocal(rv);
-          if (rv.leads) {
-            if (rv.leads.nombre) local.cliente = rv.leads.nombre;
-            if (rv.leads.co_prop) local.co_prop = rv.leads.co_prop;
-            if (rv.leads.estado_civil) local.estado_civil = rv.leads.estado_civil;
-            if (rv.leads.edad) {
-              local.edad_titular = rv.leads.edad;
+        if (r.error) { setLoading(false); notify("Error al cargar: " + r.error.message); return; }
+        var rows = r.data || [];
+        var leadIds = Array.from(new Set(rows.map(function(x){return x.lead_id;}).filter(Boolean)));
+        // Fetch leads in one batch
+        SB.from("leads").select("id, nombre, apellido, co_prop, verificacion, estado_civil, edad").in("id", leadIds).limit(50000).then(function(rl){
+          setLoading(false);
+          var leadMap = {};
+          (rl.data||[]).forEach(function(l){ leadMap[l.id] = l; });
+          var mapped = rows.map(function(rv) {
+            var local = rvToLocal(rv);
+            var ld = rv.lead_id ? leadMap[rv.lead_id] : null;
+            if (ld) {
+              if (ld.nombre) local.cliente = ld.nombre + (ld.apellido?" "+ld.apellido:"");
+              if (ld.co_prop) local.co_prop = ld.co_prop;
+              if (ld.estado_civil) local.estado_civil = ld.estado_civil;
+              if (ld.edad) local.edad_titular = ld.edad;
+              var verif = ld.verificacion;
+              if (verif) {
+                local.tNombre    = (verif.tFirstName||"") + " " + (verif.tLastName||"");
+                local.tFechaNac  = verif.tFechaNac || "";
+                local.hasPartner = verif.hasPartner || false;
+                local.pNombre    = verif.hasPartner ? ((verif.pFirstName||"") + " " + (verif.pLastName||"")) : "";
+                local.pFechaNac  = verif.hasPartner ? (verif.pFechaNac || "") : "";
+                if(verif.tFechaNac) local.edad_titular = Math.floor((Date.now()-new Date(verif.tFechaNac).getTime())/31557600000);
+                if(verif.pFechaNac) local.edad_coprop  = Math.floor((Date.now()-new Date(verif.pFechaNac).getTime())/31557600000);
+                if(verif.tEstadoCivil) local.estado_civil = verif.tEstadoCivil;
+              }
             }
-            var verif = rv.leads.verificacion;
-            if (verif) {
-              local.tNombre    = (verif.tFirstName||"") + " " + (verif.tLastName||"");
-              local.tFechaNac  = verif.tFechaNac || "";
-              local.hasPartner = verif.hasPartner || false;
-              local.pNombre    = verif.hasPartner ? ((verif.pFirstName||"") + " " + (verif.pLastName||"")) : "";
-              local.pFechaNac  = verif.hasPartner ? (verif.pFechaNac || "") : "";
-              // Calcular edades desde fechas de nacimiento
-              if(verif.tFechaNac) local.edad_titular = Math.floor((Date.now()-new Date(verif.tFechaNac).getTime())/31557600000);
-              if(verif.pFechaNac) local.edad_coprop  = Math.floor((Date.now()-new Date(verif.pFechaNac).getTime())/31557600000);
-              if(verif.tEstadoCivil) local.estado_civil = verif.tEstadoCivil;
-            }
-          }
-          return local;
+            return local;
+          });
+          setRes(mapped);
         });
-        setRes(mapped);
       });
   }
 

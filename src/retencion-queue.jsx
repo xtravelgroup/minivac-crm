@@ -189,7 +189,7 @@ export default function RetencionQueue({ currentUser }) {
     var saldo = Math.max(0, (l.sale_price||0) - cobrado);
     return React.createElement("tr", {key:l.id, style:{background:isOpen?"rgba(185,28,28,0.03)":"transparent"}}, [
       React.createElement("td",{key:"f",style:S.td}, React.createElement("span",{style:{fontSize:11,color:C.sub}},toEST(l.retencion_created_at||l.created_at))),
-      React.createElement("td",{key:"n",style:S.td}, React.createElement("span",{style:{fontWeight:600}},l.nombre||"--")),
+      React.createElement("td",{key:"n",style:S.td}, React.createElement("span",{style:{fontWeight:600}},((l.nombre||"")+(l.apellido?" "+l.apellido:""))||"--")),
       React.createElement("td",{key:"t",style:S.td}, React.createElement("span",{style:{fontSize:11,color:C.indigo}},l.whatsapp||l.tel||"--")),
       React.createElement("td",{key:"a",style:S.td}, React.createElement("span",{style:{fontSize:12}},usrMap[l.vendedor_id]||"--")),
       React.createElement("td",{key:"p",style:S.tdc}, React.createElement("span",{style:{fontWeight:700,color:C.violet}},fmtUSD(l.sale_price||0))),
@@ -282,7 +282,7 @@ export default function RetencionQueue({ currentUser }) {
               var diffH = Math.max(0, Math.floor(diffMs/3600000));
               var diffM = Math.max(0, Math.floor((diffMs%3600000)/60000));
               return React.createElement("tr", {key:l.id}, [
-                React.createElement("td",{key:"n",style:S.td}, React.createElement("span",{style:{fontWeight:600}},l.nombre||"--")),
+                React.createElement("td",{key:"n",style:S.td}, React.createElement("span",{style:{fontWeight:600}},((l.nombre||"")+(l.apellido?" "+l.apellido:""))||"--")),
                 React.createElement("td",{key:"t",style:S.td}, React.createElement("span",{style:{fontSize:11,color:C.indigo}},l.whatsapp||l.tel||"--")),
                 React.createElement("td",{key:"a",style:S.tdc}, React.createElement("span",{style:S.bdg(C.amber,"rgba(245,158,11,0.1)")},String(l.retencion_attempts||0))),
                 React.createElement("td",{key:"next",style:S.td}, React.createElement("span",{style:{fontSize:12,fontWeight:700,color:C.amber}},diffH+"h "+diffM+"m")),
@@ -325,7 +325,7 @@ export default function RetencionQueue({ currentUser }) {
               var saldo = Math.max(0, (l.sale_price||0) - cobrado);
               return React.createElement("tr", {key:l.id}, [
                 React.createElement("td",{key:"f",style:S.td}, React.createElement("span",{style:{fontSize:11,color:C.sub}},toEST(l.retencion_created_at||l.created_at))),
-                React.createElement("td",{key:"n",style:S.td}, React.createElement("span",{style:{fontWeight:600,color:C.muted}},l.nombre||"--")),
+                React.createElement("td",{key:"n",style:S.td}, React.createElement("span",{style:{fontWeight:600,color:C.muted}},((l.nombre||"")+(l.apellido?" "+l.apellido:""))||"--")),
                 React.createElement("td",{key:"t",style:S.td}, React.createElement("span",{style:{fontSize:11,color:C.muted}},l.whatsapp||l.tel||"--")),
                 React.createElement("td",{key:"a",style:S.td}, React.createElement("span",{style:{fontSize:12,color:C.muted}},usrMap[l.vendedor_id]||"--")),
                 React.createElement("td",{key:"p",style:S.tdc}, React.createElement("span",{style:{color:C.muted}},fmtUSD(l.sale_price||0))),

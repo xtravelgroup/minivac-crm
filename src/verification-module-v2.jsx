@@ -2103,7 +2103,7 @@ function QueueCard({ lead, onOpen, onTomar, currentUser }) {
 function dbToVerifLead(r) {
   return {
     id:           r.id,
-    nombre:       r.nombre || "",
+    nombre:       ((r.nombre||"")+(r.apellido?" "+r.apellido:"")).trim() || "",
     phone:        r.tel    || r.whatsapp || "",
     radioName:    r.emisora || "",
     sellerName:   (r.vendedor && r.vendedor.nombre) || r.vendedor_nombre || "",
