@@ -64,19 +64,10 @@ export default function AgentStatusBar(props) {
     if (props.onStatusChange) props.onStatusChange(newStatus);
   }
 
-  // Heartbeat every 30s to keep agent "fresh" for the call queue
-  useEffect(function () {
-    if (status !== "available" && status !== "on_call" && status !== "paused") return;
-    function sendHeartbeat() {
-      fetch(SB_URL + "/rest/v1/agent_status?usuario_id=eq." + user.id, {
-        method: "PATCH", headers: HDR,
-        body: JSON.stringify({ last_heartbeat: new Date().toISOString() }),
-      });
-    }
-    sendHeartbeat(); // send immediately when status changes
-    var iv = setInterval(sendHeartbeat, 30000);
-    return function () { clearInterval(iv); };
-  }, [user.id, status]);
+  // Heartbeat vive en useTwilioDevice: solo pinguea si el Device de Twilio
+  // está en estado "registered". Este componente ya no pinguea por su cuenta
+  // para no marcar como fresh a agentes cuyo Device está muerto — eso hacía
+  // que el router les asignara llamadas que jamás sonaban.
 
   // Set offline on unmount
   useEffect(function () {
