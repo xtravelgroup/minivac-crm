@@ -108,24 +108,19 @@ export default function useTwilioDevice(userId, enabled) {
           console.error("Failed to init Twilio Device:", e);
         });
 
-      // Heartbeat every 30s — SOLO si el Device está registrado. Si no,
-      // marca al agente como offline para que el router no le mande llamadas
-      // que timeoutean y saltan al siguiente.
+      // Heartbeat every 30s — SOLO si el Device está registrado. Si el Device
+      // aún no registra o está destruido, dejar de mandar heartbeats: el
+      // last_heartbeat se irá haciendo stale y el router lo excluirá naturalmente
+      // en 5 min sin causar flip-flop del status en la UI del agente.
       heartbeatRef.current = setInterval(function () {
         var dev = deviceRef.current;
-        var registered = !!dev && dev.state === "registered";
-        if (registered) {
+        var state = dev ? dev.state : null;
+        // Considera OK "registered" (SDK 2.x). Si es undefined/registering/destroyed/unregistered → skip.
+        if (state === "registered") {
           fetch(SB_URL + "/rest/v1/agent_status?usuario_id=eq." + userId, {
             method: "PATCH",
             headers: { apikey: SVC_KEY, Authorization: "Bearer " + SVC_KEY, "Content-Type": "application/json" },
             body: JSON.stringify({ last_heartbeat: new Date().toISOString() }),
-          });
-        } else {
-          // Device caído/no registrado → sacar de disponible
-          fetch(SB_URL + "/rest/v1/agent_status?usuario_id=eq." + userId, {
-            method: "PATCH",
-            headers: { apikey: SVC_KEY, Authorization: "Bearer " + SVC_KEY, "Content-Type": "application/json" },
-            body: JSON.stringify({ status: "offline", updated_at: new Date().toISOString() }),
           });
         }
       }, 30000);
