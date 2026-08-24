@@ -195,6 +195,26 @@ serve(async (req) => {
       });
     }
 
+    // Terminal statuses that ALSO orphan acd_queue rows (caller hung up while queued,
+    // busy, failed). Clean up so the "En espera" panel no muestre timbrando por horas.
+    if (["canceled", "busy", "failed", "no-answer"].includes(callStatus)) {
+      await fetch(`${SB_URL}/rest/v1/acd_queue?twilio_call_sid=eq.${sid}`, {
+        method: "DELETE", headers: HDR,
+      });
+      // Reset assigned agent if any
+      try {
+        const clRes = await fetch(`${SB_URL}/rest/v1/call_log?twilio_call_sid=eq.${sid}&select=agent_id&limit=1`, { headers: HDR });
+        const clData = await clRes.json();
+        const aId = Array.isArray(clData) && clData[0] ? clData[0].agent_id : null;
+        if (aId) {
+          await fetch(`${SB_URL}/rest/v1/agent_status?usuario_id=eq.${aId}`, {
+            method: "PATCH", headers: HDR,
+            body: JSON.stringify({ status: "available", updated_at: new Date().toISOString(), last_heartbeat: new Date().toISOString() }),
+          });
+        }
+      } catch (_) {}
+    }
+
     await fetch(`${SB_URL}/rest/v1/call_log?twilio_call_sid=eq.${sid}`, {
       method: "PATCH", headers: HDR,
       body: JSON.stringify(updates),
