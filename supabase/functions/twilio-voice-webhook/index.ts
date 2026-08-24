@@ -486,7 +486,7 @@ serve(async (req) => {
     const disclaimerDial = (!isRetry && qCfg.hasDisclaimer) ? "\n  " + DISCLAIMER_TWIML : "";
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>${disclaimerDial}
-  <Dial timeout="10" action="${statusCallback}" method="POST" record="record-from-answer-dual" recordingStatusCallback="${EVENTS_URL}" recordingStatusCallbackMethod="POST">
+  <Dial timeout="25" action="${statusCallback}" method="POST" record="record-from-answer-dual" recordingStatusCallback="${EVENTS_URL}" recordingStatusCallbackMethod="POST">
     <Client statusCallbackEvent="initiated ringing answered completed" statusCallback="${EVENTS_URL}" statusCallbackMethod="POST">${agentIdentity}</Client>
   </Dial>
 </Response>`;
