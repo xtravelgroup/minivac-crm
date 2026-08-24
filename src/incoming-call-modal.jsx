@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 var SB_URL = "https://gsvnvahrjgswwejnuiyn.supabase.co";
 var SVC_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdm52YWhyamdzd3dlam51aXluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzAxNTA0MiwiZXhwIjoyMDg4NTkxMDQyfQ.-P8KH6yhs6AJ1lUwBrwUpcoZV3KGvM7fDlFM3RsYKxw";
@@ -24,10 +24,34 @@ export default function IncomingCallModal(props) {
   var [showTransfer, setShowTransfer] = useState(false);
   var [agents, setAgents] = useState([]);
   var [transferring, setTransferring] = useState(false);
+  var audioRef = useRef(null);
 
-  // Ring timer
+  // Ring timer + audible ringtone (Twilio Voice SDK no reproduce audio, hay que hacerlo aquí)
   useEffect(function () {
-    if (!incomingCall) { setRingTime(0); return; }
+    if (!incomingCall) {
+      setRingTime(0);
+      // Detener ring
+      if (audioRef.current) {
+        try { audioRef.current.pause(); audioRef.current.currentTime = 0; } catch (_) {}
+      }
+      return;
+    }
+    // Reproducir ring
+    if (!audioRef.current) {
+      audioRef.current = new Audio(SB_URL + "/storage/v1/object/public/audio/phone_ring.wav");
+      audioRef.current.loop = true;
+      audioRef.current.volume = 0.8;
+    }
+    audioRef.current.play().catch(function(e){ console.warn("Ring audio blocked:", e && e.message); });
+    // Notificación del sistema como respaldo (por si el tab está en background)
+    try {
+      if ("Notification" in window && Notification.permission === "granted") {
+        var n = new Notification("Llamada entrante", { body: "Hay una llamada esperando en la línea", tag: "incoming-call" });
+        setTimeout(function(){ try { n.close(); } catch(_) {} }, 20000);
+      } else if ("Notification" in window && Notification.permission !== "denied") {
+        Notification.requestPermission();
+      }
+    } catch (_) {}
     var iv = setInterval(function () { setRingTime(function (p) { return p + 1; }); }, 1000);
     return function () { clearInterval(iv); };
   }, [incomingCall]);
