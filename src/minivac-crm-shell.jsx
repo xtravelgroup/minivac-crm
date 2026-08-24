@@ -523,7 +523,11 @@ export default function MinivacShell() {
   const [newCallPhone, setNewCallPhone] = useState("");
   const CALL_ROLES = ["vendedor", "supervisor", "admin", "director", "especialista_radio", "cs", "cs_gerente", "vlo", "agente_reservas"];
   const canReceiveCalls = user && CALL_ROLES.includes(user.rol);
-  const twilioEnabled = canReceiveCalls && (agentStatus === "available" || agentStatus === "on_call" || agentStatus === "paused");
+  // Device de Twilio se inicializa siempre para roles que reciben llamadas
+  // — sin importar si el AgentStatusBar aún no marcó "available" en la UI.
+  // El router filtra por status=available en el server, así que "paused"/"offline"
+  // en la UI ya bloquea las llamadas sin necesidad de matar el Device.
+  const twilioEnabled = canReceiveCalls;
   const twilio = useTwilioDevice(user ? user.id : null, twilioEnabled);
 
   // Sesión persistente
@@ -671,7 +675,7 @@ export default function MinivacShell() {
             {activo === "seller"       && <SellerCRM currentUser={user} initialLeadId={initialLeadIdRef.current} newCallPhone={newCallPhone} />}
             {activo === "verificacion" && <VerificationModule currentUser={user} initialLeadId={verifLeadId} />}
             {activo === "reservas"     && <Reservaciones currentUser={user} />}
-            {activo === "cs"           && <CSReservas currentUser={user} initialLeadId={csLeadIdRef.current} twilio={twilio} />}
+            {activo === "cs"           && <CSReservas currentUser={user} initialLeadId={csLeadIdRef.current} />}
             {activo === "welcome"     && <WelcomeCalls currentUser={user} onVerCliente={(leadId) => { csLeadIdRef.current = leadId; setActivo("cs"); }} />}
             {activo === "retencion"  && <RetencionQueue currentUser={user} />}
             {activo === "destinos"     && <DestinationsModule />}

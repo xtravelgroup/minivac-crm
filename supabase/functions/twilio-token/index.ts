@@ -64,13 +64,24 @@ serve(async (req) => {
     const identity = "agent_" + userId;
     const token = await createTwilioToken(identity);
 
-    // Upsert agent_status to available
-    const HDR = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" };
-    await fetch(`${SB_URL}/rest/v1/agent_status`, {
-      method: "POST",
-      headers: HDR,
-      body: JSON.stringify({ usuario_id: userId, status: "available", last_heartbeat: new Date().toISOString() }),
-    });
+    // Upsert agent_status: solo actualiza last_heartbeat.
+    // Si la fila no existe, la crea con status='offline' — el agente debe clickear
+    // "Disponible" explícitamente para empezar a recibir llamadas. Esto respeta
+    // el estado actual (offline/paused) cuando el token se refresca cada hora.
+    const HDR = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, "Content-Type": "application/json" };
+    const chk = await fetch(`${SB_URL}/rest/v1/agent_status?usuario_id=eq.${userId}&select=usuario_id`, { headers: HDR });
+    const exists = await chk.json();
+    if (Array.isArray(exists) && exists.length > 0) {
+      await fetch(`${SB_URL}/rest/v1/agent_status?usuario_id=eq.${userId}`, {
+        method: "PATCH", headers: HDR,
+        body: JSON.stringify({ last_heartbeat: new Date().toISOString() }),
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/agent_status`, {
+        method: "POST", headers: HDR,
+        body: JSON.stringify({ usuario_id: userId, status: "offline", last_heartbeat: new Date().toISOString() }),
+      });
+    }
 
     return new Response(JSON.stringify({ token, identity }), { headers: { ...CORS, "Content-Type": "application/json" } });
   } catch (e) {
