@@ -88,31 +88,11 @@ export default function IncomingCallModal(props) {
     }
   }, [activeCall]);
 
-  if (!incomingCall && !activeCall) return null;
-
-  var overlay = {
-    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-    background: "rgba(0,0,0,0.5)", zIndex: 99999,
-    display: "flex", alignItems: "center", justifyContent: "center",
-  };
-
-  var card = {
-    background: "#fff", borderRadius: 20, padding: "30px 36px", minWidth: 320,
-    boxShadow: "0 20px 60px rgba(0,0,0,0.3)", textAlign: "center",
-  };
-
-  var callerParams = incomingCall ? incomingCall.parameters || {} : {};
-  var callerNumber = callerParams.From || "Numero desconocido";
+  // ── Todos los hooks deben ir ANTES del early return para respetar Rules of Hooks
+  var callerParams = incomingCall ? incomingCall.parameters || {} : (activeCall && activeCall.parameters) || {};
+  var callerNumber = callerParams.From || callerParams.To || "Numero desconocido";
   var isInternal = callerNumber.startsWith("client:agent_");
 
-  // For active call, try to get the remote party info
-  if (activeCall && !incomingCall) {
-    var activeParams = activeCall.parameters || {};
-    callerNumber = activeParams.From || activeParams.To || callerNumber;
-    isInternal = callerNumber.startsWith("client:agent_");
-  }
-
-  // Resolve internal caller name
   var [internalName, setInternalName] = useState("");
   useEffect(function () {
     if (!isInternal) { setInternalName(""); return; }
@@ -128,7 +108,6 @@ export default function IncomingCallModal(props) {
       .catch(function () {});
   }, [callerNumber, isInternal]);
 
-  // Resolve external caller lead name
   var [leadName, setLeadName] = useState("");
   useEffect(function () {
     if (isInternal) { setLeadName(""); return; }
@@ -147,6 +126,20 @@ export default function IncomingCallModal(props) {
       })
       .catch(function () {});
   }, [callerNumber, isInternal]);
+
+  // Early return AFTER hooks — no crashea "Rendered more hooks than during the previous render"
+  if (!incomingCall && !activeCall) return null;
+
+  var overlay = {
+    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+    background: "rgba(0,0,0,0.5)", zIndex: 99999,
+    display: "flex", alignItems: "center", justifyContent: "center",
+  };
+
+  var card = {
+    background: "#fff", borderRadius: 20, padding: "30px 36px", minWidth: 320,
+    boxShadow: "0 20px 60px rgba(0,0,0,0.3)", textAlign: "center",
+  };
 
   var displayName = isInternal ? (internalName || "Agente") : (leadName || callerNumber);
 
