@@ -18,6 +18,7 @@ const Reservaciones      = React.lazy(() => import("./reservaciones-v2.jsx"));
 const CSReservas         = React.lazy(() => import("./cs-reservas-v3.jsx"));
 const ExecutiveSuite     = React.lazy(() => import("./executive-suite.jsx"));
 const CommissionsModule  = React.lazy(() => import("./commissions-module.jsx"));
+const ReportsModule      = React.lazy(() => import("./reports-module.jsx"));
 const DestinationsModule = React.lazy(() => import("./destinations-v6.jsx"));
 const AutomationsModule  = React.lazy(() => import("./automations-module.jsx"));
 const RolesPermissions   = React.lazy(() => import("./roles-permissions.jsx"));
@@ -141,6 +142,7 @@ var MODULOS = [
 
   { id: "comisiones",   label: "Comisiones",     icon: "comisiones",   section: "Finanzas",  roles: ["admin","director","supervisor","vendedor","contador","verificador"] },
   { id: "finanzas",     label: "Finanzas P&L",   icon: "comisiones",   section: "Finanzas",  roles: ["admin","director","contador"] },
+  { id: "reportes",     label: "Reportes",       icon: "comisiones",   section: "Finanzas",  roles: ["admin","director","supervisor"] },
   { id: "usuarios",     label: "Usuarios",       icon: "usuarios",     section: "Config",    roles: ["admin","director"] },
   { id: "telefonia",    label: "Gestion Llamadas", icon: "vonage",     section: "Operacion", roles: ["admin","director","supervisor","vendedor","cs","cs_gerente","vlo","agente_reservas","especialista_radio"] },
   { id: "telefono",     label: "Telefono",         icon: "vonage",     section: "Principal", roles: ["admin","director","supervisor","vendedor","cs","cs_gerente","vlo","agente_reservas","especialista_radio"] },
@@ -682,6 +684,7 @@ export default function MinivacShell() {
             {activo === "hoteles"      && <HotelsModule />}
             {/* paquetes eliminado */}
             {activo === "comisiones"   && <CommissionsModule currentUser={user} />}
+            {activo === "reportes"     && <ReportsModule currentUser={user} onVerLead={(leadId) => { initialLeadIdRef.current = leadId; setActivo("seller"); }} />}
             {activo === "finanzas"    && <FinanceModule currentUser={user} />}
             {activo === "usuarios"     && <RolesPermissions currentUser={user} />}
             {activo === "telefonia"    && <TelephonyMgmt currentUser={user} />}
