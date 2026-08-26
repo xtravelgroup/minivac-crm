@@ -2189,7 +2189,7 @@ export default function VerificationModule({ currentUser, initialLeadId }) {
   function cargarVerificadores() {
     SB.from("usuarios")
       .select("id, nombre, rol")
-      .in("rol", ["verificador","admin","director","supervisor"])
+      .in("rol", ["verificador","admin","director","supervisor","cs","cs_gerente"])
       .order("nombre")
       .then(function(res) {
         if (res.data) setVerificadores(res.data);
