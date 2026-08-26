@@ -99,11 +99,11 @@ export default function ExecutiveSuite({ currentUser, onVerLead }) {
   useEffect(function(){
     // Cargar datos en paralelo
     Promise.all([
-      SB.from("leads").select("id, nombre, estado_civil, status, emisora_id, emisora, created_at, sale_price, pago_inicial, pagos_historial, vendedor_id, verificador_id, spot_id"),
-      SB.from("reservaciones").select("id, folio, status, total, fee, checkin, checkout, agente_nombre, created_at, destino_nombre, hotel"),
-      SB.from("radio_spots").select("id, emisora_id, costo, talento, precio_equipo, fecha, semana, dia_semana, hora, duracion, tipo, incidencia"),
-      SB.from("emisoras").select("id, nombre"),
-      SB.from("leads").select("id, nombre, emisora, emisora_id, created_at, status, sale_price"),
+      SB.from("leads").select("id, nombre, estado_civil, status, emisora_id, emisora, created_at, fecha, sale_price, pago_inicial, pagos_historial, vendedor_id, verificador_id, spot_id").limit(50000),
+      SB.from("reservaciones").select("id, folio, status, total, fee, checkin, checkout, agente_nombre, created_at, destino_nombre, hotel").limit(50000),
+      SB.from("radio_spots").select("id, emisora_id, costo, talento, precio_equipo, fecha, semana, dia_semana, hora, duracion, tipo, incidencia").limit(50000),
+      SB.from("emisoras").select("id, nombre").limit(1000),
+      SB.from("leads").select("id, nombre, emisora, emisora_id, created_at, fecha, status, sale_price").limit(50000),
       SB.from("usuarios").select("id, nombre, rol"),
     ]).then(function(results){
       var leads      = (!results[0].error && results[0].data) ? results[0].data : [];
@@ -769,9 +769,10 @@ function TabRadios(props){
   var spotsDia    = spots.filter(function(s){ return s.fecha===diaActual; });
   var spotsSemana = spots.filter(function(s){ var f=s.fecha||""; return f>=lunes&&f<=domingo&&invSpot(s)>0; });
 
-  // Leads
-  var leadsDia = leads.filter(function(l){ return (l.created_at||"").slice(0,10)===diaActual; });
-  var leadsSem = leads.filter(function(l){ var f=(l.created_at||"").slice(0,10); return f>=lunes&&f<=domingo; });
+  // Leads — usar fecha (fecha real del lead) y fallback a created_at
+  function leadDia(l){ return l.fecha || (l.created_at||"").slice(0,10); }
+  var leadsDia = leads.filter(function(l){ return leadDia(l)===diaActual; });
+  var leadsSem = leads.filter(function(l){ var f=leadDia(l); return f>=lunes&&f<=domingo; });
 
   var invDia = spotsDia.reduce(function(t,s){ return t+invSpot(s); },0);
   var invSem = spotsSemana.reduce(function(t,s){ return t+invSpot(s); },0);
