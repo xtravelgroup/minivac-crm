@@ -2287,6 +2287,14 @@ export default function VerificationModule({ currentUser, initialLeadId }) {
       destinos:          u.exp.destinos        || [],
       direccion:         u.exp.address         || null,
     };
+    // Sincronizar columnas nombre/apellido con lo del expediente para que:
+    // 1) el display en otros módulos (seller CRM, welcome, reportes) refleje lo verificado
+    // 2) la búsqueda funcione con el nombre corregido
+    if (u.exp.tFirstName) dbUpdate.nombre   = u.exp.tFirstName;
+    if (u.exp.tLastName)  dbUpdate.apellido = u.exp.tLastName;
+    // También email / tel / whatsapp si el verificador los corrigió
+    if (u.exp.tEmail)     dbUpdate.email    = u.exp.tEmail;
+    if (u.exp.tPhone)     { dbUpdate.tel = u.exp.tPhone; dbUpdate.whatsapp = u.exp.tPhone; }
     // Campos que requieren la migración SQL — solo incluir si tienen valor
     if (u.exp.salePrice)      dbUpdate.sale_price         = u.exp.salePrice;
     if (u.exp.pagoInicial)    dbUpdate.pago_inicial       = u.exp.pagoInicial;
