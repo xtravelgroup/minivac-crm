@@ -1279,7 +1279,13 @@ function SectionPagos({ lead, exp, onAbonoGuardado, onRecargar }) {
                     domain:       sess.widget.domain || "US",
                     otherOptions: { api_key: sess.widget.api_key },
                   });
-                  var options = { payments_session_id: sess.payments_session_id, currency_code: "USD" };
+                  var options = {
+                    payments_session_id: sess.payments_session_id,
+                    currency_code:       "USD",
+                    amount:              String(Number(m).toFixed(2)),
+                    transaction_type:    "charge",
+                    business_name:       "Mini-Vac Vacation Club",
+                  };
                   instance.requestPaymentMethod(options)
                     .then(function(result){
                       setCobrando(false);
