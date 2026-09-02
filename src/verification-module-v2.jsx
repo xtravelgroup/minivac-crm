@@ -1256,7 +1256,8 @@ function SectionPagos({ lead, exp, onAbonoGuardado, onRecargar }) {
                   return;
                 }
 
-                // Sin tarjeta guardada → hosted payment link Zoho (abrir en tab nueva)
+                // Sin tarjeta guardada → widget Zoho SDK v2
+                if (!window.ZPayments) { setCobrando(false); setErr("SDK Zoho no cargado — refresca la página"); return; }
                 fetch(EDGE_URL + "/create-session", {
                   method:"POST", headers:AUTH_HDR,
                   body: JSON.stringify({
@@ -1269,22 +1270,37 @@ function SectionPagos({ lead, exp, onAbonoGuardado, onRecargar }) {
                 })
                 .then(function(r){ return r.json(); })
                 .then(function(sess){
-                  setCobrando(false);
-                  if (sess.error) { setErr("Error sesión: "+sess.error); return; }
-                  var url = sess.payment_url;
-                  if (!url) { setErr("Zoho no devolvió link de pago"); return; }
-                  // Abrir hosted page en tab nueva
-                  window.open(url, "_blank", "noopener");
-                  // Registrar el intento (pending) — el webhook actualizará status cuando Zoho confirme
-                  var nuevo = { id:"P"+Date.now(), monto:m, metodo:"tarjeta",
-                    referencia:"Zoho-"+(sess.payments_session_id||"pending"),
-                    concepto:concepto||"Abono tarjeta",
-                    fecha:new Date().toISOString(), por:"Verificador",
-                    status:"pending", payment_url:url };
-                  var nuevosAbonos = (exp.pagosHistorial||[]).concat([nuevo]);
-                  SB.from("leads").update({pagos_historial:nuevosAbonos}).eq("id",lead.id)
-                    .then(function(res2){
-                      if (!res2.error){ setMonto(""); setConcepto("Abono"); if(onAbonoGuardado) onAbonoGuardado(nuevosAbonos); }
+                  if (sess.error) { setCobrando(false); setErr("Error sesión: "+sess.error); return; }
+                  if (!sess.widget || !sess.payments_session_id) {
+                    setCobrando(false); setErr("Sesión Zoho incompleta"); return;
+                  }
+                  var instance = new window.ZPayments({
+                    account_id:   sess.widget.account_id,
+                    domain:       sess.widget.domain || "US",
+                    otherOptions: { api_key: sess.widget.api_key },
+                  });
+                  var options = { payments_session_id: sess.payments_session_id, currency_code: "USD" };
+                  instance.requestPaymentMethod(options)
+                    .then(function(result){
+                      setCobrando(false);
+                      try { instance.close(); } catch(_){}
+                      var payId = (result && (result.payment_id || result.paymentId)) || "Zoho-OK";
+                      var last4 = result && result.card ? (result.card.last_four_digits||"") : "";
+                      var nuevo = { id:"P"+Date.now(), monto:m, metodo:"tarjeta",
+                        referencia:payId, last4:last4,
+                        concepto:concepto||"Abono tarjeta",
+                        fecha:new Date().toISOString(), por:"Verificador" };
+                      var nuevosAbonos = (exp.pagosHistorial||[]).concat([nuevo]);
+                      SB.from("leads").update({pagos_historial:nuevosAbonos}).eq("id",lead.id)
+                        .then(function(res2){
+                          if (!res2.error){ setMonto(""); setConcepto("Abono"); if(onAbonoGuardado) onAbonoGuardado(nuevosAbonos); }
+                          else setErr("Cobrado pero error al guardar: "+res2.error.message);
+                        });
+                    })
+                    .catch(function(err){
+                      setCobrando(false); try { instance.close(); } catch(_){}
+                      if (err && err.code === "widget_closed") return; // usuario cerró
+                      setErr("Pago no completado: " + (err && (err.message || JSON.stringify(err))));
                     });
                 })
                 .catch(function(e){ setCobrando(false); setErr("Error sesión Zoho: "+e.message); });
