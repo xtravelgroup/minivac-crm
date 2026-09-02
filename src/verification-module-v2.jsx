@@ -1256,11 +1256,11 @@ function SectionPagos({ lead, exp, onAbonoGuardado, onRecargar }) {
                   return;
                 }
 
-                // Sin tarjeta guardada → widget Zoho
-                if (!window.ZPayments) { setCobrando(false); setErr("SDK Zoho no disponible"); return; }
+                // Sin tarjeta guardada → hosted payment link Zoho (abrir en tab nueva)
                 fetch(EDGE_URL + "/create-session", {
                   method:"POST", headers:AUTH_HDR,
                   body: JSON.stringify({
+                    lead_id: lead.id,
                     amount:  m,
                     folio:   lead.id,
                     nombre:  exp.tFirstName + " " + exp.tLastName,
@@ -1269,25 +1269,23 @@ function SectionPagos({ lead, exp, onAbonoGuardado, onRecargar }) {
                 })
                 .then(function(r){ return r.json(); })
                 .then(function(sess){
-                  if (sess.error) { setCobrando(false); setErr("Error sesión: "+sess.error); return; }
-                  var zp = new window.ZPayments(ZOHO_API_KEY);
-                  zp.pay({
-                    hostedpage_id: sess.hostedpage_id || sess.id,
-                    success: function(data){
-                      setCobrando(false);
-                      var nuevo = { id:"P"+Date.now(), monto:m, metodo:"tarjeta",
-                        referencia:data.payment_id||"Zoho-OK", concepto:concepto||"Abono tarjeta",
-                        fecha:new Date().toISOString(), por:"Verificador" };
-                      var nuevosAbonos = (exp.pagosHistorial||[]).concat([nuevo]);
-                      SB.from("leads").update({pagos_historial:nuevosAbonos}).eq("id",lead.id)
-                        .then(function(res2){
-                          if (!res2.error){ setMonto(""); setConcepto("Abono"); if(onAbonoGuardado) onAbonoGuardado(nuevosAbonos); }
-                          else setErr("Cobrado pero error al guardar: "+res2.error.message);
-                        });
-                    },
-                    failure: function(err){ setCobrando(false); setErr("Pago rechazado: "+(err.message||err)); },
-                    cancel:  function(){ setCobrando(false); },
-                  });
+                  setCobrando(false);
+                  if (sess.error) { setErr("Error sesión: "+sess.error); return; }
+                  var url = sess.payment_url;
+                  if (!url) { setErr("Zoho no devolvió link de pago"); return; }
+                  // Abrir hosted page en tab nueva
+                  window.open(url, "_blank", "noopener");
+                  // Registrar el intento (pending) — el webhook actualizará status cuando Zoho confirme
+                  var nuevo = { id:"P"+Date.now(), monto:m, metodo:"tarjeta",
+                    referencia:"Zoho-"+(sess.payments_session_id||"pending"),
+                    concepto:concepto||"Abono tarjeta",
+                    fecha:new Date().toISOString(), por:"Verificador",
+                    status:"pending", payment_url:url };
+                  var nuevosAbonos = (exp.pagosHistorial||[]).concat([nuevo]);
+                  SB.from("leads").update({pagos_historial:nuevosAbonos}).eq("id",lead.id)
+                    .then(function(res2){
+                      if (!res2.error){ setMonto(""); setConcepto("Abono"); if(onAbonoGuardado) onAbonoGuardado(nuevosAbonos); }
+                    });
                 })
                 .catch(function(e){ setCobrando(false); setErr("Error sesión Zoho: "+e.message); });
               }}>
